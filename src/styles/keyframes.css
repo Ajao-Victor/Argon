@@ -1,0 +1,20 @@
+/*
+ * Motion primitives that live outside Tailwind (doc/design.md §3).
+ * Tailwind's `animate-*` utilities cover hour-pulse, glitch, breathe, ticker, pending-bar.
+ * This file holds the reduced-motion contract, which must win over every utility.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Ticker pauses on hover (design.md §3.4) */
+.ticker-track:hover {
+  animation-play-state: paused;
+}

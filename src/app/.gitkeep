@@ -1,2 +1,0 @@
-# Routes: /, /app, /app/deposit, /app/withdraw, /app/forecasts, /app/activity, api/agent (optional proxy).
-# Populated by `create-next-app` in build-order step 1. Providers mount under /app only.

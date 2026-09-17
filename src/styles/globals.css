@@ -1,0 +1,61 @@
+@import './tokens.css';
+@import './keyframes.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    background-color: var(--void);
+  }
+
+  body {
+    background-color: var(--void);
+    color: var(--text-hi);
+    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--argon-600);
+    color: var(--text-hi);
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--argon-500);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Glass panel: translucent fill, blur, hairline (design.md §4.1) */
+  .panel {
+    background-color: var(--glass);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-panel);
+  }
+
+  .panel-active {
+    border-color: var(--hairline-strong);
+    box-shadow: 0 0 24px var(--argon-glow);
+  }
+
+  /* 10–11px mono small caps label (design.md §2.7) */
+  .label {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-lo);
+  }
+
+  /* Luminous data text */
+  .glow-text {
+    text-shadow: 0 0 18px var(--argon-glow);
+  }
+}

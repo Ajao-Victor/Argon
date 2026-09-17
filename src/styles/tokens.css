@@ -1,0 +1,48 @@
+/*
+ * Ultraviolet Argon — brand tokens (doc/design.md §2).
+ * Single source of truth for color. tailwind.config.ts maps every utility to these.
+ * There is no light theme in v1 (design.md §5).
+ */
+:root {
+  color-scheme: dark;
+
+  /* 2.1 Canvas and surfaces */
+  --void: #000000;
+  --surface-0: #07060b;
+  --surface-1: #0e0c16;
+  --surface-2: #161322;
+  --glass: rgba(14, 12, 22, 0.55);
+  --glass-blur: 14px;
+  --hairline: rgba(192, 132, 252, 0.14);
+  --hairline-strong: rgba(192, 132, 252, 0.32);
+
+  /* 2.2 Argon accent ramp (primary) */
+  --argon-300: #d8b4fe;
+  --argon-400: #c084fc;
+  --argon-500: #a855f7;
+  --argon-600: #7e22ce;
+  --argon-glow: rgba(168, 85, 247, 0.45);
+  --plasma-400: #f0abfc;
+  --plasma-500: #e879f9;
+
+  /* 2.3 Secondary accent — links and data lineage only */
+  --ion-400: #22d3ee;
+  --ion-glow: rgba(34, 211, 238, 0.35);
+
+  /* 2.4 Semantic */
+  --signal-up: #34d399;
+  --signal-down: #fb7185;
+  --signal-warn: #fbbf24;
+  --signal-idle: #8b86a0;
+  --signal-soon: #5b5670;
+
+  /* 2.5 Text */
+  --text-hi: #edeaf6;
+  --text-mid: #b8b3c9;
+  --text-lo: #8b86a0;
+  --text-dim: #5b5670;
+
+  /* 2.8 Radii */
+  --radius-panel: 6px;
+  --radius-chip: 4px;
+}
