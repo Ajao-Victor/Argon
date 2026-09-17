@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-import { Button, Chip, Panel, RevealItem } from '@/components/ui';
+import { Button, Chip, Panel, RevealItem, Term } from '@/components/ui';
 import { useVaultBalances, useWallet } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName } from '@/services/explorer';
@@ -42,7 +42,7 @@ export function WalletStrip({ delay = 0 }: { delay?: number }) {
       </RevealItem>
 
       <RevealItem className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-2 text-[0.75rem] leading-5">
-        <span className="label">idle in vault</span>
+        <span className="label leading-5"><Term id="idle">idle in vault</Term></span>
         {!deployed ? (
           <span className="text-text-dim">vault not deployed on {chainName(chainId)}</span>
         ) : !w.isConnected ? (

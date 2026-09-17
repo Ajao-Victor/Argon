@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { parseUnits } from 'viem';
 
-import { Banner, Button, Panel, TokenInput } from '@/components/ui';
+import { Banner, Button, Panel, Term, TokenInput } from '@/components/ui';
 import { useEmergencyWithdraw, usePoolStatuses, useVaultBalances, useWallet, useWithdraw } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName } from '@/services/explorer';
@@ -124,7 +124,7 @@ export function WithdrawForm() {
             disabled={!w.isConnected || !deployed || wrongChain || busy}
             pending={txBusy(emergency.state)}
           >
-            emergency idle withdraw · all tokens
+            <Term id="emergency">emergency idle withdraw</Term> · all tokens
           </Button>
           <div className="mt-2">
             <TxStatus state={emergency.state} chainId={chainId} />

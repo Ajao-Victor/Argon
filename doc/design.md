@@ -90,7 +90,8 @@ Gate chip is not up/down. `IN` (inside ±2%) uses `--argon-400`. `OUT` uses `--s
 | Role | Font | Fallback | Size / tracking |
 |---|---|---|---|
 | Data, numbers, hashes, tables, tickers | JetBrains Mono | `ui-monospace, SFMono-Regular, Menlo, monospace` | 12–14 px body, `tabular-nums` |
-| Hero number | JetBrains Mono | same | 72–120 px, weight 500, tracking -0.02em |
+| Hero number and action word | Space Grotesk (`.data-hero`) | `Inter, system-ui` | 72–128 px, weight 500, tracking -0.03em, `tabular-nums`. Changed 2026-09-18: the primary data point uses the display face for hierarchy; every other number stays mono. |
+| Secondary labels (`.label-lg`) | JetBrains Mono | same | 12–13 px, uppercase, tracking 0.18em, `--text-lo` |
 | Display headings | Space Grotesk | `Inter, system-ui, sans-serif` | 20–32 px, tracking -0.01em |
 | Labels | JetBrains Mono | same | 10–11 px, uppercase, tracking 0.12em, `--text-lo` |
 

@@ -116,6 +116,29 @@
     color: var(--text-lo);
   }
 
+  /* Secondary label tier (Phase 7 M3): dimmed, uppercase, wide tracking */
+  .label-lg {
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-lo);
+  }
+  @media (min-width: 1024px) {
+    .label-lg {
+      font-size: 0.8125rem;
+    }
+  }
+
+  /* Primary data tier: massive display numerals with tabular figures */
+  .data-hero {
+    font-family: var(--font-display), Inter, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+  }
+
   /* Luminous data text */
   .glow-text {
     text-shadow: 0 0 18px var(--argon-glow);

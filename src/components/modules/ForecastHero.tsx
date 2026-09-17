@@ -1,6 +1,6 @@
 'use client';
 
-import { Banner, Chip, Panel, RevealItem, StaggerText } from '@/components/ui';
+import { Banner, Chip, Panel, RevealItem, StaggerText, Term } from '@/components/ui';
 import { useHashMatch, useLatestForecast, useAgentStatus, usePoolStatuses } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import type { PolicyAction } from '@/types/forecast';
@@ -27,6 +27,15 @@ const ACTION_TONE: Record<PolicyAction, 'down' | 'up' | 'argon' | 'idle'> = {
   warmup: 'idle',
 };
 
+void ACTION_TONE;
+
+const ACTION_CLASS: Record<PolicyAction, string> = {
+  exit: 'text-signal-down',
+  enter: 'text-signal-up',
+  hold: 'text-argon-300',
+  warmup: 'text-text-lo',
+};
+
 export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId; delay?: number }) {
   const latest = useLatestForecast();
   const status = useAgentStatus();
@@ -51,8 +60,8 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
 
   return (
     <Panel
-      label="ETH · 8H AHEAD"
-      meta={hourId !== undefined ? `hour ${hourId} · ${formatHourUtc(hourId)}` : 'no hour'}
+      label={<Term id="gate">ETH · 8H AHEAD</Term>}
+      meta={hourId !== undefined ? <Term id="hourId">{`hour ${hourId} · ${formatHourUtc(hourId)}`}</Term> : 'no hour'}
       active
       className="relative"
       glitch={agentDown && pct === null}
@@ -71,24 +80,31 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
           <span className="text-text-lo">{latest.status === 'pending' ? 'waiting for the agent…' : 'agent and registry both unavailable'}</span>
         </div>
       ) : (
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+        <div className="flex flex-col gap-6">
           <RevealItem>
+            <div className="label-lg mb-3">predicted eth move · next 8 hours</div>
             <StaggerText
               text={formatPct(pct)}
               glitch
-              className={cn('font-mono text-7xl font-medium leading-none tracking-tight glow-text sm:text-8xl lg:text-9xl', signClass)}
+              className={cn('data-hero text-7xl glow-text sm:text-8xl lg:text-[8.5rem]', signClass)}
             />
           </RevealItem>
-          <RevealItem className="flex flex-col gap-2 pb-2">
-            {gate && (
-              <Chip tone={gate === 'IN' ? 'argon' : 'warn'} dot flipKey={gate} className="w-fit">
-                gate {gate}
-              </Chip>
-            )}
+          <RevealItem className="flex flex-wrap items-end gap-x-8 gap-y-4">
             {action && (
-              <Chip tone={ACTION_TONE[action]} flipKey={action} className="w-fit">
-                → {action}
-              </Chip>
+              <div className="flex flex-col gap-2">
+                <div className="label-lg">
+                  <Term id="action">next action</Term>
+                </div>
+                <StaggerText text={action.toUpperCase()} className={cn('data-hero text-5xl sm:text-6xl lg:text-7xl', ACTION_CLASS[action])} />
+              </div>
+            )}
+            {gate && (
+              <div className="flex flex-col gap-2 pb-1">
+                <div className="label-lg">gate</div>
+                <Chip tone={gate === 'IN' ? 'argon' : 'warn'} dot flipKey={gate} className="w-fit">
+                  {gate === 'IN' ? 'inside ±2%' : 'outside ±2%'}
+                </Chip>
+              </div>
             )}
           </RevealItem>
         </div>
@@ -100,11 +116,27 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
         </RevealItem>
       )}
 
-      <RevealItem className="mt-5 flex flex-wrap gap-x-6 gap-y-2 label leading-5">
-        {api && <span>spot <span className="text-text-mid">{formatUsd(api.spotUsd)}</span></span>}
-        <span>model <span className="text-text-mid">{api?.modelId ?? status.data?.modelId ?? '—'}</span></span>
-        <span>gate <span className="text-text-mid">{((api?.gateBps ?? status.data?.gateBps ?? 200) / 100).toFixed(2)}%</span></span>
-        {api && <span>target <span className="text-text-mid">hour {api.targetHourId}</span></span>}
+      <RevealItem className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-hairline pt-5 sm:grid-cols-4">
+        {api && (
+          <div className="flex flex-col gap-1">
+            <span className="label leading-5"><Term id="spot">spot</Term></span>
+            <span className="font-mono text-sm leading-5 text-text-hi">{formatUsd(api.spotUsd)}</span>
+          </div>
+        )}
+        <div className="flex flex-col gap-1">
+          <span className="label leading-5"><Term id="model">model</Term></span>
+          <span className="font-mono text-sm leading-5 text-text-hi">{api?.modelId ?? status.data?.modelId ?? '—'}</span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="label leading-5"><Term id="gate">gate</Term></span>
+          <span className="font-mono text-sm leading-5 text-text-hi">±{((api?.gateBps ?? status.data?.gateBps ?? 200) / 100).toFixed(2)}%</span>
+        </div>
+        {api && (
+          <div className="flex flex-col gap-1">
+            <span className="label leading-5"><Term id="targetHour">target</Term></span>
+            <span className="font-mono text-sm leading-5 text-text-hi">hour {api.targetHourId}</span>
+          </div>
+        )}
       </RevealItem>
     </Panel>
   );

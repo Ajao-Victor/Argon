@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip, HashText, Panel, RevealItem, type ChipTone } from '@/components/ui';
+import { Chip, HashText, Panel, RevealItem, Term, type ChipTone } from '@/components/ui';
 import { useLatestForecast, usePoolStatuses, useVaultBalances, useWallet } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName, txUrl } from '@/services/explorer';
@@ -18,6 +18,30 @@ const TONE: Record<PoolCardStatus, ChipTone> = {
   UNFUNDED: 'idle',
   LINK_SOON: 'soon',
   NOT_DEPLOYED: 'idle',
+};
+
+const STATUS_CLASS: Record<PoolCardStatus, string> = {
+  IN_POOL: 'text-signal-up',
+  IDLE: 'text-text-mid',
+  UNFUNDED: 'text-text-lo',
+  LINK_SOON: 'text-signal-soon',
+  NOT_DEPLOYED: 'text-text-lo',
+};
+
+const STATUS_WORD: Record<PoolCardStatus, string> = {
+  IN_POOL: 'IN POOL',
+  IDLE: 'IDLE',
+  UNFUNDED: 'UNFUNDED',
+  LINK_SOON: 'SOON',
+  NOT_DEPLOYED: 'OFFLINE',
+};
+
+const STATUS_TERM: Record<PoolCardStatus, 'inPool' | 'idle' | 'warmup' | undefined> = {
+  IN_POOL: 'inPool',
+  IDLE: 'idle',
+  UNFUNDED: 'idle',
+  LINK_SOON: undefined,
+  NOT_DEPLOYED: undefined,
 };
 
 export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number }) {
@@ -44,15 +68,18 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
       active={status === 'IN_POOL'}
       delay={delay}
     >
-      <RevealItem className="flex items-start justify-between gap-4">
-        <span className="font-display text-lg text-text-hi">
-          {pool.pair[0]} / {pool.pair[1]}
-        </span>
-        <div className="flex flex-col items-end gap-1">
-          <Chip tone={TONE[status]} dot flipKey={status}>
-            {status === 'NOT_DEPLOYED' ? 'not deployed' : status.replace('_', ' ')}
-          </Chip>
-          {exitPending && <Chip tone="warn">exit pending</Chip>}
+      <RevealItem className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <span className="label-lg">
+            {pool.pair[0]} / {pool.pair[1]}
+          </span>
+          {exitPending ? <Chip tone="warn">exit pending</Chip> : <Chip tone={TONE[status]} dot flipKey={status}>{status === 'NOT_DEPLOYED' ? 'not deployed' : status.replace('_', ' ').toLowerCase()}</Chip>}
+        </div>
+        <div className={cn('data-hero text-4xl sm:text-5xl', STATUS_CLASS[status])}>
+          {(() => {
+            const term = STATUS_TERM[status];
+            return term ? <Term id={term}>{STATUS_WORD[status]}</Term> : STATUS_WORD[status];
+          })()}
         </div>
       </RevealItem>
 
@@ -63,13 +90,13 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
       ) : (
         <RevealItem>
           <dl className="mt-5 grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 gap-y-2 text-[0.75rem] leading-5">
-            <dt className="label leading-5">idle</dt>
+            <dt className="label leading-5"><Term id="idle">idle</Term></dt>
             <dd className="text-text-mid">
               {legs.length === 0 || !address
                 ? '—'
                 : legs.map((b) => `${formatToken(b.idle, b.token.decimals)} ${b.token.symbol}`).join(' · ')}
             </dd>
-            <dt className="label leading-5">last</dt>
+            <dt className="label leading-5"><Term id="lastRebalance">last</Term></dt>
             <dd className="text-text-mid">
               {latest.data?.txHash ? (
                 <HashText value={latest.data.txHash} href={txUrl(pool.chainId, latest.data.txHash)} />

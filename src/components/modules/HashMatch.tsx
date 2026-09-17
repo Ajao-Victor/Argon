@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip, HashText, Panel, RevealItem, type ChipTone } from '@/components/ui';
+import { Chip, HashText, Panel, RevealItem, Term, type ChipTone } from '@/components/ui';
 import { useHashMatch } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { getRegistry } from '@/services/contracts';
@@ -28,16 +28,16 @@ export function HashMatch({ chainId, api, delay = 0 }: { chainId: SupportedChain
   return (
     <Panel label="ON-CHAIN MATCH" meta={explorerName(chainId)} glitch={r.kind === 'mismatch'} active={r.kind === 'match'} delay={delay}>
       <RevealItem>
-      <dl className="grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 gap-y-2 text-[0.75rem] leading-5">
-        <dt className="label leading-5">api</dt>
+      <dl className="grid grid-cols-[5.5rem_1fr] items-baseline gap-x-4 gap-y-2 text-[0.75rem] leading-5">
+        <dt className="label leading-5"><Term id="apiHash">api hash</Term></dt>
         <dd>
           <HashText value={r.apiHash} />
         </dd>
-        <dt className="label leading-5">registry</dt>
+        <dt className="label leading-5"><Term id="registryHash">registry</Term></dt>
         <dd>
           <HashText value={r.chainHash} href={registry ? addressUrl(chainId, registry.address) : undefined} />
         </dd>
-        <dt className="label leading-5">bps</dt>
+        <dt className="label leading-5"><Term id="bps">bps</Term></dt>
         <dd className="text-text-mid">
           {r.apiBps?.toString() ?? '—'} · {r.chainBps?.toString() ?? '—'}
         </dd>
