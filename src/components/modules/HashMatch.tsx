@@ -28,22 +28,22 @@ export function HashMatch({ chainId, api, delay = 0 }: { chainId: SupportedChain
   return (
     <Panel label="ON-CHAIN MATCH" meta={explorerName(chainId)} glitch={r.kind === 'mismatch'} active={r.kind === 'match'} delay={delay}>
       <RevealItem>
-      <dl className="grid grid-cols-[8ch_1fr] gap-x-3 gap-y-1.5 text-[0.75rem]">
-        <dt className="label">api</dt>
+      <dl className="grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 gap-y-2 text-[0.75rem] leading-5">
+        <dt className="label leading-5">api</dt>
         <dd>
           <HashText value={r.apiHash} />
         </dd>
-        <dt className="label">registry</dt>
+        <dt className="label leading-5">registry</dt>
         <dd>
           <HashText value={r.chainHash} href={registry ? addressUrl(chainId, registry.address) : undefined} />
         </dd>
-        <dt className="label">bps</dt>
+        <dt className="label leading-5">bps</dt>
         <dd className="text-text-mid">
           {r.apiBps?.toString() ?? '—'} · {r.chainBps?.toString() ?? '—'}
         </dd>
       </dl>
       </RevealItem>
-      <RevealItem className="mt-3">
+      <RevealItem className="mt-5">
         <Chip tone={l.tone} dot flipKey={r.kind}>
           {l.text}
         </Chip>

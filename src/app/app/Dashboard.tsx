@@ -3,8 +3,9 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useRef } from 'react';
 
-import { ForecastHero, HashMatch, PoolCard, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
+import { ActivityFeed, ForecastHero, HashMatch, PoolCard, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
 import { KeeperAvatar, type Attractor, type FieldMode } from '@/components/simulation';
+import { Panel } from '@/components/ui';
 import { useAgentMode, useAgentStatus, useHashMatch, useLatestForecast } from '@/hooks';
 import { useUiStore } from '@/stores/ui';
 import { POOLS } from '@/types/pools';
@@ -15,7 +16,16 @@ const ParticleField = dynamic(() => import('@/components/simulation/ParticleFiel
   ssr: false,
 });
 
-/** Dense tactical grid (design.md §4.10): hero 6 / keeper 2 / hash 4, pools 3 each, wallet + warmup. */
+/**
+ * Bento grid (Phase 7 M2). 12 columns at xl, 6 at md, 1 on mobile. gap-6.
+ *
+ *   xl:  ┌──────── hero 8 ────────┬─ keeper 4 ─┐
+ *        │        (row-span 2)     ├─ hash 4 ───┤
+ *        ├──────────── warmup 12 ──────────────┤
+ *        ├ pool 3 ┬ pool 3 ┬ pool 3 ┬ pool 3 ──┤
+ *        ├── wallet 5 ──┬──── activity 7 ──────┤
+ *        └──────────────┴──────────────────────┘
+ */
 export function Dashboard() {
   const chainId = useUiStore((s) => s.selectedChainId);
   const latest = useLatestForecast();
@@ -45,45 +55,58 @@ export function Dashboard() {
         className="pointer-events-none fixed inset-0 -z-10 h-full w-full"
       />
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <TelemetryBar />
 
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 lg:col-span-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-6 md:gap-6 xl:grid-cols-12 xl:auto-rows-min">
+          {/* Hero: massive spanning slot */}
+          <div className="md:col-span-6 xl:col-span-8 xl:row-span-2">
             <ForecastHero chainId={chainId} delay={0} />
           </div>
-          <div className="col-span-12 flex items-center justify-center py-4 sm:col-span-6 lg:col-span-2 lg:py-0">
-            <KeeperAvatar
-              ethPctChange={pct ?? null}
-              action={latest.data?.action}
-              warmupComplete={warmupComplete}
-              reachable={latest.status !== 'error' || match.chainPct !== null}
-              mode={mode}
-              hourId={latest.data?.hourId}
-              size={180}
-              onCenterChange={onCenterChange}
-            />
-          </div>
-          <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-            <HashMatch chainId={chainId} api={latest.data} delay={0.08} />
+
+          {/* Keeper */}
+          <Panel label="KEEPER" meta={mode === 'fixture' ? 'training' : 'live'} delay={0.08} className="md:col-span-3 xl:col-span-4">
+            <div className="flex flex-1 items-center justify-center py-2">
+              <KeeperAvatar
+                ethPctChange={pct ?? null}
+                action={latest.data?.action}
+                warmupComplete={warmupComplete}
+                reachable={latest.status !== 'error' || match.chainPct !== null}
+                mode={mode}
+                hourId={latest.data?.hourId}
+                size={168}
+                onCenterChange={onCenterChange}
+              />
+            </div>
+          </Panel>
+
+          {/* Hash match */}
+          <div className="md:col-span-3 xl:col-span-4">
+            <HashMatch chainId={chainId} api={latest.data} delay={0.14} />
           </div>
 
-          <div className="col-span-12">
+          {/* Warmup (hidden once complete) */}
+          <div className="md:col-span-6 xl:col-span-12 empty:hidden">
             <WarmupBar />
           </div>
 
+          {/* Pools */}
           {POOLS.map((p, i) => (
-            <div key={p.id} className="col-span-12 sm:col-span-6 lg:col-span-3">
-              <PoolCard pool={p} delay={0.16 + i * 0.04} />
+            <div key={p.id} className="md:col-span-3 xl:col-span-3">
+              <PoolCard pool={p} delay={0.2 + i * 0.05} />
             </div>
           ))}
 
-          <div className="col-span-12">
-            <WalletStrip delay={0.36} />
+          {/* Wallet + activity */}
+          <div className="md:col-span-6 xl:col-span-5">
+            <WalletStrip delay={0.42} />
+          </div>
+          <div className="md:col-span-6 xl:col-span-7">
+            <ActivityFeed chainId={chainId} />
           </div>
         </div>
 
-        <p className="text-center label text-text-dim">custody on-chain · judgment off-chain · the website is not the keeper</p>
+        <p className="text-center label leading-5 text-text-dim">custody on-chain · judgment off-chain · the website is not the keeper</p>
       </div>
     </div>
   );

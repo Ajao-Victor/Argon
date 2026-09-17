@@ -96,11 +96,11 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
 
       {action && (
         <RevealItem>
-          <p className="mt-4 max-w-xl text-text-mid">{ACTION_COPY[action]}</p>
+          <p className="mt-6 max-w-xl leading-6 text-text-mid">{ACTION_COPY[action]}</p>
         </RevealItem>
       )}
 
-      <RevealItem className="mt-3 flex flex-wrap gap-x-4 gap-y-1 label">
+      <RevealItem className="mt-5 flex flex-wrap gap-x-6 gap-y-2 label leading-5">
         {api && <span>spot <span className="text-text-mid">{formatUsd(api.spotUsd)}</span></span>}
         <span>model <span className="text-text-mid">{api?.modelId ?? status.data?.modelId ?? '—'}</span></span>
         <span>gate <span className="text-text-mid">{((api?.gateBps ?? status.data?.gateBps ?? 200) / 100).toFixed(2)}%</span></span>

@@ -20,7 +20,7 @@ export function AppNav() {
   const mode = useAgentMode();
   return (
     <nav className="sticky top-0 z-20 border-b border-hairline bg-void/80 backdrop-blur-glass">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2">
+      <div className="mx-auto flex h-14 max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 sm:px-6">
         <Link href="/" className="font-display text-lg tracking-tight text-argon-400 glow-text">
           ARGON
         </Link>

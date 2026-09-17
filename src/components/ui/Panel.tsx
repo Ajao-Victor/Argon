@@ -32,11 +32,11 @@ export function Panel({ label, meta, active = false, padded = true, glitch = fal
 
   const inner = (
     <>
-      <header className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2">
-        <span className="label truncate">{label}</span>
-        {meta !== undefined && <span className="label truncate text-text-dim">{meta}</span>}
+      <header className="flex h-11 items-center justify-between gap-4 border-b border-hairline px-5 sm:px-6">
+        <span className="label truncate leading-5">{label}</span>
+        {meta !== undefined && <span className="label truncate leading-5 text-text-dim">{meta}</span>}
       </header>
-      <div className={cn('flex min-h-0 flex-1 flex-col', padded && 'p-3')}>{children}</div>
+      <div className={cn('flex min-h-0 flex-1 flex-col', padded && 'p-5 sm:p-6')}>{children}</div>
     </>
   );
 

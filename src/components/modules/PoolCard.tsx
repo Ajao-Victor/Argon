@@ -44,7 +44,7 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
       active={status === 'IN_POOL'}
       delay={delay}
     >
-      <RevealItem className="flex items-start justify-between gap-2">
+      <RevealItem className="flex items-start justify-between gap-4">
         <span className="font-display text-lg text-text-hi">
           {pool.pair[0]} / {pool.pair[1]}
         </span>
@@ -58,18 +58,18 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
 
       {status === 'LINK_SOON' ? (
         <RevealItem>
-          <p className="mt-3 text-text-lo">LINK — model later</p>
+          <p className="mt-5 leading-5 text-text-lo">LINK — model later</p>
         </RevealItem>
       ) : (
         <RevealItem>
-          <dl className="mt-3 grid grid-cols-[4ch_1fr] gap-x-3 gap-y-1 text-[0.75rem]">
-            <dt className="label">idle</dt>
+          <dl className="mt-5 grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 gap-y-2 text-[0.75rem] leading-5">
+            <dt className="label leading-5">idle</dt>
             <dd className="text-text-mid">
               {legs.length === 0 || !address
                 ? '—'
                 : legs.map((b) => `${formatToken(b.idle, b.token.decimals)} ${b.token.symbol}`).join(' · ')}
             </dd>
-            <dt className="label">last</dt>
+            <dt className="label leading-5">last</dt>
             <dd className="text-text-mid">
               {latest.data?.txHash ? (
                 <HashText value={latest.data.txHash} href={txUrl(pool.chainId, latest.data.txHash)} />
