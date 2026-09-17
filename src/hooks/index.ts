@@ -4,3 +4,4 @@ export * from './useVault';
 export * from './useRegistry';
 export * from './useWallet';
 export * from './useActivity';
+export * from './useSimulationLoop';

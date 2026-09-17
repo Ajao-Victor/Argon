@@ -16,6 +16,7 @@ import type { SupportedChainId } from '@/services/chains';
 import { getVault } from '@/services/contracts';
 import { depositTokens, type TokenDef } from '@/services/tokens';
 import { POOLS, type OnChainPoolStatus, type PoolId } from '@/types/pools';
+import { pauseSimulation, resumeSimulation } from '@/utils/sim/scheduler';
 
 /**
  * Vault hooks (doc/architecture.md §2.1, §2.5). Every read passes `chainId`
@@ -194,12 +195,16 @@ async function runWrite(
   }
 
   setState({ status: 'awaitingSignature', step });
+  // Quiet main thread while the wallet prompt is up (doc/architecture.md §4.3).
+  pauseSimulation('signing');
   let hash: Hash;
   try {
     hash = await writeContract(config, request);
   } catch (err) {
     setState({ status: 'failed', step, error: isUserRejection(err) ? 'signature rejected' : txErrorMessage(err) });
     throw err;
+  } finally {
+    resumeSimulation('signing');
   }
 
   setState({ status: 'pending', step, hash });
