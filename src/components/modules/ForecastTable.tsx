@@ -44,6 +44,7 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
           columns={columns}
           rows={rows}
           rowKey={(r) => r.hourId}
+          refreshKey={history.dataUpdatedAt}
           onRowClick={(r) => setSelected((s) => (s?.hourId === r.hourId ? undefined : r))}
           empty={history.status === 'pending' ? 'loading…' : history.status === 'error' ? 'live agent unreachable' : 'no forecasts yet'}
         />

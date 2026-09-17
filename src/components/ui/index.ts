@@ -12,3 +12,4 @@ export type { Column } from './DataTable';
 export { TokenInput } from './TokenInput';
 export { HashText } from './HashText';
 export { Banner } from './Banner';
+export { Reveal, RevealItem, StaggerText, Magnetic, useMagnetic, ScanLine, useRefreshTick, useHoloSheen } from './motion';

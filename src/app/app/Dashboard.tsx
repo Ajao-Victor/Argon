@@ -50,7 +50,7 @@ export function Dashboard() {
 
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 lg:col-span-6">
-            <ForecastHero chainId={chainId} />
+            <ForecastHero chainId={chainId} delay={0} />
           </div>
           <div className="col-span-12 flex items-center justify-center py-4 sm:col-span-6 lg:col-span-2 lg:py-0">
             <KeeperAvatar
@@ -65,21 +65,21 @@ export function Dashboard() {
             />
           </div>
           <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-            <HashMatch chainId={chainId} api={latest.data} />
+            <HashMatch chainId={chainId} api={latest.data} delay={0.08} />
           </div>
 
           <div className="col-span-12">
             <WarmupBar />
           </div>
 
-          {POOLS.map((p) => (
+          {POOLS.map((p, i) => (
             <div key={p.id} className="col-span-12 sm:col-span-6 lg:col-span-3">
-              <PoolCard pool={p} />
+              <PoolCard pool={p} delay={0.16 + i * 0.04} />
             </div>
           ))}
 
           <div className="col-span-12">
-            <WalletStrip />
+            <WalletStrip delay={0.36} />
           </div>
         </div>
 

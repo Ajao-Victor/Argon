@@ -67,6 +67,10 @@ const config: Config = {
         glow: '0 0 24px var(--argon-glow)',
         'glow-sm': '0 0 16px var(--argon-glow)',
         'glow-ion': '0 0 16px var(--ion-glow)',
+        // design.md §7.2 neon: hover 15px, focus 24px. Transition only, never looping.
+        neon: '0 0 15px var(--argon-500)',
+        'neon-lg': '0 0 24px var(--argon-500)',
+        'neon-up': '0 0 15px var(--signal-up)',
       },
       backdropBlur: {
         glass: '14px',
@@ -104,6 +108,24 @@ const config: Config = {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(300%)' },
         },
+        // Table refresh: one line sweeps top → bottom (design.md §7.2)
+        scanline: {
+          '0%': { transform: 'translateY(-2px)', opacity: '0' },
+          '10%': { opacity: '1' },
+          '100%': { transform: 'translateY(var(--scan-h, 400px))', opacity: '0' },
+        },
+        // Terminal flicker once on refresh
+        flicker: {
+          '0%, 100%': { opacity: '1' },
+          '30%': { opacity: '0.85' },
+          '60%': { opacity: '0.95' },
+        },
+        // Confirmed tx: border flashes signal-up for 1.2 s
+        'confirm-flash': {
+          '0%': { boxShadow: '0 0 0 0 var(--signal-up)' },
+          '30%': { boxShadow: '0 0 15px 0 var(--signal-up)' },
+          '100%': { boxShadow: '0 0 0 0 transparent' },
+        },
       },
       animation: {
         'hour-pulse': 'hour-pulse 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -111,6 +133,9 @@ const config: Config = {
         breathe: 'breathe 4s ease-in-out infinite',
         ticker: 'ticker 40s linear infinite',
         'pending-bar': 'pending-bar 1.2s ease-in-out infinite',
+        scanline: 'scanline 500ms linear 1',
+        flicker: 'flicker 220ms steps(3) 1',
+        'confirm-flash': 'confirm-flash 1.2s ease-out 1',
       },
     },
   },

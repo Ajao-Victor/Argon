@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip, HashText, Panel, type ChipTone } from '@/components/ui';
+import { Chip, HashText, Panel, RevealItem, type ChipTone } from '@/components/ui';
 import { useLatestForecast, usePoolStatuses, useVaultBalances, useWallet } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName, txUrl } from '@/services/explorer';
@@ -20,7 +20,7 @@ const TONE: Record<PoolCardStatus, ChipTone> = {
   NOT_DEPLOYED: 'idle',
 };
 
-export function PoolCard({ pool }: { pool: PoolDef }) {
+export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number }) {
   const { address } = useWallet();
   const statuses = usePoolStatuses(pool.chainId);
   const balances = useVaultBalances(pool.chainId, address);
@@ -42,8 +42,9 @@ export function PoolCard({ pool }: { pool: PoolDef }) {
       meta={`${chainName(pool.chainId)} · ${pool.dex === 'uniswap-v3' ? 'v3' : 'v4'}`}
       className={cn(status === 'LINK_SOON' && 'opacity-60')}
       active={status === 'IN_POOL'}
+      delay={delay}
     >
-      <div className="flex items-start justify-between gap-2">
+      <RevealItem className="flex items-start justify-between gap-2">
         <span className="font-display text-lg text-text-hi">
           {pool.pair[0]} / {pool.pair[1]}
         </span>
@@ -53,12 +54,14 @@ export function PoolCard({ pool }: { pool: PoolDef }) {
           </Chip>
           {exitPending && <Chip tone="warn">exit pending</Chip>}
         </div>
-      </div>
+      </RevealItem>
 
       {status === 'LINK_SOON' ? (
-        <p className="mt-3 text-text-lo">LINK — model later</p>
+        <RevealItem>
+          <p className="mt-3 text-text-lo">LINK — model later</p>
+        </RevealItem>
       ) : (
-        <>
+        <RevealItem>
           <dl className="mt-3 grid grid-cols-[4ch_1fr] gap-x-3 gap-y-1 text-[0.75rem]">
             <dt className="label">idle</dt>
             <dd className="text-text-mid">
@@ -76,7 +79,7 @@ export function PoolCard({ pool }: { pool: PoolDef }) {
               {latest.data && <span className="ml-2 text-text-dim">hour {latest.data.hourId}</span>}
             </dd>
           </dl>
-        </>
+        </RevealItem>
       )}
     </Panel>
   );

@@ -98,6 +98,7 @@ export function DepositForm() {
           onClick={() => token && void deposit.write(token, amount)}
           disabled={Boolean(disabledReason) || amount === 0n || txBusy(deposit.state)}
           pending={txBusy(deposit.state)}
+          success={deposit.state.status === 'confirmed'}
           reason={disabledReason}
         >
           {deposit.state.status === 'confirmed'

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-import { Button, Chip, Panel } from '@/components/ui';
+import { Button, Chip, Panel, RevealItem } from '@/components/ui';
 import { useVaultBalances, useWallet } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName } from '@/services/explorer';
@@ -12,15 +12,15 @@ import { formatToken, truncateAddress } from '@/utils/format';
 import { ConnectButton } from './ConnectButton';
 
 /** Address, chain, idle balances in the vault, deposit/withdraw entry points (design.md §5.2 widget 5). */
-export function WalletStrip() {
+export function WalletStrip({ delay = 0 }: { delay?: number }) {
   const w = useWallet();
   const chainId = useUiStore((s) => s.selectedChainId);
   const balances = useVaultBalances(chainId, w.address);
   const deployed = Boolean(getVault(chainId));
 
   return (
-    <Panel label="WALLET" meta={w.isConnected ? `${chainName(chainId)} · ${chainId}` : 'disconnected'}>
-      <div className="flex flex-wrap items-center gap-3">
+    <Panel label="WALLET" meta={w.isConnected ? `${chainName(chainId)} · ${chainId}` : 'disconnected'} delay={delay}>
+      <RevealItem className="flex flex-wrap items-center gap-3">
         {w.isConnected && w.address ? (
           <>
             <span className="text-text-hi" title={w.address}>
@@ -39,9 +39,9 @@ export function WalletStrip() {
         <div className="ml-auto flex items-center gap-2">
           <ConnectButton size="sm" />
         </div>
-      </div>
+      </RevealItem>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.75rem]">
+      <RevealItem className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.75rem]">
         <span className="label">idle in vault</span>
         {!deployed ? (
           <span className="text-text-dim">vault not deployed on {chainName(chainId)}</span>
@@ -58,9 +58,9 @@ export function WalletStrip() {
             </span>
           ))
         )}
-      </div>
+      </RevealItem>
 
-      <div className="mt-3 flex gap-2">
+      <RevealItem className="mt-3 flex gap-2">
         <Link href="/app/deposit" className="contents">
           <Button size="sm">deposit</Button>
         </Link>
@@ -69,7 +69,7 @@ export function WalletStrip() {
             withdraw
           </Button>
         </Link>
-      </div>
+      </RevealItem>
     </Panel>
   );
 }

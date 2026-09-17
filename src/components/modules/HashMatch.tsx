@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip, HashText, Panel, type ChipTone } from '@/components/ui';
+import { Chip, HashText, Panel, RevealItem, type ChipTone } from '@/components/ui';
 import { useHashMatch } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { getRegistry } from '@/services/contracts';
@@ -20,13 +20,14 @@ const LABEL: Record<ReconciliationKind, { text: string; tone: ChipTone }> = {
   mismatch: { text: 'API ≠ registry', tone: 'down' },
 };
 
-export function HashMatch({ chainId, api }: { chainId: SupportedChainId; api: Forecast | undefined }) {
+export function HashMatch({ chainId, api, delay = 0 }: { chainId: SupportedChainId; api: Forecast | undefined; delay?: number }) {
   const r = useHashMatch(chainId, api);
   const registry = getRegistry(chainId);
   const l = LABEL[r.kind];
 
   return (
-    <Panel label="ON-CHAIN MATCH" meta={explorerName(chainId)} glitch={r.kind === 'mismatch'} active={r.kind === 'match'}>
+    <Panel label="ON-CHAIN MATCH" meta={explorerName(chainId)} glitch={r.kind === 'mismatch'} active={r.kind === 'match'} delay={delay}>
+      <RevealItem>
       <dl className="grid grid-cols-[8ch_1fr] gap-x-3 gap-y-1.5 text-[0.75rem]">
         <dt className="label">api</dt>
         <dd>
@@ -41,11 +42,12 @@ export function HashMatch({ chainId, api }: { chainId: SupportedChainId; api: Fo
           {r.apiBps?.toString() ?? '—'} · {r.chainBps?.toString() ?? '—'}
         </dd>
       </dl>
-      <div className="mt-3">
+      </RevealItem>
+      <RevealItem className="mt-3">
         <Chip tone={l.tone} dot flipKey={r.kind}>
           {l.text}
         </Chip>
-      </div>
+      </RevealItem>
     </Panel>
   );
 }

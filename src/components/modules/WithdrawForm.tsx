@@ -109,6 +109,7 @@ export function WithdrawForm() {
           onClick={() => token && void withdraw.write(token, amount)}
           disabled={Boolean(disabledReason) || amount === 0n || busy}
           pending={txBusy(withdraw.state)}
+          success={withdraw.state.status === 'confirmed'}
           reason={disabledReason}
         >
           {withdraw.state.status === 'confirmed' ? 'confirmed' : txBusy(withdraw.state) ? 'withdraw…' : 'withdraw idle now'}

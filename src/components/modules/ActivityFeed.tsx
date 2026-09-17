@@ -51,6 +51,7 @@ export function ActivityFeed({ chainId }: { chainId: SupportedChainId }) {
         columns={columns}
         rows={rows}
         rowKey={(e) => `${e.txHash}-${e.logIndex}`}
+        refreshKey={activity.dataUpdatedAt}
         empty={
           !deployed
             ? `vault not deployed on ${chainName(chainId)}`

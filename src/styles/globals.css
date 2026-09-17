@@ -40,6 +40,27 @@
     border-radius: var(--radius-panel);
   }
 
+  /* Holographic sheen (design.md §7.2): follows --mx/--my written by a pointer handler. */
+  .panel {
+    position: relative;
+  }
+  .panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+    background:
+      radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(192, 132, 252, 0.16), transparent 60%),
+      conic-gradient(from calc(var(--ma, 0) * 1deg) at var(--mx, 50%) var(--my, 50%), rgba(34, 211, 238, 0.05), rgba(232, 121, 249, 0.06), rgba(168, 85, 247, 0.04), rgba(34, 211, 238, 0.05));
+    mix-blend-mode: screen;
+  }
+  .panel:hover::after {
+    opacity: 1;
+  }
+
   .panel-active {
     border-color: var(--hairline-strong);
     box-shadow: 0 0 24px var(--argon-glow);
