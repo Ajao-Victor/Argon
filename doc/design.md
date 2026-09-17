@@ -274,3 +274,76 @@ There is no light theme in v1. The page always sets `color-scheme: dark`.
 - Icons: Lucide, stroke 1.5, 16 px inline. No icon fonts.
 - Logo: a wordmark in Space Grotesk plus a tube glyph (rounded rectangle with three coil lines), drawn as inline SVG using `--argon-500` and `--plasma-400`.
 - No raster images on `/app`. The landing page may use one hero render of the tube, WebP, under 200 KB.
+
+---
+
+## 7. Tier-1 Interactivity & Simulation Engine
+
+Added 2026-09-18. This section upgrades §3 from "a background that reacts" to "a system that feels alive". Everything here is presentation. It reads the same hooks as the widgets, introduces no new state, no new thresholds, and no new user actions (product.md §3.8 still holds).
+
+### 7.1 The Keeper Avatar
+
+A visual representation of the off-chain agent: the "brain" of the vault. It is not a mascot. It is an instrument that shows, at a glance, how charged the current forecast is and whether the system is live.
+
+**Form.** A hexagonal reactor core rendered as inline SVG driven by Framer Motion. Two eye slits that track the cursor. Three orbital rings at different radii and speeds. Energy arcs that appear between core and rings as intensity rises. A soft radial halo behind everything, pre-rendered as a radial gradient (never an SVG `filter`, which forces a raster pass every frame).
+
+**Inputs.** `ethPctChange`, `action`, `warmupComplete`, agent reachability, agent mode (`live` | `fixture`), and the pointer position. Nothing else.
+
+**Energy states.** Intensity `k = min(|ethPctChange| / 2, 1.5)`, so the gate is `k = 1`.
+
+| State | Condition | Posture |
+|---|---|---|
+| `dormant` | agent unreachable, or no forecast | Rings stopped. Eyes closed to a hairline. Halo at 20%. Slow 6 s breathe. |
+| `warmup` | `warmupComplete === false` | Rings at 25% speed. Eyes half-open. Halo in `--text-lo`. |
+| `calm` | `k < 0.6`, gate `IN` | Rings at base speed. Eyes open, tracking. Halo `--argon-500` at 45%. |
+| `charged` | `0.6 ≤ k < 1`, gate `IN` | Rings 2×. Eyes narrow. One energy arc. Halo `--plasma-500`. Core jitters 1 px at 8 Hz. |
+| `aggressive` | `k ≥ 1`, gate `OUT` | Rings 3.5× and counter-rotating. Eyes slits, tinted `--signal-warn`. Two to three arcs. Halo `--signal-warn` blended into plasma. Core scale 1.06. |
+| `training` | agent mode is `fixture` | Any of the above, but the halo and arcs use `--ion-400` and the core pulses at 1.2 s so nobody mistakes fixture data for live data. |
+
+**Cursor tracking.** One `pointermove` listener on `window` writes to two Framer `MotionValue`s. Springs (`stiffness 120, damping 18`) drive the eye offset and a ±6° tilt of the whole core. Nothing tracks the cursor through React state. On touch devices the avatar idles on a slow figure-eight instead.
+
+**State transitions.** Changing state animates rings, halo color, and eye aperture over 600 ms with `easeOut`. A new `hourId` fires the hour pulse (§3.3) from the avatar's center and a 180 ms glitch on the eyes. An action change to `exit` snaps the eyes to `--signal-warn` first, then eases.
+
+**Placement.** On `/app` the avatar sits in the hero column beside the number. On `/` it is the hero. The particle field's attractor (§7.3) is the avatar's on-screen center, measured by a `ResizeObserver` plus a passive scroll listener, written to a ref.
+
+### 7.2 Micro-interactions and physics
+
+| Interaction | Rule |
+|---|---|
+| **Magnetic buttons** | Within 48 px of the pointer, the button translates toward it by up to 6 px on a spring (`stiffness 300, damping 20`). Release springs back. Only `transform`. Disabled buttons are not magnetic. |
+| **Staggered reveal** | Every panel enters with `opacity 0 → 1` and `y 8 → 0`, children staggered 40 ms. Data values that change (hero number, chips, table cells) reveal character by character over ≤ 240 ms. Never on scroll; only on mount and on data change. |
+| **Holographic hover** | Glass panels carry a conic sheen that follows the pointer through two CSS variables (`--mx`, `--my`) written directly to the element in a `pointermove` handler. No React state. The sheen is an `::after` pseudo-element at 12% opacity, `mix-blend-mode: screen`, and it fades over 300 ms on leave. |
+| **Click feedback** | `whileTap` scale 0.97, glow to `--argon-600`, 90 ms. A confirmed transaction flashes the button border `--signal-up` for 1.2 s. |
+| **Glitch reveal** | Reserved for two moments: a new hourly forecast (the hero number and the ticker) and the error states already listed in §3.5. Three frames of RGB split, 180 ms, once. Never looping. |
+| **Scanline on refresh** | When a data table's rows change, a single 1 px line in `--argon-400` at 35% sweeps top to bottom over 500 ms, and the table opacity flickers `1 → 0.85 → 1` once. Keyed on the query `dataUpdatedAt`. |
+| **Neon glow** | Interactive elements glow `0 0 15px var(--argon-500)` on hover, `0 0 24px` on focus-visible. Glow is a hover transition, never a continuous animation, because `box-shadow` is not compositor-only. |
+
+### 7.3 Fluid particle field
+
+The field (§3.2) becomes a flow field. Particles follow a smooth vector field built from low-frequency sine terms so motion looks like plasma, not confetti. The field has one attractor: the Keeper Avatar.
+
+| Signal | Effect |
+|---|---|
+| `|ethPctChange|` | Flow speed and turbulence amplitude |
+| Gate `IN` | Attractor strength positive: particles spiral inward and orbit the avatar |
+| Gate `OUT` | Attractor strength negative: particles are flung outward |
+| `action` changes to `enter` or `exit` | A 1.4 s surge: attractor strength triples, then decays. Particles visibly rush the avatar, then settle. |
+| New `hourId` | Ring pulse from the attractor |
+| `fixture` mode | Ion tint on 20% of particles |
+
+Budgets are unchanged: ≤ 400 particles desktop, ≤ 150 mobile, DPR ≤ 2, additive blending, one canvas. The field adapts: if the scheduler reports frames over budget, the particle count steps down 10% per second to a floor of 80 until the frame cost recovers.
+
+### 7.4 Performance budget (hard rules)
+
+1. **Continuous animation is `transform` and `opacity` only.** Rings rotate with `rotate`. Eyes move with `translate`. Halo pulses with `opacity` and `scale`. No `filter`, `box-shadow`, `width`, `height`, `top`, `left`, or `background-position` in any looping animation.
+2. **One `requestAnimationFrame` for the whole page**, owned by the scheduler in `utils/sim/scheduler.ts`. Framer Motion runs its own internal loop for springs; that is the only exception, and it idles when values settle.
+3. **The scheduler's frame budget is 4 ms.** If a frame's subscribers cost more than 4 ms, the next frame is dropped. If the rolling average stays over budget, subscribers are told to degrade (the particle field cuts count).
+4. **Canvas pauses** when the document is hidden, when the canvas is outside the viewport (`IntersectionObserver`, 0% threshold), and while any write hook is in `awaitingSignature`.
+5. **No Framer `layout` animations on the page grid.** `layout` is allowed only inside a single panel where the panel's size is fixed by its container.
+6. **Heavy visual components are `React.memo`** with primitive props. Their inputs enter through refs. A React re-render of the dashboard must not touch the canvas or restart a spring.
+7. **Pointer handlers write to refs, `MotionValue`s, or CSS variables.** Never to React state. A `pointermove` that calls `setState` is a bug.
+8. **Reduced motion wins.** Under `prefers-reduced-motion` or the user's `motion: reduced` setting: no canvas, no rings, no glitch, no stagger, no magnetism. The avatar renders as a static glyph with the correct state color.
+
+### 7.5 Landing page exception
+
+The landing page keeps its "no wallet code" rule (architecture.md §4.7): no wagmi, no connectors. It gains a query-only provider so the Keeper Avatar can read the latest forecast through the same `useLatestForecast` hook. The canvas particle field stays off the landing page; the avatar's own halo and rings are the landing motion.
