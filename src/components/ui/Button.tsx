@@ -5,7 +5,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 import { cn } from '@/utils/cn';
 
-import { useMagnetic } from './motion';
+import { SPRING, useMagnetic } from './motion';
 
 /**
  * Terminal-grade button (design.md §3.5, §4.9, §7.2): magnetic within its bounds,
@@ -56,8 +56,8 @@ export function Button({
         style={m.style}
         onPointerMove={m.onPointerMove}
         onPointerLeave={m.onPointerLeave}
-        whileTap={reduced || isDisabled ? {} : { scale: 0.97 }}
-        transition={{ duration: 0.09 }}
+        whileTap={reduced || isDisabled ? {} : { scale: 0.98 }}
+        transition={SPRING.tap}
         className={cn(
           'relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-chip border font-mono uppercase tracking-[0.12em] transition-[box-shadow,background-color,border-color] duration-150',
           size === 'md' ? 'px-4 py-2 text-label' : 'px-2.5 py-1 text-[0.625rem]',

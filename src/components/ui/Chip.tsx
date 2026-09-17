@@ -5,6 +5,8 @@ import type { HTMLAttributes } from 'react';
 
 import { cn } from '@/utils/cn';
 
+import { SPRING } from './motion';
+
 /** Rectilinear status chip. 3D flip when `flipKey` changes (design.md §3.5). Text is always present. */
 export type ChipTone = 'argon' | 'up' | 'down' | 'warn' | 'idle' | 'soon' | 'ion' | 'plain';
 
@@ -51,7 +53,7 @@ export function Chip({ tone = 'plain', dot = false, flipKey, className, children
       className={classes}
       initial={{ rotateX: -90, opacity: 0 }}
       animate={{ rotateX: 0, opacity: 1 }}
-      transition={{ duration: 0.22, ease: 'easeOut' }}
+      transition={SPRING.snappy}
       style={{ transformPerspective: 400, transformOrigin: 'center bottom' }}
       {...(rest as Record<string, unknown>)}
     >

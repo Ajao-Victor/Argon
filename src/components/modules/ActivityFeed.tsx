@@ -13,7 +13,7 @@ import { formatToken } from '@/utils/format';
 const KIND_TONE: Record<ActivityEvent['kind'], ChipTone> = { Deposited: 'up', Withdrawn: 'warn', Rebalanced: 'argon' };
 const ACTION_NAME: Record<number, string> = { 0: 'exit', 1: 'enter', 2: 'hold' };
 
-export function ActivityFeed({ chainId }: { chainId: SupportedChainId }) {
+export function ActivityFeed({ chainId, delay = 0 }: { chainId: SupportedChainId; delay?: number }) {
   const { address } = useWallet();
   const activity = useActivity(chainId, address);
   const deployed = Boolean(getVault(chainId));
@@ -46,7 +46,7 @@ export function ActivityFeed({ chainId }: { chainId: SupportedChainId }) {
   ];
 
   return (
-    <Panel label="ACTIVITY" meta={`${chainName(chainId)} · ${deployed ? `${rows.length} events` : 'vault not deployed'}`} padded={false}>
+    <Panel label="ACTIVITY" meta={`${chainName(chainId)} · ${deployed ? `${rows.length} events` : 'vault not deployed'}`} padded={false} delay={delay}>
       <DataTable
         columns={columns}
         rows={rows}

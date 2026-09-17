@@ -29,7 +29,7 @@ export function LandingHero() {
         size={260}
       />
 
-      <Reveal delay={0.1} className="flex flex-col items-center gap-4 text-center">
+      <Reveal delay={0.18} className="flex flex-col items-center gap-4 text-center">
         <RevealItem>
           <h1 className="font-display text-4xl font-medium leading-tight tracking-tight text-text-hi sm:text-6xl">
             In the pool when the next eight hours look calm.

@@ -13,20 +13,27 @@ import { cn } from '@/utils/cn';
 // ---------------------------------------------------------------------------
 // Reveal: staggered entrance for panels and their children
 // ---------------------------------------------------------------------------
-const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
+/** Shared spring vocabulary (Phase 7 M4). Heavy = panels, snappy = chips/buttons, crisp = text. */
+export const SPRING = {
+  heavy: { type: 'spring', stiffness: 260, damping: 26, mass: 1 },
+  snappy: { type: 'spring', stiffness: 300, damping: 20 },
+  crisp: { type: 'spring', stiffness: 420, damping: 30 },
+  tap: { type: 'spring', stiffness: 500, damping: 30 },
+} as const;
 
 export const revealContainer: Variants = {
-  hidden: { opacity: 0, y: 8 },
+  hidden: { opacity: 0, y: 14, scale: 0.985 },
   show: (delay: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.32, ease: EASE_OUT_EXPO, delay, staggerChildren: 0.04, delayChildren: delay + 0.06 },
+    scale: 1,
+    transition: { ...SPRING.heavy, delay, staggerChildren: 0.05, delayChildren: delay + 0.08 },
   }),
 };
 
 export const revealItem: Variants = {
-  hidden: { opacity: 0, y: 6 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.24, ease: 'easeOut' } },
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: SPRING.snappy },
 };
 
 export interface RevealProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
@@ -69,9 +76,9 @@ export function StaggerText({ text, className, glitch = false }: { text: string;
           key={`${i}-${c}`}
           aria-hidden
           className="inline-block"
-          initial={{ opacity: 0, y: 4 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18, delay: i * per, ease: 'easeOut' }}
+          transition={{ ...SPRING.crisp, delay: i * per }}
         >
           {c}
         </motion.span>

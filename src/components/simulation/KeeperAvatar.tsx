@@ -38,6 +38,7 @@ const COLOR: Record<KeeperState, { halo: string; ring: string; eye: string }> = 
 const TRAINING = { halo: 'var(--ion-400)', ring: 'var(--ion-400)', eye: 'var(--ion-400)' };
 
 const RING_BASE_SEC = 24; // one revolution at ringSpeed 1
+const STATE_SPRING = { type: 'spring', stiffness: 220, damping: 24 } as const;
 
 function hexPoints(r: number): string {
   return Array.from({ length: 6 }, (_, i) => {
@@ -145,7 +146,7 @@ function KeeperAvatarImpl({
               ? { opacity: [energy.halo * 0.5, energy.halo, energy.halo * 0.5], scale: [0.96, 1.04, 0.96] }
               : { opacity: [energy.halo * 0.7, energy.halo, energy.halo * 0.7], scale: [0.98, 1.02, 0.98] }
         }
-        transition={reduced ? { duration: 0.6 } : { duration: mode === 'fixture' ? 1.2 : energy.state === 'dormant' ? 6 : 3, repeat: Infinity, ease: 'easeInOut' }}
+        transition={reduced ? STATE_SPRING : { duration: mode === 'fixture' ? 1.2 : energy.state === 'dormant' ? 6 : 3, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <motion.svg
@@ -165,7 +166,7 @@ function KeeperAvatarImpl({
               key={`${i}-${stateKey}`}
               style={{ originX: '0px', originY: '0px' }}
               animate={ringDur > 0 ? { rotate: 360 * dir } : { rotate: 0 }}
-              transition={ringDur > 0 ? { duration: ringDur * (1 + i * 0.35), repeat: Infinity, ease: 'linear' } : { duration: 0.6 }}
+              transition={ringDur > 0 ? { duration: ringDur * (1 + i * 0.35), repeat: Infinity, ease: 'linear' } : STATE_SPRING}
             >
               <circle r={ring.r} fill="none" stroke={palette.ring} strokeWidth={ring.w} strokeDasharray={ring.dash} opacity={energy.state === 'dormant' ? 0.25 : 0.7} />
             </motion.g>
@@ -183,7 +184,7 @@ function KeeperAvatarImpl({
             strokeLinecap="round"
             initial={false}
             animate={{ opacity: i < energy.arcs ? (reduced ? 0.8 : [0.2, 0.9, 0.2]) : 0 }}
-            transition={i < energy.arcs && !reduced ? { duration: 0.45 + i * 0.12, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.4 }}
+            transition={i < energy.arcs && !reduced ? { duration: 0.45 + i * 0.12, repeat: Infinity, ease: 'easeInOut' } : STATE_SPRING}
           />
         ))}
 
@@ -197,7 +198,7 @@ function KeeperAvatarImpl({
                 ? { scale: energy.coreScale, x: [0, 1, -1, 0], y: [0, -1, 1, 0] }
                 : { scale: energy.coreScale, x: 0, y: 0 }
           }
-          transition={energy.state === 'charged' && !reduced ? { x: { duration: 0.125, repeat: Infinity }, y: { duration: 0.125, repeat: Infinity }, scale: { duration: 0.6 } } : { duration: 0.6, ease: 'easeOut' }}
+          transition={energy.state === 'charged' && !reduced ? { x: { duration: 0.125, repeat: Infinity }, y: { duration: 0.125, repeat: Infinity }, scale: STATE_SPRING } : STATE_SPRING}
         >
           <polygon points={hexPoints(R * 0.36)} fill="var(--surface-1)" stroke={palette.ring} strokeWidth={1.5} />
           <polygon points={hexPoints(R * 0.28)} fill="none" stroke={palette.ring} strokeWidth={0.6} opacity={0.6} />
@@ -209,7 +210,7 @@ function KeeperAvatarImpl({
               className={hourId !== undefined && !reduced ? 'animate-glitch' : undefined}
               style={{ originX: '0px', originY: '0px' }}
               animate={{ scaleY: Math.max(0.06, energy.aperture) }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
+              transition={STATE_SPRING}
             >
               <rect x={-16} y={-4} width={11} height={8} rx={1.5} fill={palette.eye} />
               <rect x={5} y={-4} width={11} height={8} rx={1.5} fill={palette.eye} />

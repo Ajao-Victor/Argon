@@ -65,7 +65,7 @@ export function Dashboard() {
           </div>
 
           {/* Keeper */}
-          <Panel label="KEEPER" meta={mode === 'fixture' ? 'training' : 'live'} delay={0.08} className="md:col-span-3 xl:col-span-4">
+          <Panel label="KEEPER" meta={mode === 'fixture' ? 'training' : 'live'} delay={0.16} className="md:col-span-3 xl:col-span-4">
             <div className="flex flex-1 items-center justify-center py-2">
               <KeeperAvatar
                 ethPctChange={pct ?? null}
@@ -82,7 +82,7 @@ export function Dashboard() {
 
           {/* Hash match */}
           <div className="md:col-span-3 xl:col-span-4">
-            <HashMatch chainId={chainId} api={latest.data} delay={0.14} />
+            <HashMatch chainId={chainId} api={latest.data} delay={0.26} />
           </div>
 
           {/* Warmup (hidden once complete) */}
@@ -93,16 +93,16 @@ export function Dashboard() {
           {/* Pools */}
           {POOLS.map((p, i) => (
             <div key={p.id} className="md:col-span-3 xl:col-span-3">
-              <PoolCard pool={p} delay={0.2 + i * 0.05} />
+              <PoolCard pool={p} delay={0.38 + i * 0.06} />
             </div>
           ))}
 
           {/* Wallet + activity */}
           <div className="md:col-span-6 xl:col-span-5">
-            <WalletStrip delay={0.42} />
+            <WalletStrip delay={0.66} />
           </div>
           <div className="md:col-span-6 xl:col-span-7">
-            <ActivityFeed chainId={chainId} />
+            <ActivityFeed chainId={chainId} delay={0.74} />
           </div>
         </div>
 
