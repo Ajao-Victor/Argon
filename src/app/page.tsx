@@ -1,130 +1,116 @@
+import Link from 'next/link';
+
 import { arbitrum, robinhood } from '@/services/chains';
 
 /**
- * Temporary "System Boot" placeholder to verify tokens, fonts, and the build.
- * Replaced by the landing page in Phase 4. No wallet, no agent calls, no fake numbers.
+ * Landing (spec §5.1 "/"): one-liner, ±2% gate, 8h model, Launch app.
+ * Static. Ships no wallet code and no canvas (architecture.md §4.7).
  */
-type BootState = 'ok' | 'wait' | 'off';
+const STEPS = [
+  { n: '01', title: 'deposit once', body: 'WETH, USDC, or USDG into a per-chain vault. You never mint Uniswap LP yourself.' },
+  { n: '02', title: 'hourly forecast', body: 'At :00 UTC a hosted model infers the ETH % change eight hours ahead and commits its hash on-chain.' },
+  { n: '03', title: 'one gate', body: '|pred| ≥ 2% flattens liquidity into the vault. Inside ±2% the keeper enters or holds the range.' },
+  { n: '04', title: 'verify', body: 'The dashboard shows the API number beside the InferenceRegistry hash. Green means the vault acted on it.' },
+] as const;
 
-const envSet = (v: string | undefined): boolean => Boolean(v && v.trim().length > 0);
+const POOLS = [
+  { id: 1, pair: 'WETH / USDC', chain: `Arbitrum · ${arbitrum.id}`, dex: 'Uniswap v3', live: true },
+  { id: 2, pair: 'LINK / WETH', chain: `Arbitrum · ${arbitrum.id}`, dex: 'Uniswap v3', live: false },
+  { id: 3, pair: 'LINK / USDC', chain: `Arbitrum · ${arbitrum.id}`, dex: 'Uniswap v4', live: false },
+  { id: 4, pair: 'WETH / USDG', chain: `Robinhood · ${robinhood.id}`, dex: 'Uniswap v3', live: true },
+] as const;
 
-const rows: ReadonlyArray<{ state: BootState; label: string; detail: string }> = [
-  { state: 'ok', label: 'runtime', detail: 'next 16 · react 19 · typescript strict' },
-  { state: 'ok', label: 'design system', detail: 'ultraviolet argon · tokens.css · tailwind 3' },
-  { state: 'ok', label: 'wagmi', detail: `chains ${arbitrum.id} ${robinhood.id} · injected connector · ssr` },
-  { state: 'ok', label: 'query', detail: 'tanstack · staleTime 30s · retry 2 · no polling < 30s' },
-  {
-    state: envSet(process.env.NEXT_PUBLIC_AGENT_URL) ? 'wait' : 'off',
-    label: 'agent api',
-    detail: envSet(process.env.NEXT_PUBLIC_AGENT_URL)
-      ? 'NEXT_PUBLIC_AGENT_URL set · client not wired (phase 4)'
-      : 'NEXT_PUBLIC_AGENT_URL unset · fixture mode',
-  },
-  {
-    state: envSet(process.env.NEXT_PUBLIC_VAULT_ARB) ? 'wait' : 'off',
-    label: 'vault · arb',
-    detail: envSet(process.env.NEXT_PUBLIC_VAULT_ARB) ? 'address set · abi not bound' : 'not deployed',
-  },
-  {
-    state: envSet(process.env.NEXT_PUBLIC_REGISTRY_ARB) ? 'wait' : 'off',
-    label: 'registry · arb',
-    detail: envSet(process.env.NEXT_PUBLIC_REGISTRY_ARB) ? 'address set · abi not bound' : 'not deployed',
-  },
-  {
-    state: envSet(process.env.NEXT_PUBLIC_VAULT_RH) ? 'wait' : 'off',
-    label: 'vault · rh',
-    detail: envSet(process.env.NEXT_PUBLIC_VAULT_RH) ? 'address set · abi not bound' : 'not deployed',
-  },
-];
-
-const stateGlyph: Record<BootState, { text: string; className: string }> = {
-  ok: { text: 'ok', className: 'text-signal-up' },
-  wait: { text: '..', className: 'text-signal-warn' },
-  off: { text: '--', className: 'text-signal-idle' },
-};
-
-function Dot({ className }: { className: string }) {
-  return <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${className}`} />;
-}
-
-export default function BootPage() {
+export default function LandingPage() {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-4 px-4 py-12">
-      {/* Telemetry strip (design.md §4.6) */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 label">
-        <span className="flex items-center gap-1.5">
-          <Dot className="bg-signal-up" /> sys <span className="text-text-mid">boot</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Dot className="bg-argon-500" /> arb <span className="text-text-mid">{arbitrum.id}</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Dot className="bg-argon-500" /> rh <span className="text-text-mid">{robinhood.id}</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Dot className="bg-signal-idle" /> agent <span className="text-text-mid">idle</span>
-        </span>
-        <span className="ml-auto text-text-dim">v0.1.0 · phase 3</span>
-      </div>
+    <main className="relative mx-auto flex min-h-dvh max-w-5xl flex-col gap-10 px-4 py-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[60vh]"
+        style={{ background: 'radial-gradient(55% 45% at 50% 20%, rgba(168,85,247,0.16), transparent 70%)' }}
+      />
 
-      {/* Wordmark + pulse */}
-      <section className="panel panel-active relative overflow-hidden p-6">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-plasma-500 animate-hour-pulse"
-        />
-        <div className="label mb-3">argon · eth 8h gate · v1</div>
-        <h1 className="font-display text-5xl font-medium tracking-tight text-argon-400 glow-text sm:text-7xl">
-          ARGON
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <span className="font-display text-lg tracking-tight text-argon-400 glow-text">ARGON</span>
+        <span className="label">eth 8h gate · v1 · arbitrum + robinhood</span>
+      </header>
+
+      <section className="panel panel-active relative overflow-hidden p-6 sm:p-8">
+        <div className="label mb-4">argon · hourly inference · uniswap lp vault</div>
+        <h1 className="font-display text-4xl font-medium leading-tight tracking-tight text-text-hi sm:text-6xl">
+          In the pool when the next eight hours look calm.
+          <br />
+          <span className="text-argon-400 glow-text">In cash when they don&apos;t.</span>
         </h1>
-        <p className="mt-3 max-w-xl text-text-mid">
-          Hourly inference decides when Uniswap LP should be in the pool and when it should sit in
-          cash. Deposit once. The model times the range.
+        <p className="mt-5 max-w-2xl text-text-mid">
+          Concentrated liquidity earns fees only while price stays in range. Argon deposits once, forecasts ETH every
+          hour, and moves Uniswap positions in and out of range on a single public rule. The website is the window.
+          The keeper does the timing.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2 text-label uppercase tracking-[0.12em]">
-          <span className="rounded-chip border border-hairline-strong px-2 py-1 text-argon-300">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Link
+            href="/app"
+            className="inline-flex items-center rounded-chip border border-argon-500 bg-argon-600/30 px-5 py-2.5 text-label uppercase tracking-[0.12em] text-argon-300 transition-[box-shadow,background-color] hover:bg-argon-600/50 hover:shadow-glow-sm"
+          >
+            launch app →
+          </Link>
+          <span className="rounded-chip border border-hairline-strong px-2 py-1 text-label uppercase tracking-[0.12em] text-argon-300">
             |pred| &lt; 2% → in range
           </span>
-          <span className="rounded-chip border border-hairline px-2 py-1 text-signal-warn">
+          <span className="rounded-chip border border-hairline px-2 py-1 text-label uppercase tracking-[0.12em] text-signal-warn">
             |pred| ≥ 2% → flattened
           </span>
-          <span className="rounded-chip border border-hairline px-2 py-1 text-text-lo">
-            warmup 0–7h · no trades
-          </span>
         </div>
       </section>
 
-      {/* Boot log (design.md §4.7 density) */}
+      <section className="grid gap-4 sm:grid-cols-2">
+        {STEPS.map((s) => (
+          <div key={s.n} className="panel p-4">
+            <div className="flex items-baseline gap-3">
+              <span className="font-mono text-plasma-500">{s.n}</span>
+              <span className="font-display text-lg text-text-hi">{s.title}</span>
+            </div>
+            <p className="mt-2 text-text-mid">{s.body}</p>
+          </div>
+        ))}
+      </section>
+
       <section className="panel p-0">
         <div className="flex items-center justify-between border-b border-hairline px-3 py-2">
-          <span className="label">system boot</span>
-          <span className="label text-text-dim">utc</span>
+          <span className="label">pools</span>
+          <span className="label text-text-dim">v1 gate: 1 and 4</span>
         </div>
-        <ol className="divide-y divide-hairline">
-          {rows.map((r) => {
-            const g = stateGlyph[r.state];
-            return (
-              <li key={r.label} className="grid grid-cols-[3ch_12ch_1fr] items-baseline gap-3 px-3 py-1.5 sm:grid-cols-[3ch_16ch_1fr]">
-                <span className={`${g.className}`}>[{g.text}]</span>
-                <span className="text-text-hi">{r.label}</span>
-                <span className="truncate text-text-lo">{r.detail}</span>
-              </li>
-            );
-          })}
-        </ol>
-        <div className="border-t border-hairline px-3 py-2">
-          <div className="relative h-px w-full overflow-hidden bg-surface-2">
-            <div className="absolute inset-y-0 w-1/4 bg-argon-500 animate-pending-bar" />
-          </div>
-          <p className="mt-2 text-text-dim">
-            awaiting phase 4 · ui modules · agent client · fixture forecasts
-          </p>
-        </div>
+        <ul className="divide-y divide-hairline">
+          {POOLS.map((p) => (
+            <li key={p.id} className="grid grid-cols-[3ch_1fr_auto] items-center gap-3 px-3 py-2 text-[0.75rem] sm:grid-cols-[3ch_1fr_1fr_1fr_auto]">
+              <span className="text-text-lo">{p.id}</span>
+              <span className="text-text-hi">{p.pair}</span>
+              <span className="hidden text-text-lo sm:block">{p.chain}</span>
+              <span className="hidden text-text-lo sm:block">{p.dex}</span>
+              <span className={p.live ? 'label text-argon-300' : 'label text-signal-soon'}>{p.live ? 'eth gate' : 'link soon'}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
-      <p className="text-center label text-text-dim animate-breathe">
-        custody on-chain · judgment off-chain · the website is not the keeper
-      </p>
+      <section className="grid gap-4 sm:grid-cols-3">
+        {[
+          ['custody', 'Funds stay in a per-chain vault. Idle balances are always withdrawable. The keeper can only call rebalance with bounds fixed in the contract.'],
+          ['judgment', 'The model runs off-chain on an hourly clock. Its output is hashed to an on-chain registry before any trade.'],
+          ['no keys in the browser', 'The website reads the agent and the chain. It signs deposit and withdraw. It never holds the keeper key.'],
+        ].map(([t, b]) => (
+          <div key={t} className="panel p-4">
+            <div className="label">{t}</div>
+            <p className="mt-2 text-text-mid">{b}</p>
+          </div>
+        ))}
+      </section>
+
+      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-4 label text-text-dim">
+        <span>custody on-chain · judgment off-chain · the website is not the keeper</span>
+        <Link href="/app" className="text-ion-400 hover:underline">
+          open dashboard
+        </Link>
+      </footer>
     </main>
   );
 }

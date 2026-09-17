@@ -41,6 +41,8 @@ export const useUiStore = create<UiState>()(
     }),
     {
       name: 'argon-ui',
+      // Hydrate after mount so the server and first client render agree (CLAUDE.md §2 hydration).
+      skipHydration: true,
       partialize: (s) => ({ selectedChainId: s.selectedChainId, motion: s.motion, field: s.field, sound: s.sound }),
     },
   ),

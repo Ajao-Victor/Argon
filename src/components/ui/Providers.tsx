@@ -1,10 +1,11 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { WagmiProvider } from 'wagmi';
 
 import { wagmiConfig } from '@/services/wagmi';
+import { useUiStore } from '@/stores/ui';
 
 /**
  * Root provider tree: wagmi + TanStack Query.
@@ -27,6 +28,11 @@ function makeQueryClient(): QueryClient {
 export function Providers({ children }: { children: ReactNode }) {
   // useState keeps one client per browser session and avoids sharing across SSR requests.
   const [queryClient] = useState(makeQueryClient);
+
+  // Rehydrate the persisted UI store only on the client, after the first paint.
+  useEffect(() => {
+    void useUiStore.persist.rehydrate();
+  }, []);
 
   return (
     <WagmiProvider config={wagmiConfig}>
