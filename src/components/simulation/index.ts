@@ -1,6 +1,8 @@
-// Simulation layer: ParticleField, TickerTape, Telemetry, HourPulse (doc/design.md §3)
+// Simulation layer: KeeperAvatar, ParticleField, TickerTape, Telemetry, HourPulse (doc/design.md §3, §7)
+export { KeeperAvatar } from './KeeperAvatar';
+export type { KeeperAvatarProps } from './KeeperAvatar';
 export { ParticleField } from './ParticleField';
-export type { ParticleFieldProps, FieldMode } from './ParticleField';
+export type { ParticleFieldProps, FieldMode, Attractor } from './ParticleField';
 export { HourPulse } from './HourPulse';
 export { TickerTape } from './TickerTape';
 export type { TickerItem } from './TickerTape';

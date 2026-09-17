@@ -1,5 +1,6 @@
 // UI primitives: Button, Chip, Panel, DataTable, TokenInput, HashText, Banner (doc/design.md §4)
 export { Providers } from './Providers';
+export { QueryProvider, makeQueryClient } from './QueryProvider';
 export { Panel } from './Panel';
 export type { PanelProps } from './Panel';
 export { Chip, StatusDot } from './Chip';

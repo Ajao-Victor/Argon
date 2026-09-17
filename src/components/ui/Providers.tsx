@@ -7,27 +7,14 @@ import { WagmiProvider } from 'wagmi';
 import { wagmiConfig } from '@/services/wagmi';
 import { useUiStore } from '@/stores/ui';
 
-/**
- * Root provider tree: wagmi + TanStack Query.
- * TanStack Query is the only cache for network and chain data (CLAUDE.md §1.1).
- * Defaults follow doc/agents.md §5: no polling under 30 s, retry 2, refetch on focus.
- */
-function makeQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 30_000,
-        refetchOnWindowFocus: true,
-        retry: 2,
-        retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000),
-      },
-    },
-  });
-}
+import { makeQueryClient } from './QueryProvider';
 
+/**
+ * /app provider tree: wagmi + TanStack Query. TanStack Query is the only cache
+ * for network and chain data (CLAUDE.md §1.1).
+ */
 export function Providers({ children }: { children: ReactNode }) {
-  // useState keeps one client per browser session and avoids sharing across SSR requests.
-  const [queryClient] = useState(makeQueryClient);
+  const [queryClient] = useState<QueryClient>(makeQueryClient);
 
   // Rehydrate the persisted UI store only on the client, after the first paint.
   useEffect(() => {

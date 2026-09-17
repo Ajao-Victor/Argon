@@ -1,105 +1,132 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, type MutableRefObject } from 'react';
 
 import { useSimulationLoop } from '@/hooks/useSimulationLoop';
 import { useUiStore } from '@/stores/ui';
+import type { PolicyAction } from '@/types/forecast';
 import type { GateChip } from '@/utils/policy';
+import { lastFrameCostMs } from '@/utils/sim/scheduler';
 
 /**
- * Ionized argon inside the tube (design.md §3.2). Canvas 2D, additive blending,
- * ≤ 400 particles desktop / 150 mobile, DPR ≤ 2, ≤ 4 ms per frame.
- * Props enter through a ref; the loop never re-subscribes on data change.
+ * Fluid flow field (design.md §7.3). Particles follow a smooth vector field built
+ * from low-frequency sine terms with one attractor: the Keeper Avatar. Gate IN
+ * spirals inward; gate OUT flings outward; an ENTER/EXIT change surges the
+ * attractor for 1.4 s. Adaptive count: if frames run over budget the field
+ * steps down 10%/s to a floor of 80. Pauses when off-screen or hidden.
  *
- * |ethPctChange| → speed. IN → converge on a central band. OUT → pull to edges,
- * warn tint. warmup → sparse and slow. New pulseKey → one expanding ring.
+ * Canvas 2D, additive blending, DPR ≤ 2. Props enter through refs; the loop
+ * never re-subscribes on data change. React.memo with primitive props.
  */
 export type FieldMode = GateChip | 'WARMUP' | 'OFFLINE';
+
+export interface Attractor {
+  x: number; // viewport px
+  y: number;
+}
 
 export interface ParticleFieldProps {
   ethPctChange: number | null;
   mode: FieldMode;
+  action?: PolicyAction | undefined;
+  fixture?: boolean;
   pulseKey?: number | string | undefined;
+  /** Written by the Keeper Avatar. Read every frame. Never causes a render. */
+  attractorRef?: MutableRefObject<Attractor | null> | undefined;
   className?: string;
 }
 
 interface Particle {
-  x: number; // 0..1
-  y: number; // 0..1
+  x: number; // px
+  y: number;
   vx: number;
   vy: number;
   r: number;
-  hue: 0 | 1 | 2; // 0 argon, 1 plasma, 2 ion
-  phase: number;
-}
-
-interface Ring {
-  t: number; // 0..1
+  hue: 0 | 1 | 2 | 3; // argon, plasma, ion, warn-mix
+  life: number;
 }
 
 const ARGON = [168, 85, 247] as const;
 const PLASMA = [232, 121, 249] as const;
 const ION = [34, 211, 238] as const;
 const WARN = [251, 191, 36] as const;
+const FRAME_BUDGET_MS = 4;
+const FLOOR = 80;
 
 function mix(a: readonly [number, number, number], b: readonly [number, number, number], t: number): [number, number, number] {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
-export function ParticleField({ ethPctChange, mode, pulseKey, className }: ParticleFieldProps) {
+function ParticleFieldImpl({ ethPctChange, mode, action, fixture = false, pulseKey, attractorRef, className }: ParticleFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fieldOn = useUiStore((s) => s.field);
 
-  const state = useRef({
+  const s = useRef({
     pct: 0,
     mode: 'WARMUP' as FieldMode,
+    fixture: false,
     particles: [] as Particle[],
-    rings: [] as Ring[],
+    rings: [] as { t: number }[],
     w: 0,
     h: 0,
     dpr: 1,
+    visible: true,
+    target: 400,
+    costEma: 0,
+    lastAdapt: 0,
     lastPulseKey: undefined as number | string | undefined,
+    lastAction: undefined as PolicyAction | undefined,
+    surge: 0, // 0 … 1, decays over 1.4 s
     warnMix: 0,
+    t: 0,
   });
 
-  // Push props into the ref. No effect deps on the loop.
-  state.current.pct = Math.abs(ethPctChange ?? 0);
-  state.current.mode = mode;
-  if (pulseKey !== undefined && pulseKey !== state.current.lastPulseKey) {
-    if (state.current.lastPulseKey !== undefined) state.current.rings.push({ t: 0 });
-    state.current.lastPulseKey = pulseKey;
+  // Push props into the ref.
+  s.current.pct = Math.abs(ethPctChange ?? 0);
+  s.current.mode = mode;
+  s.current.fixture = fixture;
+  if (pulseKey !== undefined && pulseKey !== s.current.lastPulseKey) {
+    if (s.current.lastPulseKey !== undefined) s.current.rings.push({ t: 0 });
+    s.current.lastPulseKey = pulseKey;
+  }
+  if (action !== s.current.lastAction) {
+    if (s.current.lastAction !== undefined && (action === 'enter' || action === 'exit')) s.current.surge = 1;
+    s.current.lastAction = action;
   }
 
-  // Size, DPR, and particle population. Debounced ResizeObserver. Cleanup releases the context.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !fieldOn) return;
-    const s = state.current;
-    let raf: number | null = null;
+    const st = s.current;
+
+    const spawn = (p: Particle | undefined = undefined): Particle => {
+      const np: Particle = p ?? { x: 0, y: 0, vx: 0, vy: 0, r: 1, hue: 0, life: 1 };
+      np.x = Math.random() * st.w;
+      np.y = Math.random() * st.h;
+      np.vx = (Math.random() - 0.5) * 20;
+      np.vy = (Math.random() - 0.5) * 20;
+      np.r = 0.6 + Math.random() * 1.5;
+      const roll = Math.random();
+      np.hue = st.fixture && roll < 0.2 ? 2 : roll < 0.06 ? 2 : roll < 0.4 ? 1 : 0;
+      np.life = 0.6 + Math.random() * 0.4;
+      return np;
+    };
 
     const populate = () => {
-      const mobile = s.w < 640;
-      const target = mobile ? 150 : 400;
-      const ps = s.particles;
-      while (ps.length < target) {
-        ps.push({
-          x: Math.random(), y: Math.random(),
-          vx: (Math.random() - 0.5) * 0.02, vy: (Math.random() - 0.5) * 0.02,
-          r: 0.6 + Math.random() * 1.6,
-          hue: Math.random() < 0.08 ? 2 : Math.random() < 0.35 ? 1 : 0,
-          phase: Math.random() * Math.PI * 2,
-        });
-      }
-      ps.length = target;
+      const mobile = st.w < 640;
+      st.target = mobile ? 150 : 400;
+      const ps = st.particles;
+      while (ps.length < st.target) ps.push(spawn());
+      ps.length = Math.min(ps.length, st.target);
     };
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      s.dpr = Math.min(window.devicePixelRatio || 1, 2);
-      s.w = Math.max(1, Math.floor(rect.width));
-      s.h = Math.max(1, Math.floor(rect.height));
-      canvas.width = Math.floor(s.w * s.dpr);
-      canvas.height = Math.floor(s.h * s.dpr);
+      st.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      st.w = Math.max(1, Math.floor(rect.width));
+      st.h = Math.max(1, Math.floor(rect.height));
+      canvas.width = Math.floor(st.w * st.dpr);
+      canvas.height = Math.floor(st.h * st.dpr);
       populate();
     };
 
@@ -111,110 +138,144 @@ export function ParticleField({ ethPctChange, mode, pulseKey, className }: Parti
     ro.observe(canvas);
     resize();
 
+    // Pause when the canvas leaves the viewport (design.md §7.4 rule 4).
+    const io = new IntersectionObserver(
+      (entries) => {
+        st.visible = entries.some((e) => e.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    io.observe(canvas);
+
     return () => {
       ro.disconnect();
+      io.disconnect();
       if (debounce) clearTimeout(debounce);
-      if (raf !== null) cancelAnimationFrame(raf);
       const ctx = canvas.getContext('2d');
       ctx?.clearRect(0, 0, canvas.width, canvas.height);
       canvas.width = 0;
       canvas.height = 0;
-      s.particles.length = 0;
-      s.rings.length = 0;
+      st.particles.length = 0;
+      st.rings.length = 0;
     };
   }, [fieldOn]);
 
-  useSimulationLoop((dt) => {
+  useSimulationLoop((dt, now) => {
+    const st = s.current;
+    if (!st.visible) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const s = state.current;
-    if (s.w === 0 || s.h === 0) return;
+    if (!ctx || st.w === 0 || st.h === 0) return;
 
-    const step = dt / 1000;
-    const { mode: m } = s;
-    // Energy: 0% near-still, 2% agitated, ≥2% turbulent. Warmup/offline: calm.
-    const energy = m === 'WARMUP' || m === 'OFFLINE' ? 0.15 : Math.min(1.4, 0.2 + s.pct / 2);
-    const targetWarn = m === 'OUT' ? 1 : 0;
-    s.warnMix += (targetWarn - s.warnMix) * Math.min(1, step * 2);
+    const step = Math.min(dt, 50) / 1000;
+    st.t += step;
 
-    ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
-    // Trail: fade instead of clear.
+    // Adaptive particle count from the scheduler's last frame cost (rolling EMA).
+    st.costEma = st.costEma === 0 ? lastFrameCostMs() : st.costEma * 0.9 + lastFrameCostMs() * 0.1;
+    if (now - st.lastAdapt > 1000) {
+      st.lastAdapt = now;
+      const cap = st.w < 640 ? 150 : 400;
+      if (st.costEma > FRAME_BUDGET_MS && st.particles.length > FLOOR) {
+        st.particles.length = Math.max(FLOOR, Math.floor(st.particles.length * 0.9));
+      } else if (st.costEma < FRAME_BUDGET_MS * 0.6 && st.particles.length < cap) {
+        const add = Math.min(cap - st.particles.length, Math.ceil(st.particles.length * 0.05));
+        for (let i = 0; i < add; i++) {
+          st.particles.push({ x: Math.random() * st.w, y: Math.random() * st.h, vx: 0, vy: 0, r: 0.6 + Math.random() * 1.5, hue: 0, life: 1 });
+        }
+      }
+    }
+
+    const m = st.mode;
+    const calm = m === 'WARMUP' || m === 'OFFLINE';
+    const energy = calm ? 0.15 : Math.min(1.4, 0.2 + st.pct / 2);
+    st.warnMix += ((m === 'OUT' ? 1 : 0) - st.warnMix) * Math.min(1, step * 2);
+    if (st.surge > 0) st.surge = Math.max(0, st.surge - step / 1.4);
+
+    const a = attractorRef?.current ?? null;
+    const ax = a ? a.x : st.w * 0.5;
+    const ay = a ? a.y : st.h * 0.5;
+    // Attractor sign: IN pulls in, OUT flings out. Surge triples it.
+    const attract = calm ? 0 : (m === 'OUT' ? -1 : 1) * (0.35 + energy * 0.4) * (1 + st.surge * 2);
+
+    ctx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
-    ctx.fillRect(0, 0, s.w, s.h);
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.14 + (1 - Math.min(energy, 1)) * 0.08})`;
+    ctx.fillRect(0, 0, st.w, st.h);
     ctx.globalCompositeOperation = 'lighter';
 
-    const cx = 0.5;
-    const cy = 0.5;
-    const bandHalf = 0.12;
+    const t = st.t;
+    const scale = 1 / Math.max(st.w, st.h);
+    const speedPx = 60 * (0.4 + energy);
 
-    for (const p of s.particles) {
-      // Drift
-      p.phase += step * (0.6 + energy);
-      p.vx += Math.cos(p.phase) * 0.0006 * energy;
-      p.vy += Math.sin(p.phase * 1.3) * 0.0006 * energy;
+    for (const p of st.particles) {
+      // Flow field: two low-frequency sine terms → smooth plasma-like motion.
+      const nx = p.x * scale * 4;
+      const ny = p.y * scale * 4;
+      const fx = Math.sin(ny * 1.7 + t * 0.35) + 0.6 * Math.cos(nx * 1.1 - t * 0.22);
+      const fy = Math.cos(nx * 1.5 - t * 0.3) - 0.6 * Math.sin(ny * 1.2 + t * 0.27);
 
-      if (m === 'IN') {
-        // converge toward the central band (liquidity in range)
-        const dy = cy - p.y;
-        p.vy += dy * 0.004 * (Math.abs(dy) > bandHalf ? 1 : 0.15);
-        p.vx += (cx - p.x) * 0.0004;
-      } else if (m === 'OUT') {
-        // pull to edges (liquidity leaving the pool)
-        const dx = p.x - cx;
-        const dy = p.y - cy;
-        const d = Math.hypot(dx, dy) + 1e-3;
-        p.vx += (dx / d) * 0.003 * energy;
-        p.vy += (dy / d) * 0.003 * energy;
-      }
+      // Attractor: spiral toward (or away from) the keeper.
+      const dx = ax - p.x;
+      const dy = ay - p.y;
+      const d = Math.hypot(dx, dy) + 1;
+      const ux = dx / d;
+      const uy = dy / d;
+      const falloff = Math.min(1, 320 / d);
+      const tangential = m === 'IN' ? 0.8 : 0;
+      const gx = (ux * attract + -uy * tangential * attract) * falloff;
+      const gy = (uy * attract + ux * tangential * attract) * falloff;
 
-      // damping and speed cap
-      p.vx *= 0.985;
-      p.vy *= 0.985;
-      const vmax = 0.012 * energy + 0.002;
+      p.vx += (fx * 0.8 + gx * 2.2) * speedPx * step;
+      p.vy += (fy * 0.8 + gy * 2.2) * speedPx * step;
+      p.vx *= 0.94;
+      p.vy *= 0.94;
+
+      const vmax = speedPx * (1 + st.surge);
       const v = Math.hypot(p.vx, p.vy);
       if (v > vmax) {
         p.vx = (p.vx / v) * vmax;
         p.vy = (p.vy / v) * vmax;
       }
+      p.x += p.vx * step;
+      p.y += p.vy * step;
 
-      p.x += p.vx * step * 60;
-      p.y += p.vy * step * 60;
-      if (p.x < -0.02) p.x = 1.02;
-      if (p.x > 1.02) p.x = -0.02;
-      if (p.y < -0.02) p.y = 1.02;
-      if (p.y > 1.02) p.y = -0.02;
+      // Wrap; particles flung off-screen by OUT re-enter from the far side.
+      if (p.x < -4) p.x = st.w + 4;
+      else if (p.x > st.w + 4) p.x = -4;
+      if (p.y < -4) p.y = st.h + 4;
+      else if (p.y > st.h + 4) p.y = -4;
 
       const base = p.hue === 2 ? ION : p.hue === 1 ? PLASMA : ARGON;
-      const [r, g, b] = mix(base, WARN, s.warnMix * 0.7);
-      const alpha = m === 'WARMUP' || m === 'OFFLINE' ? 0.25 : 0.35 + Math.min(0.45, energy * 0.3);
-      ctx.fillStyle = `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${alpha})`;
+      const [r, g, b] = mix(base, WARN, st.warnMix * 0.7);
+      const near = 1 - Math.min(1, d / 260);
+      const alpha = (calm ? 0.22 : 0.3 + Math.min(0.4, energy * 0.28)) * p.life + near * 0.25;
+      ctx.fillStyle = `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${alpha.toFixed(3)})`;
       ctx.beginPath();
-      ctx.arc(p.x * s.w, p.y * s.h, p.r, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, p.r + near * 0.6, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Hour pulse rings (design.md §3.3): 900 ms, plasma, then settle.
-    if (s.rings.length) {
-      const maxR = Math.hypot(s.w, s.h) * 0.6;
+    // Hour pulse rings from the attractor (design.md §3.3).
+    if (st.rings.length) {
+      const maxR = Math.hypot(st.w, st.h) * 0.6;
       ctx.lineWidth = 1.2;
-      for (const ring of s.rings) {
+      for (const ring of st.rings) {
         ring.t += step / 0.9;
         const ease = 1 - Math.pow(1 - Math.min(ring.t, 1), 3);
-        ctx.strokeStyle = `rgba(${PLASMA[0]}, ${PLASMA[1]}, ${PLASMA[2]}, ${(1 - ease) * 0.8})`;
+        ctx.strokeStyle = `rgba(${PLASMA[0]}, ${PLASMA[1]}, ${PLASMA[2]}, ${((1 - ease) * 0.8).toFixed(3)})`;
         ctx.beginPath();
-        ctx.arc(cx * s.w, cy * s.h, ease * maxR, 0, Math.PI * 2);
+        ctx.arc(ax, ay, ease * maxR, 0, Math.PI * 2);
         ctx.stroke();
       }
-      s.rings = s.rings.filter((r) => r.t < 1);
+      st.rings = st.rings.filter((r) => r.t < 1);
     }
   }, fieldOn);
 
   if (!fieldOn) {
     return <div aria-hidden className={className} style={{ background: 'radial-gradient(60% 50% at 50% 50%, rgba(168,85,247,0.10), transparent)' }} />;
   }
-
   return <canvas ref={canvasRef} aria-hidden className={className} />;
 }
+
+export const ParticleField = memo(ParticleFieldImpl);
