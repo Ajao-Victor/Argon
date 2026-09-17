@@ -1,3 +1,15 @@
-// Domain modules: ForecastHero, WarmupBar, PoolCard, HashMatch, WalletStrip, DepositForm, WithdrawForm, ActivityFeed, ChainSwitcher, ConnectButton
-// Barrel export. Add named exports here as modules land. See doc/architecture-essentials.md §10.
-export {};
+// Domain modules (doc/architecture.md §1.2)
+export { ForecastHero } from './ForecastHero';
+export { WarmupBar } from './WarmupBar';
+export { PoolCard } from './PoolCard';
+export { HashMatch } from './HashMatch';
+export { WalletStrip } from './WalletStrip';
+export { DepositForm } from './DepositForm';
+export { WithdrawForm } from './WithdrawForm';
+export { ForecastTable } from './ForecastTable';
+export { ActivityFeed } from './ActivityFeed';
+export { ChainSwitcher } from './ChainSwitcher';
+export { ConnectButton } from './ConnectButton';
+export { TxStatus, txBusy } from './TxStatus';
+export { AgentClock } from './AgentClock';
+export { TelemetryBar } from './TelemetryBar';
