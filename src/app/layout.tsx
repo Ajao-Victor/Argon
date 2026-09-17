@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { AmbientGlow } from '@/components/simulation/AmbientGlow';
+
 import '@/styles/globals.css';
 
 /**
@@ -19,7 +21,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${mono.variable} ${display.variable}`}>
-      <body className="min-h-dvh bg-void font-mono text-data text-text-hi antialiased">{children}</body>
+      <body className="min-h-dvh bg-void font-mono text-data text-text-hi antialiased">
+        <AmbientGlow />
+        {children}
+      </body>
     </html>
   );
 }

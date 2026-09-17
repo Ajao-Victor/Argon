@@ -42,6 +42,16 @@
   --text-lo: #8b86a0;
   --text-dim: #5b5670;
 
+  /* Ambient lighting (Phase 7 M1). Pre-blurred gradients; never animated with filter. */
+  --ambient-glow: radial-gradient(circle, rgba(168, 85, 247, 0.14) 0%, rgba(126, 34, 206, 0.06) 30%, transparent 62%);
+  --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  /* Stateful panel glows: enter = ion, exit = plasma, hold = argon, warmup = dim */
+  --glow-enter: rgba(34, 211, 238, 0.42);
+  --glow-exit: rgba(232, 121, 249, 0.46);
+  --glow-hold: rgba(168, 85, 247, 0.42);
+  --glow-warmup: rgba(139, 134, 160, 0.22);
+  --glow-error: rgba(251, 113, 133, 0.4);
+
   /* 2.8 Radii */
   --radius-panel: 6px;
   --radius-chip: 4px;

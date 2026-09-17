@@ -45,6 +45,8 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
     api?.action ?? (pct !== null && pct !== undefined ? policyAction({ ethPctChange: pct, warmupComplete, currentlyInPool: inPool }) : undefined);
 
   const gate = pct !== null && pct !== undefined ? gateChip(pct) : undefined;
+  const glow: NonNullable<Parameters<typeof Panel>[0]['glow']> =
+    agentDown && (pct === null || pct === undefined) ? 'error' : action === 'exit' ? 'exit' : action === 'enter' ? 'enter' : action === 'hold' ? 'hold' : action === 'warmup' ? 'warmup' : 'none';
   const signClass = pct === null || pct === undefined ? 'text-text-hi' : pct < 0 ? 'text-signal-down' : pct > 0 ? 'text-signal-up' : 'text-text-hi';
 
   return (
@@ -55,6 +57,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
       className="relative"
       glitch={agentDown && pct === null}
       delay={delay}
+      glow={glow}
     >
       {agentDown && (
         <Banner tone={pct !== null && pct !== undefined ? 'warn' : 'down'} className="mb-3" glitch>

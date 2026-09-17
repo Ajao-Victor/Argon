@@ -45,6 +45,45 @@
     position: relative;
     /* Sheen and chip flips repaint inside the panel only (design.md §7.4). */
     contain: paint;
+    /* Premium glass: hairline inner highlight + inner shadow (Phase 7 M1). */
+    box-shadow: var(--glass-inner);
+    transition: box-shadow 600ms ease-out, border-color 300ms ease-out;
+  }
+  /* Faint noise so the glass reads as material, not a flat fill. Static image, rendered once. */
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.045;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-size: 160px 160px;
+  }
+  .panel > * {
+    position: relative;
+  }
+
+  /* Stateful glows: intense blurred radial shadow keyed on forecast state. Transition only. */
+  .panel-glow-enter {
+    box-shadow: var(--glass-inner), 0 0 80px -12px var(--glow-enter), 0 0 24px -8px var(--glow-enter);
+    border-color: rgba(34, 211, 238, 0.35);
+  }
+  .panel-glow-exit {
+    box-shadow: var(--glass-inner), 0 0 80px -12px var(--glow-exit), 0 0 24px -8px var(--glow-exit);
+    border-color: rgba(232, 121, 249, 0.4);
+  }
+  .panel-glow-hold {
+    box-shadow: var(--glass-inner), 0 0 72px -14px var(--glow-hold), 0 0 24px -8px var(--glow-hold);
+    border-color: var(--hairline-strong);
+  }
+  .panel-glow-warmup {
+    box-shadow: var(--glass-inner), 0 0 48px -14px var(--glow-warmup);
+  }
+  .panel-glow-error {
+    box-shadow: var(--glass-inner), 0 0 64px -14px var(--glow-error);
+    border-color: rgba(251, 113, 133, 0.35);
   }
   .panel::after {
     content: '';
@@ -65,7 +104,7 @@
 
   .panel-active {
     border-color: var(--hairline-strong);
-    box-shadow: 0 0 24px var(--argon-glow);
+    box-shadow: var(--glass-inner), 0 0 24px var(--argon-glow);
   }
 
   /* 10–11px mono small caps label (design.md §2.7) */
