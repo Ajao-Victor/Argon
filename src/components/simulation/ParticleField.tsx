@@ -6,7 +6,7 @@ import { useSimulationLoop } from '@/hooks/useSimulationLoop';
 import { useUiStore } from '@/stores/ui';
 import type { PolicyAction } from '@/types/forecast';
 import type { GateChip } from '@/utils/policy';
-import { lastFrameCostMs } from '@/utils/sim/scheduler';
+import { FRAME_BUDGET_MS, averageFrameCostMs } from '@/utils/sim/scheduler';
 
 /**
  * Fluid flow field (design.md §7.3). Particles follow a smooth vector field built
@@ -50,7 +50,6 @@ const ARGON = [168, 85, 247] as const;
 const PLASMA = [232, 121, 249] as const;
 const ION = [34, 211, 238] as const;
 const WARN = [251, 191, 36] as const;
-const FRAME_BUDGET_MS = 4;
 const FLOOR = 80;
 
 function mix(a: readonly [number, number, number], b: readonly [number, number, number], t: number): [number, number, number] {
@@ -171,10 +170,10 @@ function ParticleFieldImpl({ ethPctChange, mode, action, fixture = false, pulseK
     const step = Math.min(dt, 50) / 1000;
     st.t += step;
 
-    // Adaptive particle count from the scheduler's last frame cost (rolling EMA).
-    st.costEma = st.costEma === 0 ? lastFrameCostMs() : st.costEma * 0.9 + lastFrameCostMs() * 0.1;
+    // Adaptive particle count from the scheduler's rolling frame cost (design.md §7.3).
     if (now - st.lastAdapt > 1000) {
       st.lastAdapt = now;
+      st.costEma = averageFrameCostMs();
       const cap = st.w < 640 ? 150 : 400;
       if (st.costEma > FRAME_BUDGET_MS && st.particles.length > FLOOR) {
         st.particles.length = Math.max(FLOOR, Math.floor(st.particles.length * 0.9));

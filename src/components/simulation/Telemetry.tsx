@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 
 import { StatusDot, type ChipTone } from '@/components/ui/Chip';
 import { cn } from '@/utils/cn';
@@ -11,7 +11,7 @@ export interface TelemetryItem {
   tone?: ChipTone;
 }
 
-export function Telemetry({ items, trailing, className }: { items: readonly TelemetryItem[]; trailing?: ReactNode; className?: string }) {
+function TelemetryImpl({ items, trailing, className }: { items: readonly TelemetryItem[]; trailing?: ReactNode; className?: string }) {
   return (
     <div className={cn('flex flex-wrap items-center gap-x-4 gap-y-1 label', className)}>
       {items.map((it) => (
@@ -25,3 +25,5 @@ export function Telemetry({ items, trailing, className }: { items: readonly Tele
     </div>
   );
 }
+
+export const Telemetry = memo(TelemetryImpl);

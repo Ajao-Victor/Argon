@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 
 import { cn } from '@/utils/cn';
 
@@ -11,7 +11,7 @@ export interface TickerItem {
   node: ReactNode;
 }
 
-export function TickerTape({ items, className }: { items: readonly TickerItem[]; className?: string }) {
+function TickerTapeImpl({ items, className }: { items: readonly TickerItem[]; className?: string }) {
   if (items.length === 0) return null;
   const strip = (suffix: string) => (
     <ul className="flex shrink-0 items-center gap-6 pr-6" aria-hidden={suffix === 'b' || undefined}>
@@ -32,3 +32,5 @@ export function TickerTape({ items, className }: { items: readonly TickerItem[];
     </div>
   );
 }
+
+export const TickerTape = memo(TickerTapeImpl);

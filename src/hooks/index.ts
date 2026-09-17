@@ -5,3 +5,4 @@ export * from './useRegistry';
 export * from './useWallet';
 export * from './useActivity';
 export * from './useSimulationLoop';
+export * from './usePerfReadout';

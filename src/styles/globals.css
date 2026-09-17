@@ -43,6 +43,8 @@
   /* Holographic sheen (design.md §7.2): follows --mx/--my written by a pointer handler. */
   .panel {
     position: relative;
+    /* Sheen and chip flips repaint inside the panel only (design.md §7.4). */
+    contain: paint;
   }
   .panel::after {
     content: '';

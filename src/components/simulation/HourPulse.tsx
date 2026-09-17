@@ -1,9 +1,10 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { memo } from 'react';
 
 /** DOM ring that fires once when `hourId` changes (design.md §3.3). Framer, transform+opacity only. */
-export function HourPulse({ hourId, className }: { hourId: number | undefined; className?: string }) {
+function HourPulseImpl({ hourId, className }: { hourId: number | undefined; className?: string }) {
   const reduced = useReducedMotion();
   if (reduced || hourId === undefined) return null;
   return (
@@ -20,3 +21,5 @@ export function HourPulse({ hourId, className }: { hourId: number | undefined; c
     </AnimatePresence>
   );
 }
+
+export const HourPulse = memo(HourPulseImpl);

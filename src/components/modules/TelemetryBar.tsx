@@ -1,7 +1,7 @@
 'use client';
 
 import { Telemetry, TickerTape, type TelemetryItem, type TickerItem } from '@/components/simulation';
-import { useAgentMode, useAgentStatus, useForecastHistory, useLatestForecast, useWallet } from '@/hooks';
+import { useAgentMode, useAgentStatus, useForecastHistory, useLatestForecast, usePerfReadout, useWallet } from '@/hooks';
 import { arbitrum, robinhood } from '@/services/chains';
 import { getVault } from '@/services/contracts';
 import { cn } from '@/utils/cn';
@@ -14,6 +14,7 @@ export function TelemetryBar() {
   const history = useForecastHistory(12);
   const mode = useAgentMode();
   const w = useWallet();
+  const perf = usePerfReadout();
 
   const agentTone = status.status === 'error' ? 'down' : status.data?.ok ? 'up' : 'warn';
   const items: TelemetryItem[] = [
@@ -23,6 +24,9 @@ export function TelemetryBar() {
     { key: 'arb', label: 'arb', value: getVault(arbitrum.id) ? arbitrum.id : 'no vault', tone: getVault(arbitrum.id) ? 'argon' : 'idle' },
     { key: 'rh', label: 'rh', value: getVault(robinhood.id) ? robinhood.id : 'no vault', tone: getVault(robinhood.id) ? 'argon' : 'idle' },
     { key: 'wallet', label: 'wallet', value: w.isConnected ? `${w.walletChainId}` : 'off', tone: w.isConnected ? 'up' : 'idle' },
+    ...(perf
+      ? [{ key: 'frame', label: 'frame', value: `${perf.avgMs.toFixed(1)}ms · drop ${perf.dropped}`, tone: perf.avgMs > 4 ? 'warn' : 'up' } as TelemetryItem]
+      : []),
   ];
 
   const ticker: TickerItem[] = (history.data?.items ?? []).map((f) => ({
