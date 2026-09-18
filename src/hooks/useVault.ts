@@ -17,6 +17,7 @@ import { getVault } from '@/services/contracts';
 import { depositTokens, type TokenDef } from '@/services/tokens';
 import { POOLS, type OnChainPoolStatus, type PoolId } from '@/types/pools';
 import { pauseSimulation, resumeSimulation } from '@/utils/sim/scheduler';
+import { toast } from '@/components/ui/Toasts';
 
 /**
  * Vault hooks (doc/architecture.md §2.1, §2.5). Every read passes `chainId`
@@ -179,45 +180,68 @@ function useInvalidateChainReads() {
  */
 type WriteArgs = SimulateContractParameters;
 
+const STEP_TITLE: Record<TxStep, string> = {
+  approve: 'approve token',
+  deposit: 'deposit to vault',
+  depositETH: 'deposit ETH to vault',
+  withdraw: 'withdraw idle',
+  emergencyWithdraw: 'emergency idle withdraw',
+};
+
 async function runWrite(
   config: ReturnType<typeof useConfig>,
   step: TxStep,
   args: WriteArgs,
   setState: (s: TxState) => void,
 ): Promise<{ hash: Hash; receipt: TransactionReceipt }> {
+  const chainId = args.chainId as SupportedChainId | undefined;
+  const toastId = `tx-${step}-${Date.now()}`;
+  const title = STEP_TITLE[step];
+
   setState({ status: 'simulating', step });
+  toast.push({ id: toastId, kind: 'info', title, detail: 'simulating…' });
   let request: Awaited<ReturnType<typeof simulateContract>>['request'];
   try {
     ({ request } = await simulateContract(config, args));
   } catch (err) {
-    setState({ status: 'failed', step, error: txErrorMessage(err) });
+    const error = txErrorMessage(err);
+    setState({ status: 'failed', step, error });
+    toast.update(toastId, { kind: 'error', detail: `simulation reverted · ${error}`, ttl: 8_000 });
     throw err;
   }
 
   setState({ status: 'awaitingSignature', step });
+  toast.update(toastId, { kind: 'signing', detail: 'confirm in your wallet' });
   // Quiet main thread while the wallet prompt is up (doc/architecture.md §4.3).
   pauseSimulation('signing');
   let hash: Hash;
   try {
     hash = await writeContract(config, request);
   } catch (err) {
-    setState({ status: 'failed', step, error: isUserRejection(err) ? 'signature rejected' : txErrorMessage(err) });
+    const error = isUserRejection(err) ? 'signature rejected' : txErrorMessage(err);
+    setState({ status: 'failed', step, error });
+    toast.update(toastId, { kind: 'error', detail: error, ttl: 6_000 });
     throw err;
   } finally {
     resumeSimulation('signing');
   }
 
   setState({ status: 'pending', step, hash });
+  toast.update(toastId, { kind: 'mining', detail: 'waiting for receipt', hash, chainId });
   try {
     const receipt = await waitForTransactionReceipt(config, { hash, chainId: args.chainId });
     if (receipt.status !== 'success') {
       setState({ status: 'failed', step, error: 'transaction reverted', hash });
+      toast.update(toastId, { kind: 'error', detail: 'transaction reverted on-chain', hash, chainId, ttl: 10_000 });
       throw new Error('transaction reverted');
     }
     setState({ status: 'confirmed', step, hash, receipt });
+    toast.update(toastId, { kind: 'success', detail: `confirmed in block ${receipt.blockNumber.toString()}`, hash, chainId, ttl: 7_000 });
     return { hash, receipt };
   } catch (err) {
-    setState({ status: 'failed', step, error: txErrorMessage(err), hash });
+    const error = txErrorMessage(err);
+    setState({ status: 'failed', step, error, hash });
+    toast.update(toastId, { kind: 'error', detail: error, hash, chainId, ttl: 10_000 });
     throw err;
   }
 }

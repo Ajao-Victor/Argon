@@ -18,3 +18,5 @@ export { GLOSSARY } from './glossary';
 export type { TermId } from './glossary';
 export { Navbar } from './Navbar';
 export { Footer } from './Footer';
+export { ToastViewport, toast } from './Toasts';
+export type { Toast, ToastKind } from './Toasts';
