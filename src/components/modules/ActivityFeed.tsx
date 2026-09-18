@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip, DataTable, HashText, Panel, type ChipTone, type Column } from '@/components/ui';
+import { Chip, DataTable, DisconnectedState, HashText, Panel, SkeletonLines, type ChipTone, type Column } from '@/components/ui';
 import { useActivity, useWallet } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { getVault } from '@/services/contracts';
@@ -46,7 +46,15 @@ export function ActivityFeed({ chainId, delay = 0 }: { chainId: SupportedChainId
   ];
 
   return (
-    <Panel label="ACTIVITY" meta={`${chainName(chainId)} · ${deployed ? `${rows.length} events` : 'vault not deployed'}`} padded={false} delay={delay}>
+    <Panel label="ACTIVITY" meta={`${chainName(chainId)} · ${deployed ? `${rows.length} events` : 'vault not deployed'}`} padded={!address || (deployed && activity.status === 'pending')} delay={delay}>
+      {!address ? (
+        <DisconnectedState copy="Connect a wallet to see your deposits and withdrawals. Keeper rebalances are public and will appear once you connect." />
+      ) : deployed && activity.status === 'pending' ? (
+        <div className="flex flex-col gap-3">
+          <span className="label leading-5">scanning logs</span>
+          <SkeletonLines lines={4} chars={40} />
+        </div>
+      ) : (
       <DataTable
         columns={columns}
         rows={rows}
@@ -64,6 +72,7 @@ export function ActivityFeed({ chainId, delay = 0 }: { chainId: SupportedChainId
                   : 'connect a wallet to see deposits and withdrawals; rebalances show for everyone'
         }
       />
+      )}
     </Panel>
   );
 }

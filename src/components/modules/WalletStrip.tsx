@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-import { Button, Chip, Panel, RevealItem, Term } from '@/components/ui';
+import { Button, Chip, Panel, RevealItem, Skeleton, Term } from '@/components/ui';
 import { useVaultBalances, useWallet } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName } from '@/services/explorer';
@@ -48,7 +48,7 @@ export function WalletStrip({ delay = 0 }: { delay?: number }) {
         ) : !w.isConnected ? (
           <span className="text-text-dim">—</span>
         ) : balances.status === 'pending' ? (
-          <span className="text-text-dim">reading…</span>
+          <Skeleton chars={22} />
         ) : balances.status === 'error' ? (
           <span className="text-signal-warn">read failed</span>
         ) : (

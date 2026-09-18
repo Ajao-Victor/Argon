@@ -1,6 +1,6 @@
 'use client';
 
-import { Banner, Chip, Panel, RevealItem, StaggerText, Term } from '@/components/ui';
+import { Banner, Chip, Panel, RevealItem, Skeleton, StaggerText, Term } from '@/components/ui';
 import { useHashMatch, useLatestForecast, useAgentStatus, usePoolStatuses } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import type { PolicyAction } from '@/types/forecast';
@@ -75,10 +75,23 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
       )}
 
       {pct === null || pct === undefined ? (
-        <div className="flex flex-col gap-2 py-6">
-          <span className="font-display text-3xl text-text-dim">no forecast available</span>
-          <span className="text-text-lo">{latest.status === 'pending' ? 'waiting for the agent…' : 'agent and registry both unavailable'}</span>
-        </div>
+        latest.status === 'pending' ? (
+          <div className="flex flex-col gap-6">
+            <div>
+              <div className="label-lg mb-3">predicted eth move · next 8 hours</div>
+              <Skeleton chars={7} slow className="data-hero text-7xl sm:text-8xl lg:text-[8.5rem]" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="label-lg">next action</div>
+              <Skeleton chars={5} slow className="data-hero text-5xl sm:text-6xl lg:text-7xl" />
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 py-6">
+            <span className="font-display text-3xl text-text-dim">no forecast available</span>
+            <span className="text-text-lo">agent and registry both unavailable</span>
+          </div>
+        )
       ) : (
         <div className="flex flex-col gap-6">
           <RevealItem>

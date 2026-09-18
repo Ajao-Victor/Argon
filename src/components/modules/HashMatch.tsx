@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip, HashText, Panel, RevealItem, Term, type ChipTone } from '@/components/ui';
+import { Chip, HashText, Panel, RevealItem, Skeleton, Term, type ChipTone } from '@/components/ui';
 import { useHashMatch } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { getRegistry } from '@/services/contracts';
@@ -35,11 +35,11 @@ export function HashMatch({ chainId, api, delay = 0 }: { chainId: SupportedChain
         </dd>
         <dt className="label leading-5"><Term id="registryHash">registry</Term></dt>
         <dd>
-          <HashText value={r.chainHash} href={registry ? addressUrl(chainId, registry.address) : undefined} />
+          {r.kind === 'loading' ? <Skeleton chars={11} /> : <HashText value={r.chainHash} href={registry ? addressUrl(chainId, registry.address) : undefined} />}
         </dd>
         <dt className="label leading-5"><Term id="bps">bps</Term></dt>
         <dd className="text-text-mid">
-          {r.apiBps?.toString() ?? '—'} · {r.chainBps?.toString() ?? '—'}
+          {r.apiBps?.toString() ?? '—'} · {r.kind === 'loading' ? <Skeleton chars={4} scan={false} /> : (r.chainBps?.toString() ?? '—')}
         </dd>
       </dl>
       </RevealItem>

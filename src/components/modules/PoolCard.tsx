@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip, HashText, Panel, RevealItem, Term, type ChipTone } from '@/components/ui';
+import { Chip, DisconnectedState, HashText, Panel, RevealItem, Skeleton, Term, type ChipTone } from '@/components/ui';
 import { useLatestForecast, usePoolStatuses, useVaultBalances, useWallet } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName, txUrl } from '@/services/explorer';
@@ -54,7 +54,7 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
   let status: PoolCardStatus;
   if (!pool.gated) status = 'LINK_SOON';
   else if (!deployed) status = 'NOT_DEPLOYED';
-  else if (balances.data && !balances.data.funded) status = 'UNFUNDED';
+  else if (address && balances.data && !balances.data.funded) status = 'UNFUNDED';
   else status = statuses.data?.[pool.id] === 1 ? 'IN_POOL' : 'IDLE';
 
   const exitPending = status === 'IN_POOL' && latest.data?.action === 'exit' && latest.data.txHash !== null;
@@ -87,14 +87,22 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
         <RevealItem>
           <p className="mt-5 leading-5 text-text-lo">LINK — model later</p>
         </RevealItem>
+      ) : !address ? (
+        <RevealItem className="mt-2 flex flex-1">
+          <DisconnectedState compact title="wallet offline" cta="connect to initialize" />
+        </RevealItem>
       ) : (
         <RevealItem>
           <dl className="mt-5 grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 gap-y-2 text-[0.75rem] leading-5">
             <dt className="label leading-5"><Term id="idle">idle</Term></dt>
             <dd className="text-text-mid">
-              {legs.length === 0 || !address
-                ? '—'
-                : legs.map((b) => `${formatToken(b.idle, b.token.decimals)} ${b.token.symbol}`).join(' · ')}
+              {balances.status === 'pending' ? (
+                <Skeleton chars={18} />
+              ) : legs.length === 0 ? (
+                '—'
+              ) : (
+                legs.map((b) => `${formatToken(b.idle, b.token.decimals)} ${b.token.symbol}`).join(' · ')
+              )}
             </dd>
             <dt className="label leading-5"><Term id="lastRebalance">last</Term></dt>
             <dd className="text-text-mid">

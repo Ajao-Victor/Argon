@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { Chip, DataTable, HashText, Panel, type ChipTone, type Column } from '@/components/ui';
+import { Chip, DataTable, HashText, Panel, SkeletonLines, type ChipTone, type Column } from '@/components/ui';
 import { useForecastHistory } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { txUrl } from '@/services/explorer';
@@ -39,15 +39,22 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
 
   return (
     <div className="flex flex-col gap-4">
-      <Panel label="FORECASTS · LAST 24H" meta={history.status === 'error' ? 'agent unreachable' : `${rows.length} rows`} padded={false}>
+      <Panel label="FORECASTS · LAST 24H" meta={history.status === 'error' ? 'agent unreachable' : `${rows.length} rows`} padded={history.status === 'pending'}>
+        {history.status === 'pending' ? (
+          <div className="flex flex-col gap-3">
+            <span className="label leading-5">computing history</span>
+            <SkeletonLines lines={6} chars={48} />
+          </div>
+        ) : (
         <DataTable
           columns={columns}
           rows={rows}
           rowKey={(r) => r.hourId}
           refreshKey={history.dataUpdatedAt}
           onRowClick={(r) => setSelected((s) => (s?.hourId === r.hourId ? undefined : r))}
-          empty={history.status === 'pending' ? 'loading…' : history.status === 'error' ? 'live agent unreachable' : 'no forecasts yet'}
+          empty={history.status === 'error' ? 'live agent unreachable' : 'no forecasts yet'}
         />
+        )}
       </Panel>
       {selected && <HashMatch chainId={chainId} api={selected} />}
     </div>
