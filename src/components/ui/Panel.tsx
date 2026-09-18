@@ -23,12 +23,14 @@ export interface PanelProps extends Omit<HTMLAttributes<HTMLElement>, 'onPointer
   reveal?: boolean;
   /** Stateful blurred glow (Phase 7 M1): enter = ion, exit = plasma, hold = argon. */
   glow?: 'enter' | 'exit' | 'hold' | 'warmup' | 'error' | 'none';
+  /** false = no overflow-hidden and no paint containment, for content that glows past its box (the Keeper). */
+  clip?: boolean;
 }
 
-export function Panel({ label, meta, active = false, padded = true, glitch = false, delay = 0, reveal = true, glow = 'none', className, children, ...rest }: PanelProps) {
+export function Panel({ label, meta, active = false, padded = true, glitch = false, delay = 0, reveal = true, glow = 'none', clip = true, className, children, ...rest }: PanelProps) {
   const reduced = useReducedMotion();
   const holo = useHoloSheen<HTMLElement>();
-  const classes = cn('panel flex min-w-0 flex-col overflow-hidden', active && glow === 'none' && 'panel-active', glow !== 'none' && `panel-glow-${glow}`, glitch && 'animate-glitch', className);
+  const classes = cn('panel flex min-w-0 flex-col', clip ? 'overflow-hidden' : 'panel-unclipped overflow-visible', active && glow === 'none' && 'panel-active', glow !== 'none' && `panel-glow-${glow}`, glitch && 'animate-glitch', className);
 
   const inner = (
     <>

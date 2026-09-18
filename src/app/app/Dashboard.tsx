@@ -65,18 +65,26 @@ export function Dashboard() {
           </div>
 
           {/* Keeper */}
-          <Panel label="KEEPER" meta={mode === 'fixture' ? 'training' : 'live'} delay={0.16} className="md:col-span-3 xl:col-span-4">
-            <div className="flex flex-1 items-center justify-center py-2">
-              <KeeperAvatar
-                ethPctChange={pct ?? null}
-                action={latest.data?.action}
-                warmupComplete={warmupComplete}
-                reachable={latest.status !== 'error' || match.chainPct !== null}
-                mode={mode}
-                hourId={latest.data?.hourId}
-                size={168}
-                onCenterChange={onCenterChange}
-              />
+          <Panel
+            label="KEEPER"
+            meta={mode === 'fixture' ? 'training' : mode === 'offline' ? 'no agent' : 'live'}
+            delay={0.16}
+            clip={false}
+            className="relative z-10 min-h-[18rem] md:col-span-3 xl:col-span-4 xl:min-h-[20rem]"
+          >
+            <div className="flex flex-1 items-center justify-center py-6">
+              <div className="w-[min(100%,15rem)] xl:w-[min(100%,17rem)]">
+                <KeeperAvatar
+                  ethPctChange={pct ?? null}
+                  action={latest.data?.action}
+                  warmupComplete={warmupComplete}
+                  reachable={latest.status !== 'error' || match.chainPct !== null}
+                  mode={mode}
+                  hourId={latest.data?.hourId}
+                  size="100%"
+                  onCenterChange={onCenterChange}
+                />
+              </div>
             </div>
           </Panel>
 

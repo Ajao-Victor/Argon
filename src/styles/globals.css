@@ -107,6 +107,16 @@
     border-color: var(--hairline-strong);
     box-shadow: var(--glass-inner), 0 0 24px var(--argon-glow);
   }
+  /* Content allowed to glow past the glass (Keeper Avatar). Sheen and noise stay clipped to the radius. */
+  .panel-unclipped {
+    contain: none;
+    isolation: isolate;
+  }
+  .panel-unclipped::before,
+  .panel-unclipped::after {
+    overflow: hidden;
+    clip-path: inset(0 round var(--radius-panel));
+  }
 
   /* 10–11px mono small caps label (design.md §2.7) */
   .label {

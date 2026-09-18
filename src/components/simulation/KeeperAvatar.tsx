@@ -22,7 +22,8 @@ export interface KeeperAvatarProps {
   /** 'offline' (agent not configured) renders like live with no data: dormant. */
   mode: 'live' | 'fixture' | 'offline';
   hourId?: number | undefined;
-  size?: number;
+  /** px, or '100%' to fill the parent width (square via aspect-ratio). */
+  size?: number | '100%';
   className?: string;
   /** Viewport-space center of the avatar, for the particle attractor. Written on resize/scroll. */
   onCenterChange?: ((x: number, y: number) => void) | undefined;
@@ -130,7 +131,7 @@ function KeeperAvatarImpl({
     <div
       ref={rootRef}
       className={cn('relative select-none', className)}
-      style={{ width: size, height: size }}
+      style={size === '100%' ? { width: '100%', aspectRatio: '1 / 1' } : { width: size, height: size }}
       role="img"
       aria-label={`keeper ${energy.state}${mode === 'fixture' ? ' (training)' : ''}`}
       data-state={energy.state}
@@ -221,7 +222,7 @@ function KeeperAvatarImpl({
       </motion.svg>
 
       {/* Label under the avatar */}
-      <div className="pointer-events-none absolute inset-x-0 -bottom-5 text-center label">
+      <div className="pointer-events-none absolute inset-x-0 -bottom-6 text-center label leading-5">
         keeper · {energy.state}
         {mode === 'fixture' && <span className="text-ion-400"> · training</span>}
       </div>
