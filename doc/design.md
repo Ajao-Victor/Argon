@@ -295,7 +295,7 @@ A visual representation of the off-chain agent: the "brain" of the vault. It is 
 
 | State | Condition | Posture |
 |---|---|---|
-| `dormant` | agent unreachable, or no forecast | Rings stopped. Eyes closed to a hairline. Halo at 20%. Slow 6 s breathe. |
+| `dormant` | agent unreachable, or no forecast | Resting, never dead (changed 2026-09-18): threads orbit at 35% speed, eyes a hairline, halo 55% in deep argon, slow 6 s breathe. |
 | `warmup` | `warmupComplete === false` | Rings at 25% speed. Eyes half-open. Halo in `--text-lo`. |
 | `calm` | `k < 0.6`, gate `IN` | Rings at base speed. Eyes open, tracking. Halo `--argon-500` at 45%. |
 | `charged` | `0.6 ≤ k < 1`, gate `IN` | Rings 2×. Eyes narrow. One energy arc. Halo `--plasma-500`. Core jitters 1 px at 8 Hz. |
@@ -305,6 +305,8 @@ A visual representation of the off-chain agent: the "brain" of the vault. It is 
 **Cursor tracking.** One `pointermove` listener on `window` writes to two Framer `MotionValue`s. Springs (`stiffness 120, damping 18`) drive the eye offset and a ±6° tilt of the whole core. Nothing tracks the cursor through React state. On touch devices the avatar idles on a slow figure-eight instead.
 
 **State transitions.** Changing state animates rings, halo color, and eye aperture over 600 ms with `easeOut`. A new `hourId` fires the hour pulse (§3.3) from the avatar's center and a 180 ms glitch on the eyes. An action change to `exit` snaps the eyes to `--signal-warn` first, then eases.
+
+**Oozing light and energy threads (added 2026-09-18).** Beneath the body, three radial blobs breathe out of phase on `scale` + `opacity` with a `cubic-bezier(0.45, 0, 0.2, 1)` ease, plus a luminous rim of layered `box-shadow` that is static per state and transitions on change. Around the core, three tilted elliptical threads spin on `transform` at periods derived from the ring speed while light travels along them through `stroke-dashoffset` (a paint-only property on three paths). Colors come from CSS variables the component sets per state, so the whole layer is pure CSS with no JavaScript per frame.
 
 **Placement.** On `/app` the avatar sits in the hero column beside the number. On `/` it is the hero. The particle field's attractor (§7.3) is the avatar's on-screen center, measured by a `ResizeObserver` plus a passive scroll listener, written to a ref.
 

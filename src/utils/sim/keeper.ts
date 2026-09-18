@@ -34,11 +34,12 @@ export interface KeeperEnergy {
 export function keeperEnergy(input: KeeperInput): KeeperEnergy {
   const { ethPctChange, warmupComplete, reachable } = input;
   if (!reachable || ethPctChange === null || ethPctChange === undefined) {
-    return { state: 'dormant', k: 0, ringSpeed: 0, aperture: 0.08, arcs: 0, halo: 0.2, coreScale: 1, counterRotate: false };
+    // Resting, not dead: threads keep orbiting slowly and the glow keeps oozing.
+    return { state: 'dormant', k: 0, ringSpeed: 0.35, aperture: 0.12, arcs: 0, halo: 0.55, coreScale: 1, counterRotate: false };
   }
   const k = Math.min(Math.abs(ethPctChange) / GATE_PCT, 1.5);
   if (!warmupComplete) {
-    return { state: 'warmup', k, ringSpeed: 0.25, aperture: 0.5, arcs: 0, halo: 0.3, coreScale: 1, counterRotate: false };
+    return { state: 'warmup', k, ringSpeed: 0.5, aperture: 0.5, arcs: 0, halo: 0.6, coreScale: 1, counterRotate: false };
   }
   if (k >= 1) {
     return { state: 'aggressive', k, ringSpeed: 3.5, aperture: 0.22, arcs: k >= 1.25 ? 3 : 2, halo: 0.9, coreScale: 1.06, counterRotate: true };

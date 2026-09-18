@@ -156,6 +156,101 @@
     will-change: transform;
   }
 
+  /* ---- Keeper: oozing light (Phase 15) ----
+     Three radial blobs breathe out of phase on scale + opacity with a slow, organic
+     cubic-bezier. Colors and period come from CSS variables set by the component. */
+  .ooze {
+    position: absolute;
+    border-radius: 9999px;
+    pointer-events: none;
+    will-change: transform, opacity;
+    mix-blend-mode: screen;
+    animation: ooze var(--ooze-dur, 4.2s) cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  }
+  .ooze-a {
+    inset: -34%;
+    background: radial-gradient(circle, var(--ooze-c1) 0%, transparent 58%);
+    opacity: 0.55;
+  }
+  .ooze-b {
+    inset: -18%;
+    background: radial-gradient(circle, var(--ooze-c2) 0%, transparent 62%);
+    opacity: 0.5;
+    animation-delay: calc(var(--ooze-dur, 4.2s) * -0.33);
+    animation-duration: calc(var(--ooze-dur, 4.2s) * 1.27);
+  }
+  .ooze-c {
+    inset: 4%;
+    background: radial-gradient(circle, var(--ooze-c3) 0%, transparent 68%);
+    opacity: 0.6;
+    animation-delay: calc(var(--ooze-dur, 4.2s) * -0.66);
+    animation-duration: calc(var(--ooze-dur, 4.2s) * 0.8);
+  }
+  /* Luminous rim: layered box-shadows on a circle, static per state, transitions on change. */
+  .ooze-rim {
+    position: absolute;
+    inset: 14%;
+    border-radius: 9999px;
+    pointer-events: none;
+    box-shadow:
+      0 0 24px 2px var(--ooze-c1),
+      0 0 64px 8px var(--ooze-c2),
+      0 0 120px 24px var(--ooze-c3),
+      inset 0 0 32px 4px var(--ooze-c2);
+    opacity: 0.32;
+    transition: box-shadow 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms ease-out;
+  }
+
+  /* ---- Keeper: orbiting energy threads ----
+     Tilted ellipses spin around the core (transform only) while light travels along
+     the thread via stroke-dashoffset. Each orbit gets its own duration and phase. */
+  .orbit {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: orbit-spin var(--spin-dur, 24s) linear infinite;
+  }
+  .orbit-reverse {
+    animation-direction: reverse;
+  }
+  .thread {
+    animation: thread-flow var(--flow-dur, 3s) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  .thread-comet {
+    animation: thread-flow var(--flow-dur, 3s) linear infinite;
+  }
+  @keyframes ooze {
+    0% {
+      transform: scale(0.92);
+      opacity: 0.38;
+    }
+    50% {
+      transform: scale(1.14);
+      opacity: 0.85;
+    }
+    100% {
+      transform: scale(0.92);
+      opacity: 0.38;
+    }
+  }
+  @keyframes orbit-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes thread-flow {
+    to {
+      stroke-dashoffset: -520;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ooze,
+    .orbit,
+    .thread,
+    .thread-comet {
+      animation: none !important;
+    }
+  }
+
   /* Keeper aura wrapper: a static filter that transitions on state change only.
      Mobile keeps a single layer so the per-frame re-raster stays cheap. */
   .keeper-aura {

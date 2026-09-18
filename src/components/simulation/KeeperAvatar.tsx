@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useId, useMemo, useRef } from 'react';
 
 import { useBrandColors } from '@/hooks/useBrandColors';
 import { useSimulationLoop } from '@/hooks/useSimulationLoop';
@@ -40,8 +40,8 @@ export interface KeeperAvatarProps {
 }
 
 const COLOR: Record<KeeperState, { halo: string; ring: string; eye: string }> = {
-  dormant: { halo: 'var(--text-dim)', ring: 'var(--text-dim)', eye: 'var(--text-lo)' },
-  warmup: { halo: 'var(--text-lo)', ring: 'var(--argon-600)', eye: 'var(--argon-400)' },
+  dormant: { halo: 'var(--argon-600)', ring: 'var(--argon-500)', eye: 'var(--argon-400)' },
+  warmup: { halo: 'var(--argon-600)', ring: 'var(--argon-500)', eye: 'var(--argon-300)' },
   calm: { halo: 'var(--argon-500)', ring: 'var(--argon-400)', eye: 'var(--argon-300)' },
   charged: { halo: 'var(--plasma-400)', ring: 'var(--plasma-400)', eye: 'var(--plasma-400)' },
   aggressive: { halo: 'var(--plasma-500)', ring: 'var(--plasma-500)', eye: 'var(--signal-down)' },
@@ -199,6 +199,28 @@ function KeeperAvatarImpl({
   const R = 100; // viewBox radius
   const speed = reduced ? 0 : overclocked ? Math.max(energy.ringSpeed, 1) * 6 : signing ? 0 : energy.ringSpeed;
   const ringDur = speed > 0 ? RING_BASE_SEC / speed : 0;
+  const gradId = useId();
+  // Oozing light: three colors per state. Threads: spin period from the ring speed.
+  const ooze = overclocked
+    ? { c1: 'var(--ion-400)', c2: 'var(--argon-300)', c3: 'var(--plasma-500)' }
+    : signing
+      ? { c1: 'var(--signal-warn)', c2: 'var(--argon-500)', c3: 'var(--signal-warn)' }
+      : mode === 'fixture'
+        ? { c1: 'var(--ion-400)', c2: 'var(--argon-500)', c3: 'var(--ion-400)' }
+        : energy.state === 'aggressive'
+          ? { c1: 'var(--plasma-500)', c2: 'var(--signal-down)', c3: 'var(--plasma-400)' }
+          : energy.state === 'charged'
+            ? { c1: 'var(--plasma-400)', c2: 'var(--argon-500)', c3: 'var(--plasma-500)' }
+            : { c1: 'var(--argon-500)', c2: 'var(--plasma-500)', c3: 'var(--argon-300)' };
+  const spinBase = speed > 0 ? RING_BASE_SEC / speed : signing ? 0 : RING_BASE_SEC / 0.35;
+  const rootVars = {
+    '--ooze-dur': `${breath * 1.3}s`,
+    '--ooze-c1': ooze.c1,
+    '--ooze-c2': ooze.c2,
+    '--ooze-c3': ooze.c3,
+    '--spin-dur': `${spinBase}s`,
+    '--flow-dur': `${Math.max(0.6, breath)}s`,
+  } as React.CSSProperties;
   const stateKey = `${energy.state}-${mode}-${activity}`;
   const aperture = signing ? 1 : overclocked ? 0.5 : energy.aperture;
   const arcs = overclocked ? 3 : energy.arcs;
@@ -208,11 +230,21 @@ function KeeperAvatarImpl({
     <div
       ref={rootRef}
       className={cn('relative select-none', className)}
-      style={size === '100%' ? { width: '100%', aspectRatio: '1 / 1' } : { width: size, height: size }}
+      style={{ ...rootVars, ...(size === '100%' ? { width: '100%', aspectRatio: '1 / 1' } : { width: size, height: size }) }}
       role="img"
       aria-label={`keeper ${energy.state}${mode === 'fixture' ? ' (training)' : ''}`}
       data-state={energy.state}
     >
+      {/* Oozing light: three out-of-phase radial blobs + a luminous rim (pure CSS, transform/opacity) */}
+      {!reduced && (
+        <>
+          <div aria-hidden className="ooze ooze-a" />
+          <div aria-hidden className="ooze ooze-b" />
+          <div aria-hidden className="ooze ooze-c" />
+        </>
+      )}
+      <div aria-hidden className="ooze-rim" style={{ opacity: reduced ? 0.2 : signing ? 0.22 : 0.3 + energy.halo * 0.25 }} />
+
       {/* Outer halo: radial gradient, breathes on opacity + scale (mirror) */}
       <motion.div
         aria-hidden
@@ -263,6 +295,66 @@ function KeeperAvatarImpl({
               />
             )}
           </AnimatePresence>
+
+          {/* Orbiting energy threads: tilted ellipses spinning (transform) with light travelling along them (dashoffset) */}
+          <defs>
+            <linearGradient id={`${gradId}-t1`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor={ooze.c1} stopOpacity="0" />
+              <stop offset="0.5" stopColor={ooze.c1} stopOpacity="1" />
+              <stop offset="1" stopColor={ooze.c3} stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id={`${gradId}-t2`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor={ooze.c2} stopOpacity="0" />
+              <stop offset="0.5" stopColor={ooze.c2} stopOpacity="1" />
+              <stop offset="1" stopColor={ooze.c1} stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id={`${gradId}-t3`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor={ooze.c3} stopOpacity="0" />
+              <stop offset="0.5" stopColor={ooze.c3} stopOpacity="1" />
+              <stop offset="1" stopColor={ooze.c2} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[
+            { rx: R * 1.02, ry: R * 0.34, tilt: -22, dur: 1, reverse: false, grad: 't1', width: 1.4 },
+            { rx: R * 0.9, ry: R * 0.42, tilt: 48, dur: 1.45, reverse: true, grad: 't2', width: 1.1 },
+            { rx: R * 0.76, ry: R * 0.3, tilt: 112, dur: 0.8, reverse: false, grad: 't3', width: 1.2 },
+          ].map((o, i) => (
+            <g key={`orbit-${i}-${stateKey}`} transform={`rotate(${o.tilt})`}>
+              <g
+                className={cn('orbit', o.reverse && 'orbit-reverse')}
+                style={{ '--spin-dur': `${spinBase * o.dur}s` } as React.CSSProperties}
+              >
+                {/* faint full thread */}
+                <ellipse rx={o.rx} ry={o.ry} fill="none" stroke={palette.ring} strokeWidth={o.width * 0.5} opacity={energy.state === 'dormant' ? 0.18 : 0.28} />
+                {/* travelling light: gradient stroke, dashed, offset animated */}
+                <ellipse
+                  className="thread"
+                  rx={o.rx}
+                  ry={o.ry}
+                  fill="none"
+                  stroke={`url(#${gradId}-${o.grad})`}
+                  strokeWidth={o.width * 1.6}
+                  strokeLinecap="round"
+                  strokeDasharray="140 380"
+                  style={{ '--flow-dur': `${Math.max(0.8, breath) * (1 + i * 0.35)}s` } as React.CSSProperties}
+                  opacity={0.95}
+                />
+                {/* comet head */}
+                <ellipse
+                  className="thread-comet"
+                  rx={o.rx}
+                  ry={o.ry}
+                  fill="none"
+                  stroke={ooze.c3}
+                  strokeWidth={o.width * 2.4}
+                  strokeLinecap="round"
+                  strokeDasharray="6 514"
+                  style={{ '--flow-dur': `${Math.max(0.8, breath) * (1 + i * 0.35)}s` } as React.CSSProperties}
+                  opacity={energy.state === 'dormant' ? 0.6 : 0.95}
+                />
+              </g>
+            </g>
+          ))}
 
           {/* Orbital rings */}
           {[
