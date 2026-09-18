@@ -52,9 +52,15 @@ export class AgentError extends Error {
   }
 }
 
-async function agentGet<S extends z.ZodTypeAny>(path: string, schema: S): Promise<z.output<S>> {
+async function agentGet<S extends z.ZodType>(path: string, schema: S, signal?: AbortSignal): Promise<z.output<S>> {
+  // Abort on our 10 s budget, or as soon as TanStack cancels the query (unmount, key change).
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
+  const onOuterAbort = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener('abort', onOuterAbort, { once: true });
+  }
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
@@ -65,12 +71,14 @@ async function agentGet<S extends z.ZodTypeAny>(path: string, schema: S): Promis
     });
   } catch (err) {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', onOuterAbort);
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new AgentError('TIMEOUT', `agent timed out after ${AGENT_TIMEOUT_MS}ms`);
+      throw new AgentError('TIMEOUT', signal?.aborted ? 'request cancelled' : `agent timed out after ${AGENT_TIMEOUT_MS}ms`);
     }
     throw new AgentError('NETWORK', err instanceof Error ? err.message : 'network error');
   }
   clearTimeout(timer);
+  signal?.removeEventListener('abort', onOuterAbort);
 
   if (!res.ok) {
     let code: AgentErrorCode = 'INTERNAL';
@@ -102,36 +110,42 @@ async function agentGet<S extends z.ZodTypeAny>(path: string, schema: S): Promis
   return parsed.data as z.output<S>;
 }
 
-export async function getHealth(): Promise<Health> {
+export async function getHealth(signal?: AbortSignal): Promise<Health> {
   if (agentMode === 'offline') offline();
   if (agentMode === 'fixture') return fixtureHealth();
-  return agentGet('/health', healthSchema);
+  return agentGet('/health', healthSchema, signal);
 }
 
-export async function getStatus(): Promise<AgentStatus> {
+export async function getStatus(signal?: AbortSignal): Promise<AgentStatus> {
   if (agentMode === 'offline') offline();
   if (agentMode === 'fixture') return fixtureStatus();
-  return agentGet('/status', agentStatusSchema);
+  return agentGet('/status', agentStatusSchema, signal);
 }
 
-export async function getLatestForecast(): Promise<Forecast> {
+export async function getLatestForecast(signal?: AbortSignal): Promise<Forecast> {
   if (agentMode === 'offline') offline();
   if (agentMode === 'fixture') return fixtureLatest();
-  return agentGet('/forecasts/latest', forecastSchema);
+  return agentGet('/forecasts/latest', forecastSchema, signal);
 }
 
-export async function getForecastHistory(limit = 24): Promise<ForecastList> {
+export const HISTORY_LIMIT_MAX = 200;
+
+export async function getForecastHistory(limit = 24, signal?: AbortSignal): Promise<ForecastList> {
+  const n = Math.min(HISTORY_LIMIT_MAX, Math.max(1, Math.trunc(limit)));
   if (agentMode === 'offline') offline();
-  if (agentMode === 'fixture') return { items: fixtureHistory(limit) };
-  return agentGet(`/forecasts?limit=${encodeURIComponent(limit)}`, forecastListSchema);
+  if (agentMode === 'fixture') return { items: fixtureHistory(n) };
+  const list = await agentGet(`/forecasts?limit=${n}`, forecastListSchema, signal);
+  // Never trust ordering from the wire: newest first, always.
+  return { items: [...list.items].sort((a, b) => b.hourId - a.hourId) };
 }
 
-export async function getForecast(hourId: number): Promise<Forecast> {
+export async function getForecast(hourId: number, signal?: AbortSignal): Promise<Forecast> {
+  if (!Number.isInteger(hourId) || hourId < 0) throw new AgentError('NOT_FOUND', `invalid hourId ${hourId}`, 404);
   if (agentMode === 'offline') offline();
   if (agentMode === 'fixture') {
     const row = fixtureForecast(hourId);
     if (!row) throw new AgentError('NOT_FOUND', `no fixture row for hourId ${hourId}`, 404);
     return row;
   }
-  return agentGet(`/forecasts/${encodeURIComponent(hourId)}`, forecastSchema);
+  return agentGet(`/forecasts/${hourId}`, forecastSchema, signal);
 }

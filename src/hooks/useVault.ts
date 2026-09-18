@@ -1,8 +1,8 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
-import { BaseError, erc20Abi, type Address, type Hash, type TransactionReceipt } from 'viem';
+import { useCallback, useRef, useState } from 'react';
+import { BaseError, UserRejectedRequestError, erc20Abi, type Address, type Hash, type TransactionReceipt } from 'viem';
 import { useAccount, useConfig, useReadContracts } from 'wagmi';
 import {
   readContract,
@@ -157,10 +157,14 @@ export function txErrorMessage(err: unknown): string {
   return 'unknown error';
 }
 
+/** viem wraps wallet errors; walk the cause chain for the typed 4001 rejection. */
 function isUserRejection(err: unknown): boolean {
-  const msg = err instanceof BaseError ? err.shortMessage : err instanceof Error ? err.message : '';
-  return /rejected|denied|cancel/i.test(msg);
+  if (err instanceof BaseError) return err.walk((e) => e instanceof UserRejectedRequestError) !== null;
+  return false;
 }
+
+/** A dropped or replaced transaction must not leave the UI mining forever. */
+export const RECEIPT_TIMEOUT_MS = 5 * 60_000;
 
 function useInvalidateChainReads() {
   const queryClient = useQueryClient();
@@ -229,7 +233,7 @@ async function runWrite(
   setState({ status: 'pending', step, hash });
   toast.update(toastId, { kind: 'mining', detail: 'waiting for receipt', hash, chainId });
   try {
-    const receipt = await waitForTransactionReceipt(config, { hash, chainId: args.chainId });
+    const receipt = await waitForTransactionReceipt(config, { hash, chainId: args.chainId, timeout: RECEIPT_TIMEOUT_MS });
     if (receipt.status !== 'success') {
       setState({ status: 'failed', step, error: 'transaction reverted', hash });
       toast.update(toastId, { kind: 'error', detail: 'transaction reverted on-chain', hash, chainId, ttl: 10_000 });
@@ -239,11 +243,41 @@ async function runWrite(
     toast.update(toastId, { kind: 'success', detail: `confirmed in block ${receipt.blockNumber.toString()}`, hash, chainId, ttl: 7_000 });
     return { hash, receipt };
   } catch (err) {
-    const error = txErrorMessage(err);
+    const error = /timed out|timeout/i.test(txErrorMessage(err))
+      ? `no receipt after ${RECEIPT_TIMEOUT_MS / 60_000} min — check the explorer; the transaction may have been dropped or replaced`
+      : txErrorMessage(err);
     setState({ status: 'failed', step, error, hash });
-    toast.update(toastId, { kind: 'error', detail: error, hash, chainId, ttl: 10_000 });
+    toast.update(toastId, { kind: 'error', detail: error, hash, chainId, ttl: 12_000 });
     throw err;
   }
+}
+
+/**
+ * Wraps a write hook body: refuses re-entry while busy, and guarantees that any
+ * failure outside runWrite (a pre-read RPC error, a thrown invariant) still lands
+ * in the failed state instead of leaving the form silently idle.
+ */
+function useGuardedWrite(step: TxStep) {
+  const busy = useRef(false);
+  const [state, setState] = useState<TxState>({ status: 'idle' });
+  const run = useCallback(
+    async (body: () => Promise<void>) => {
+      if (busy.current) return;
+      busy.current = true;
+      try {
+        await body();
+      } catch (err) {
+        setState((prev) => (prev.status === 'failed' ? prev : { status: 'failed', step, error: txErrorMessage(err) }));
+      } finally {
+        busy.current = false;
+      }
+    },
+    [step],
+  );
+  const reset = useCallback(() => {
+    if (!busy.current) setState({ status: 'idle' });
+  }, []);
+  return { state, setState, run, reset } as const;
 }
 
 /** approve (if needed) → deposit(token, amount). */
@@ -251,20 +285,21 @@ export function useDeposit(chainId: SupportedChainId) {
   const config = useConfig();
   const { address: user } = useAccount();
   const invalidate = useInvalidateChainReads();
-  const [state, setState] = useState<TxState>({ status: 'idle' });
+  const { state, setState, run, reset } = useGuardedWrite('deposit');
 
   const write = useCallback(
-    async (token: TokenDef, amount: bigint) => {
-      const vault = getVault(chainId);
-      if (!vault || !user) {
-        setState({ status: 'failed', step: 'deposit', error: vault ? 'wallet not connected' : 'vault not deployed' });
-        return;
-      }
-      if (amount <= 0n) {
-        setState({ status: 'failed', step: 'deposit', error: 'amount must be greater than zero' });
-        return;
-      }
-      try {
+    (token: TokenDef, amount: bigint) =>
+      run(async () => {
+        const vault = getVault(chainId);
+        if (!vault || !user) {
+          setState({ status: 'failed', step: 'deposit', error: vault ? 'wallet not connected' : 'vault not deployed' });
+          return;
+        }
+        if (amount <= 0n) {
+          setState({ status: 'failed', step: 'deposit', error: 'amount must be greater than zero' });
+          return;
+        }
+        setState({ status: 'simulating', step: 'approve' });
         const allowance = await readContract(config, {
           address: token.address, abi: erc20Abi, chainId, functionName: 'allowance', args: [user, vault.address],
         });
@@ -277,14 +312,10 @@ export function useDeposit(chainId: SupportedChainId) {
           ...vault, functionName: 'deposit', args: [token.address, amount], account: user,
         }, setState);
         await invalidate();
-      } catch {
-        // state already reflects the failure
-      }
-    },
-    [chainId, config, user, invalidate],
+      }),
+    [chainId, config, user, invalidate, run, setState],
   );
 
-  const reset = useCallback(() => setState({ status: 'idle' }), []);
   return { state, write, reset } as const;
 }
 
@@ -293,26 +324,26 @@ export function useDepositEth(chainId: SupportedChainId) {
   const config = useConfig();
   const { address: user } = useAccount();
   const invalidate = useInvalidateChainReads();
-  const [state, setState] = useState<TxState>({ status: 'idle' });
+  const { state, setState, run, reset } = useGuardedWrite('depositETH');
 
   const write = useCallback(
-    async (value: bigint) => {
-      const vault = getVault(chainId);
-      if (!vault || !user) {
-        setState({ status: 'failed', step: 'depositETH', error: vault ? 'wallet not connected' : 'vault not deployed' });
-        return;
-      }
-      try {
+    (value: bigint) =>
+      run(async () => {
+        const vault = getVault(chainId);
+        if (!vault || !user) {
+          setState({ status: 'failed', step: 'depositETH', error: vault ? 'wallet not connected' : 'vault not deployed' });
+          return;
+        }
+        if (value <= 0n) {
+          setState({ status: 'failed', step: 'depositETH', error: 'amount must be greater than zero' });
+          return;
+        }
         await runWrite(config, 'depositETH', { ...vault, functionName: 'depositETH', value, account: user }, setState);
         await invalidate();
-      } catch {
-        // state already reflects the failure
-      }
-    },
-    [chainId, config, user, invalidate],
+      }),
+    [chainId, config, user, invalidate, run, setState],
   );
 
-  const reset = useCallback(() => setState({ status: 'idle' }), []);
   return { state, write, reset } as const;
 }
 
@@ -321,20 +352,22 @@ export function useWithdraw(chainId: SupportedChainId) {
   const config = useConfig();
   const { address: user } = useAccount();
   const invalidate = useInvalidateChainReads();
-  const [state, setState] = useState<TxState>({ status: 'idle' });
+  const { state, setState, run, reset } = useGuardedWrite('withdraw');
 
   const write = useCallback(
-    async (token: TokenDef, amount: bigint) => {
-      const vault = getVault(chainId);
-      if (!vault || !user) {
-        setState({ status: 'failed', step: 'withdraw', error: vault ? 'wallet not connected' : 'vault not deployed' });
-        return;
-      }
-      if (amount <= 0n) {
-        setState({ status: 'failed', step: 'withdraw', error: 'amount must be greater than zero' });
-        return;
-      }
-      try {
+    (token: TokenDef, amount: bigint) =>
+      run(async () => {
+        const vault = getVault(chainId);
+        if (!vault || !user) {
+          setState({ status: 'failed', step: 'withdraw', error: vault ? 'wallet not connected' : 'vault not deployed' });
+          return;
+        }
+        if (amount <= 0n) {
+          setState({ status: 'failed', step: 'withdraw', error: 'amount must be greater than zero' });
+          return;
+        }
+        setState({ status: 'simulating', step: 'withdraw' });
+        // Idle-only invariant, re-read on-chain right before signing (product.md §4.5): fail closed.
         const idle = await readContract(config, { ...vault, functionName: 'idleBalance', args: [user, token.address] });
         if (amount > idle) {
           setState({ status: 'failed', step: 'withdraw', error: 'amount exceeds idle balance' });
@@ -342,14 +375,10 @@ export function useWithdraw(chainId: SupportedChainId) {
         }
         await runWrite(config, 'withdraw', { ...vault, functionName: 'withdraw', args: [token.address, amount], account: user }, setState);
         await invalidate();
-      } catch {
-        // state already reflects the failure
-      }
-    },
-    [chainId, config, user, invalidate],
+      }),
+    [chainId, config, user, invalidate, run, setState],
   );
 
-  const reset = useCallback(() => setState({ status: 'idle' }), []);
   return { state, write, reset } as const;
 }
 
@@ -358,22 +387,21 @@ export function useEmergencyWithdraw(chainId: SupportedChainId) {
   const config = useConfig();
   const { address: user } = useAccount();
   const invalidate = useInvalidateChainReads();
-  const [state, setState] = useState<TxState>({ status: 'idle' });
+  const { state, setState, run, reset } = useGuardedWrite('emergencyWithdraw');
 
-  const write = useCallback(async () => {
-    const vault = getVault(chainId);
-    if (!vault || !user) {
-      setState({ status: 'failed', step: 'emergencyWithdraw', error: vault ? 'wallet not connected' : 'vault not deployed' });
-      return;
-    }
-    try {
-      await runWrite(config, 'emergencyWithdraw', { ...vault, functionName: 'emergencyWithdraw', account: user }, setState);
-      await invalidate();
-    } catch {
-      // state already reflects the failure
-    }
-  }, [chainId, config, user, invalidate]);
+  const write = useCallback(
+    () =>
+      run(async () => {
+        const vault = getVault(chainId);
+        if (!vault || !user) {
+          setState({ status: 'failed', step: 'emergencyWithdraw', error: vault ? 'wallet not connected' : 'vault not deployed' });
+          return;
+        }
+        await runWrite(config, 'emergencyWithdraw', { ...vault, functionName: 'emergencyWithdraw', account: user }, setState);
+        await invalidate();
+      }),
+    [chainId, config, user, invalidate, run, setState],
+  );
 
-  const reset = useCallback(() => setState({ status: 'idle' }), []);
   return { state, write, reset } as const;
 }

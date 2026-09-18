@@ -19,10 +19,15 @@ export function HashText({ value, href, className, head = 6, tail = 4 }: HashTex
   const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
     if (!value) return;
-    void navigator.clipboard?.writeText(value).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 300);
-    });
+    navigator.clipboard
+      ?.writeText(value)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 300);
+      })
+      .catch(() => {
+        /* clipboard permission denied: the full value is still in the title attribute */
+      });
   }, [value]);
 
   if (!value) return <span className={cn('text-text-dim', className)}>—</span>;
