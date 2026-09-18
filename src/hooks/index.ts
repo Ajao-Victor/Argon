@@ -7,3 +7,4 @@ export * from './useActivity';
 export * from './useSimulationLoop';
 export * from './usePerfReadout';
 export * from './useUtcClock';
+export * from './useBrandColors';

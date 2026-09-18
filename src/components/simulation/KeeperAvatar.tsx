@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
 import { memo, useEffect, useMemo, useRef } from 'react';
 
+import { useBrandColors } from '@/hooks/useBrandColors';
 import { useSimulationLoop } from '@/hooks/useSimulationLoop';
 import type { PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
@@ -50,6 +51,15 @@ const TRAINING = { halo: 'var(--ion-400)', ring: 'var(--ion-400)', eye: 'var(--i
 const OVERCLOCK = { halo: 'var(--ion-400)', ring: 'var(--argon-300)', eye: 'var(--ion-400)' };
 const SIGNING = { halo: 'var(--signal-warn)', ring: 'var(--signal-warn)', eye: 'var(--signal-warn)' };
 
+/** Aura recipe per state (tokens.css --aura-*). Applied as a static filter on the wrapper. */
+const AURA: Record<KeeperState, string> = {
+  dormant: 'var(--aura-dormant)',
+  warmup: 'var(--aura-dormant)',
+  calm: 'var(--aura-calm)',
+  charged: 'var(--aura-charged)',
+  aggressive: 'var(--aura-exit)',
+};
+
 const RING_BASE_SEC = 24; // one revolution at ringSpeed 1
 const STATE_SPRING = { type: 'spring', stiffness: 220, damping: 24 } as const;
 const TRACK_SPRING = { stiffness: 100, damping: 30, mass: 1.1 } as const;
@@ -86,6 +96,34 @@ function KeeperAvatarImpl({
   const signing = activity === 'signing';
   const palette = overclocked ? OVERCLOCK : signing ? SIGNING : mode === 'fixture' ? TRAINING : COLOR[energy.state];
   const breath = overclocked ? 0.7 : signing ? 2.6 : mode === 'fixture' ? 1.2 : BREATH_SEC[energy.state];
+  const aura = overclocked ? 'var(--aura-overclock)' : mode === 'fixture' ? 'var(--aura-training)' : AURA[energy.state];
+
+  // Color breathing keyframes from resolved tokens. EXIT blazes plasma → signal-down;
+  // ENTER / HOLD breathe deep argon-600 → argon-300 → plasma-400; training breathes ion.
+  const c = useBrandColors();
+  const coreFill = !c
+    ? undefined
+    : overclocked
+      ? [c['ion-400'], c['argon-300'], c['plasma-400']]
+      : mode === 'fixture'
+        ? [c['ion-400'], c['argon-300']]
+        : energy.state === 'aggressive'
+          ? [c['plasma-500'], c['signal-down'], c['plasma-400']]
+          : energy.state === 'charged'
+            ? [c['argon-500'], c['plasma-400'], c['argon-300']]
+            : energy.state === 'dormant'
+              ? [c['text-dim'], c['argon-600']]
+              : [c['argon-600'], c['argon-300'], c['plasma-400']];
+  const ringStroke = !c
+    ? undefined
+    : energy.state === 'aggressive' && !overclocked
+      ? [c['plasma-500'], c['signal-down']]
+      : overclocked
+        ? [c['argon-300'], c['ion-400']]
+        : mode === 'fixture'
+          ? [c['ion-400'], c['argon-400']]
+          : [c['argon-500'], c['plasma-400']];
+  const colorLoop = reduced ? { duration: 0.4 } : { duration: breath, repeat: Infinity, repeatType: 'mirror' as const, ease: 'easeInOut' as const };
 
   // ---- pointer → motion values → weighted springs (no React state) ----
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -194,6 +232,8 @@ function KeeperAvatarImpl({
         transition={reduced ? STATE_SPRING : { duration: breath * 0.8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut', delay: breath * 0.3 }}
       />
 
+      {/* Aura: layered drop-shadows from tokens.css; static per state, transitions on change only */}
+      <div className="keeper-aura absolute inset-0" style={{ filter: aura }}>
       {/* Hover group: the whole body drifts on Y like something heavy floating */}
       <motion.div
         className="absolute inset-0 will-change-transform"
@@ -238,7 +278,16 @@ function KeeperAvatarImpl({
                 animate={ringDur > 0 ? { rotate: 360 * dir } : { rotate: 0 }}
                 transition={ringDur > 0 ? { duration: ringDur * (1 + i * 0.35), repeat: Infinity, ease: 'linear' } : STATE_SPRING}
               >
-                <circle r={ring.r} fill="none" stroke={palette.ring} strokeWidth={ring.w} strokeDasharray={ring.dash} opacity={energy.state === 'dormant' ? 0.25 : 0.7} />
+                <motion.circle
+                r={ring.r}
+                fill="none"
+                stroke={palette.ring}
+                strokeWidth={ring.w}
+                strokeDasharray={ring.dash}
+                opacity={energy.state === 'dormant' ? 0.25 : 0.7}
+                animate={ringStroke ? { stroke: ringStroke } : {}}
+                transition={{ ...colorLoop, delay: i * 0.2 }}
+              />
               </motion.g>
             );
           })}
@@ -280,7 +329,24 @@ function KeeperAvatarImpl({
             }
           >
             <polygon points={hexPoints(R * 0.36)} fill="var(--surface-1)" stroke={palette.ring} strokeWidth={1.5} />
-            <polygon points={hexPoints(R * 0.28)} fill="none" stroke={palette.ring} strokeWidth={0.6} opacity={0.6} />
+            {/* Reactor core: color breathes; paint-only, no layout */}
+            <motion.polygon
+              points={hexPoints(R * 0.3)}
+              stroke="none"
+              style={{ mixBlendMode: 'screen' }}
+              initial={false}
+              animate={coreFill ? { fill: coreFill, opacity: [0.35, 0.75] } : { opacity: 0.35 }}
+              transition={colorLoop}
+            />
+            <motion.polygon
+              points={hexPoints(R * 0.28)}
+              fill="none"
+              strokeWidth={0.8}
+              opacity={0.8}
+              stroke={palette.ring}
+              animate={ringStroke ? { stroke: ringStroke } : {}}
+              transition={colorLoop}
+            />
 
             {/* Eyes: translate follows the pointer, scaleY is the aperture. Glitch keyed on hourId. */}
             <motion.g style={reduced ? {} : { x: eyeX, y: eyeY }}>
@@ -292,13 +358,14 @@ function KeeperAvatarImpl({
                 animate={{ scaleY: Math.max(0.06, aperture) }}
                 transition={STATE_SPRING}
               >
-                <rect x={-16} y={-4} width={11} height={8} rx={1.5} fill={palette.eye} />
-                <rect x={5} y={-4} width={11} height={8} rx={1.5} fill={palette.eye} />
+                <motion.rect x={-16} y={-4} width={11} height={8} rx={1.5} fill={palette.eye} animate={c ? { fill: energy.state === 'aggressive' && !overclocked ? [c['signal-down'], c['plasma-400']] : [palette.eye, c['argon-300']] } : {}} transition={colorLoop} />
+                <motion.rect x={5} y={-4} width={11} height={8} rx={1.5} fill={palette.eye} animate={c ? { fill: energy.state === 'aggressive' && !overclocked ? [c['signal-down'], c['plasma-400']] : [palette.eye, c['argon-300']] } : {}} transition={colorLoop} />
               </motion.g>
             </motion.g>
           </motion.g>
         </motion.svg>
       </motion.div>
+      </div>
 
       {/* Thinking: scan line sweeps the body while an agent query is in flight */}
       <AnimatePresence>

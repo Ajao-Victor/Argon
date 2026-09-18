@@ -156,6 +156,18 @@
     will-change: transform;
   }
 
+  /* Keeper aura wrapper: a static filter that transitions on state change only.
+     Mobile keeps a single layer so the per-frame re-raster stays cheap. */
+  .keeper-aura {
+    transition: filter 220ms ease-out;
+    will-change: filter;
+  }
+  @media (max-width: 640px) {
+    .keeper-aura {
+      filter: drop-shadow(0 0 10px var(--argon-500)) !important;
+    }
+  }
+
   /* Luminous data text */
   .glow-text {
     text-shadow: 0 0 18px var(--argon-glow);

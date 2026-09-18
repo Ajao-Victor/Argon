@@ -52,6 +52,15 @@
   --glow-warmup: rgba(139, 134, 160, 0.22);
   --glow-error: rgba(251, 113, 133, 0.4);
 
+  /* Keeper aura (Phase 12 M1): layered drop-shadows. Static per state; only the
+     state change transitions. --argon-500 core, --plasma-500 corona. */
+  --aura-calm: drop-shadow(0 0 6px var(--argon-500)) drop-shadow(0 0 18px var(--plasma-500));
+  --aura-charged: drop-shadow(0 0 8px var(--argon-400)) drop-shadow(0 0 22px var(--plasma-500)) drop-shadow(0 0 40px var(--plasma-400));
+  --aura-exit: drop-shadow(0 0 8px var(--plasma-500)) drop-shadow(0 0 26px var(--plasma-500)) drop-shadow(0 0 48px var(--signal-down));
+  --aura-training: drop-shadow(0 0 6px var(--ion-400)) drop-shadow(0 0 20px var(--ion-400));
+  --aura-dormant: drop-shadow(0 0 4px var(--argon-600));
+  --aura-overclock: drop-shadow(0 0 10px var(--ion-400)) drop-shadow(0 0 28px var(--argon-300)) drop-shadow(0 0 52px var(--plasma-500));
+
   /* 2.8 Radii */
   --radius-panel: 6px;
   --radius-chip: 4px;

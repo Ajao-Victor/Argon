@@ -48,10 +48,13 @@ interface Particle {
   life: number;
 }
 
-const ARGON = [168, 85, 247] as const;
-const PLASMA = [232, 121, 249] as const;
-const ION = [34, 211, 238] as const;
-const WARN = [251, 191, 36] as const;
+// RGB mirrors of tokens.css (canvas fillStyle cannot read CSS variables). Keep in sync with tokens.css §2.2–2.4.
+const ARGON = [168, 85, 247] as const; // --argon-500
+const ARGON_LIGHT = [216, 180, 254] as const; // --argon-300
+const PLASMA = [232, 121, 249] as const; // --plasma-500
+const ION = [34, 211, 238] as const; // --ion-400
+const EXIT_BLAZE = [232, 121, 249] as const; // --plasma-500: the OUT / EXIT state snaps here
+const EXIT_EDGE = [251, 113, 133] as const; // --signal-down for the hottest particles
 const FLOOR = 80;
 
 function mix(a: readonly [number, number, number], b: readonly [number, number, number], t: number): [number, number, number] {
@@ -197,7 +200,7 @@ function ParticleFieldImpl({ ethPctChange, mode, action, fixture = false, pulseK
     const m = st.mode;
     const calm = m === 'WARMUP' || m === 'OFFLINE';
     const energy = calm ? 0.15 : Math.min(1.4, 0.2 + st.pct / 2);
-    st.warnMix += ((m === 'OUT' ? 1 : 0) - st.warnMix) * Math.min(1, step * 2);
+    st.warnMix += ((m === 'OUT' ? 1 : 0) - st.warnMix) * Math.min(1, step * (m === 'OUT' ? 6 : 1.5));
     if (st.surge > 0) st.surge = Math.max(0, st.surge - step / 1.4);
 
     const a = attractorRef?.current ?? null;
@@ -257,9 +260,11 @@ function ParticleFieldImpl({ ethPctChange, mode, action, fixture = false, pulseK
       else if (p.y > st.h + 4) p.y = -4;
 
       const base = p.hue === 2 ? ION : p.hue === 1 ? PLASMA : ARGON;
-      const [r, g, b] = mix(base, WARN, st.warnMix * 0.7);
+      // EXIT: snap toward blazing plasma-500, hottest particles (near the core) edge into signal-down.
       const near = 1 - Math.min(1, d / 260);
-      const alpha = (calm ? 0.22 : 0.3 + Math.min(0.4, energy * 0.28)) * p.life + near * 0.25;
+      const blazed = mix(base, EXIT_BLAZE, st.warnMix);
+      const [r, g, b] = st.warnMix > 0 ? mix(blazed, EXIT_EDGE, st.warnMix * near * 0.6) : mix(base, ARGON_LIGHT, near * 0.35);
+      const alpha = (calm ? 0.22 : 0.3 + Math.min(0.4, energy * 0.28)) * p.life + near * 0.3 + st.warnMix * 0.12;
       ctx.fillStyle = `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${alpha.toFixed(3)})`;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r + near * 0.6, 0, Math.PI * 2);
