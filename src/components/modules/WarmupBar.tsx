@@ -1,24 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
 import { Panel } from '@/components/ui';
-import { useAgentStatus } from '@/hooks';
+import { useAgentStatus, useUtcClock } from '@/hooks';
 import { cn } from '@/utils/cn';
-import { msUntilNextHour } from '@/utils/hourId';
 import { WARMUP_HOURS } from '@/utils/policy';
 
 /** Eight segments, n/8, countdown to the next :00 UTC (design.md §4.3). Hidden once warmup is complete. */
 export function WarmupBar() {
   const status = useAgentStatus();
-  // Countdown refreshes every 15 s (minutes precision); never a 1 s loop.
-  const [minsToHour, setMinsToHour] = useState<number | null>(null);
-  useEffect(() => {
-    const update = () => setMinsToHour(Math.ceil(msUntilNextHour() / 60_000));
-    update();
-    const t = setInterval(update, 15_000);
-    return () => clearInterval(t);
-  }, []);
+  // One clock for the app: the footer's UTC clock hook (self-aligning timeout, pauses when hidden).
+  const clock = useUtcClock();
+  const minsToHour = clock ? Math.ceil(clock.secondsToNextHour / 60) : null;
 
   const s = status.data;
   if (!s || s.warmupComplete) return null;

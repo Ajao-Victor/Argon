@@ -118,21 +118,6 @@ export function useMagnetic(strength = 6, enabled = true) {
   return { ref, style: active ? { x, y } : {}, onPointerMove, onPointerLeave } as const;
 }
 
-export function Magnetic({ children, className, strength = 6 }: { children: ReactNode; className?: string; strength?: number }) {
-  const m = useMagnetic(strength);
-  return (
-    <motion.div
-      ref={m.ref as React.Ref<HTMLDivElement>}
-      style={m.style}
-      onPointerMove={m.onPointerMove}
-      onPointerLeave={m.onPointerLeave}
-      className={cn('inline-block p-3 -m-3', className)}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // ScanLine: one sweep + flicker when `refreshKey` changes (not on first mount)
 // ---------------------------------------------------------------------------

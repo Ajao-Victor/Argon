@@ -25,6 +25,11 @@ import { toast } from '@/components/ui/Toasts';
  * Writes: simulate → sign → wait for receipt → invalidate. No optimistic balances.
  */
 export const VAULT_READ_STALE_MS = 15_000;
+
+/** readContracts with a conditional contracts array widens results to unknown; narrow at runtime, never cast. */
+function asBigInt(v: unknown): bigint {
+  return typeof v === 'bigint' ? v : 0n;
+}
 export const VAULT_PARAMS_STALE_MS = 5 * 60_000;
 
 // ---------------------------------------------------------------------------
@@ -101,10 +106,10 @@ export function useVaultBalances(chainId: SupportedChainId, user: Address | unde
       select: (rows) => {
         const idle: VaultBalance[] = tokens.map((token, i) => {
           const r = rows[i];
-          return { token, idle: r?.status === 'success' ? BigInt(r.result as bigint) : 0n };
+          return { token, idle: r?.status === 'success' ? asBigInt(r.result) : 0n };
         });
         const shareRow = rows[tokens.length];
-        const shares = shareRow?.status === 'success' ? BigInt(shareRow.result as bigint) : 0n;
+        const shares = shareRow?.status === 'success' ? asBigInt(shareRow.result) : 0n;
         const funded = shares > 0n || idle.some((b) => b.idle > 0n);
         return { idle, shares, funded };
       },
@@ -129,8 +134,8 @@ export function useTokenAllowance(chainId: SupportedChainId, token: TokenDef | u
       enabled,
       staleTime: VAULT_READ_STALE_MS,
       select: (rows) => ({
-        balance: rows[0]?.status === 'success' ? BigInt(rows[0].result as bigint) : 0n,
-        allowance: rows[1]?.status === 'success' ? BigInt(rows[1].result as bigint) : 0n,
+        balance: rows[0]?.status === 'success' ? asBigInt(rows[0].result) : 0n,
+        allowance: rows[1]?.status === 'success' ? asBigInt(rows[1].result) : 0n,
       }),
     },
   });
@@ -319,7 +324,7 @@ export function useDeposit(chainId: SupportedChainId) {
   return { state, write, reset } as const;
 }
 
-/** depositETH() with value. Fails cleanly if the vault does not expose it. */
+/** depositETH() with value. Spec §4.5 optional; not wired into a form until the vault exposes it. */
 export function useDepositEth(chainId: SupportedChainId) {
   const config = useConfig();
   const { address: user } = useAccount();

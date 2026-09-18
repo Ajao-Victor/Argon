@@ -87,7 +87,7 @@ export function useForecastHistory(limit = 24): UseQueryResult<ForecastList, Err
   });
 }
 
-/** Single row. Once matured it never changes, so it is cached forever. */
+/** Single row (spec §3.3 /forecasts/:hourId). Reserved for the detail drawer; once matured it is cached forever. */
 export function useForecast(hourId: HourId | number | undefined): UseQueryResult<Forecast, Error> {
   return useQuery({
     queryKey: agentKeys.forecast(hourId ?? -1),

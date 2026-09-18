@@ -264,7 +264,8 @@ The UI store exposes three user settings, persisted in `localStorage`:
 |---|---|---|
 | `motion` | `full` / `reduced` | follows `prefers-reduced-motion` |
 | `field` | `on` / `off` | `on` on desktop, `off` on mobile under 4 GB RAM heuristics |
-| `sound` | `on` / `off` | `off` |
+
+Sound (§3.6) is not implemented in v1; the `sound` setting is added to the store only when the audio cues ship, not before.
 
 There is no light theme in v1. The page always sets `color-scheme: dark`.
 

@@ -12,7 +12,7 @@ export type { Column } from './DataTable';
 export { TokenInput } from './TokenInput';
 export { HashText } from './HashText';
 export { Banner } from './Banner';
-export { Reveal, RevealItem, StaggerText, Magnetic, useMagnetic, ScanLine, useRefreshTick, useHoloSheen } from './motion';
+export { Reveal, RevealItem, StaggerText, useMagnetic, ScanLine, useRefreshTick, useHoloSheen } from './motion';
 export { Tooltip, Term } from './Tooltip';
 export { GLOSSARY } from './glossary';
 export type { TermId } from './glossary';

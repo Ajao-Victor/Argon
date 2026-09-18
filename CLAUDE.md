@@ -19,7 +19,7 @@ Web3 frontends rot in predictable ways. These are the ones we refuse.
 ### 1.1 Duplicate caching
 
 **Symptom:** wagmi/TanStack Query holds `idleBalance`, and a Zustand store also holds `idleBalance`, and they disagree after a tx.
-**Rule:** TanStack Query is the only cache for anything that came from the network or the chain. Zustand holds five fields of ephemeral UI state (`selectedChainId`, `modal`, `motion`, `field`, `sound`) and nothing that has a query key. If you find yourself writing `setBalance(...)` in a store, stop and invalidate a query instead.
+**Rule:** TanStack Query is the only cache for anything that came from the network or the chain. Zustand holds three fields of ephemeral UI state (`selectedChainId`, `motion`, `field`) and nothing that has a query key. A field is added only when something reads it. If you find yourself writing `setBalance(...)` in a store, stop and invalidate a query instead.
 
 ### 1.2 Micro-store sprawl
 
@@ -86,6 +86,7 @@ Web3 frontends rot in predictable ways. These are the ones we refuse.
 
 - Components never call `fetch`, viem clients, or `useReadContract` directly. They call a domain hook.
 - Every domain hook returns `{ data, status, error, refetch }` shaped by TanStack Query. No custom loading booleans.
+- Two components that need the same data share one query key. Slice in the component; never request the same rows under a second key.
 - Write hooks return a discriminated union `status` plus `write()` and `reset()`. Nothing else.
 - Simulation components receive plain values as props and push them into a ref. They never subscribe to queries.
 

@@ -4,7 +4,6 @@ export { KeeperAvatar } from './KeeperAvatar';
 export type { KeeperAvatarProps } from './KeeperAvatar';
 export { ParticleField } from './ParticleField';
 export type { ParticleFieldProps, FieldMode, Attractor } from './ParticleField';
-export { HourPulse } from './HourPulse';
 export { TickerTape } from './TickerTape';
 export type { TickerItem } from './TickerTape';
 export { Telemetry } from './Telemetry';

@@ -90,21 +90,9 @@ export function resumeSimulation(token: string): void {
   pauseTokens.delete(token);
 }
 
-export function isSimulationPaused(): boolean {
-  return pauseTokens.size > 0;
-}
-
-export function lastFrameCostMs(): number {
-  return lastCost;
-}
-
 /** Exponential moving average of subscriber cost per frame. */
 export function averageFrameCostMs(): number {
   return avgCost;
-}
-
-export function isOverBudget(): boolean {
-  return avgCost > FRAME_BUDGET_MS;
 }
 
 export function schedulerStats(): { frames: number; dropped: number; avgMs: number; lastMs: number; subscribers: number } {

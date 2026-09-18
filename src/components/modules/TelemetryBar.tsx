@@ -12,7 +12,8 @@ import { formatPct } from '@/utils/format';
 export function TelemetryBar() {
   const status = useAgentStatus();
   const latest = useLatestForecast();
-  const history = useForecastHistory(12);
+  // Same query key as the forecasts table (limit 24); the ticker slices, it does not refetch.
+  const history = useForecastHistory(24);
   const mode = useAgentMode();
   const w = useWallet();
   const perf = usePerfReadout();
@@ -30,7 +31,7 @@ export function TelemetryBar() {
       : []),
   ];
 
-  const ticker: TickerItem[] = (history.data?.items ?? []).map((f) => ({
+  const ticker: TickerItem[] = (history.data?.items ?? []).slice(0, 12).map((f) => ({
     key: f.hourId,
     node: (
       <span className="flex items-center gap-2">

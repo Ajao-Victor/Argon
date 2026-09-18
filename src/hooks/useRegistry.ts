@@ -1,6 +1,6 @@
 'use client';
 
-import { useReadContract, useReadContracts } from 'wagmi';
+import { useReadContracts } from 'wagmi';
 
 import type { SupportedChainId } from '@/services/chains';
 import { getRegistry } from '@/services/contracts';
@@ -12,22 +12,6 @@ import { reconcileForecast, type RegistryRow, type Reconciliation } from '@/util
  * (doc/agents.md §4.3, §6.3). Reads pass chainId explicitly.
  */
 export const REGISTRY_STALE_MS = 30_000;
-
-export function useRegistryLatestHourId(chainId: SupportedChainId) {
-  const registry = getRegistry(chainId);
-  return useReadContract({
-    ...(registry ?? { address: undefined, abi: undefined }),
-    chainId,
-    functionName: 'latestHourId',
-    query: {
-      enabled: Boolean(registry),
-      staleTime: REGISTRY_STALE_MS,
-      refetchInterval: REGISTRY_STALE_MS,
-      refetchIntervalInBackground: false,
-      select: (v) => Number(v) as HourId,
-    },
-  });
-}
 
 /** getForecast(hourId) → RegistryRow, plus latestHourId in the same multicall. */
 export function useRegistryForecast(chainId: SupportedChainId, hourId: HourId | number | undefined) {
