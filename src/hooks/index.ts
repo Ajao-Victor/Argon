@@ -6,3 +6,4 @@ export * from './useWallet';
 export * from './useActivity';
 export * from './useSimulationLoop';
 export * from './usePerfReadout';
+export * from './useUtcClock';

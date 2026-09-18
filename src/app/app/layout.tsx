@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { AgentClock } from '@/components/modules/AgentClock';
+import { Footer } from '@/components/ui/Footer';
 import { Navbar } from '@/components/ui/Navbar';
 import { Providers } from '@/components/ui/Providers';
 
@@ -12,6 +13,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-dvh flex-col">
         <Navbar />
         <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</div>
+        <Footer />
       </div>
     </Providers>
   );

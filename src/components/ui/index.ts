@@ -17,3 +17,4 @@ export { Tooltip, Term } from './Tooltip';
 export { GLOSSARY } from './glossary';
 export type { TermId } from './glossary';
 export { Navbar } from './Navbar';
+export { Footer } from './Footer';

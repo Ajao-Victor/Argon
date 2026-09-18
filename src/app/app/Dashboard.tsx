@@ -106,7 +106,6 @@ export function Dashboard() {
           </div>
         </div>
 
-        <p className="text-center label leading-5 text-text-dim">custody on-chain · judgment off-chain · the website is not the keeper</p>
       </div>
     </div>
   );
