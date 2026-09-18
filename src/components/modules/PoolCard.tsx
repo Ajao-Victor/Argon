@@ -10,7 +10,7 @@ import { formatToken } from '@/utils/format';
 
 /**
  * Pool status panel (design.md §4.4, product.md §3.3). Status is a function of the
- * vault read and funding, never of the forecast alone (CLAUDE.md §1.7).
+ * vault read and funding, never of the forecast alone (ENGINEERING.md §1.7).
  */
 const TONE: Record<PoolCardStatus, ChipTone> = {
   IN_POOL: 'up',

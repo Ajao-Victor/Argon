@@ -1,6 +1,6 @@
 /**
  * ArgonVault — user-facing surface only (spec §4.4).
- * Deliberately excludes `rebalance` and any adapter/Uniswap functions (CLAUDE.md §0.3).
+ * Deliberately excludes `rebalance` and any adapter/Uniswap functions (ENGINEERING.md §0.3).
  */
 export const vaultAbi = [
   // writes (user wallet)

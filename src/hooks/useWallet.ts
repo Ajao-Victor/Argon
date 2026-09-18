@@ -6,7 +6,7 @@ import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } fro
 import { DEFAULT_CHAIN_ID, isSupportedChainId, type SupportedChainId } from '@/services/chains';
 import { isAdmin } from '@/services/contracts';
 
-/** Thin wallet facade so components never import wagmi hooks directly (CLAUDE.md §3.3). */
+/** Thin wallet facade so components never import wagmi hooks directly (ENGINEERING.md §3.3). */
 export function useWallet() {
   const { address, isConnected, isConnecting, connector } = useAccount();
   const walletChainId = useChainId();

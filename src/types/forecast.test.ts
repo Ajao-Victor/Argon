@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { agentStatusSchema, forecastListSchema, forecastSchema } from './forecast';
 
-/** Malformed agent payloads must fail validation, never reach the UI (CLAUDE.md §0.6, agents.md §4). */
+/** Malformed agent payloads must fail validation, never reach the UI (ENGINEERING.md §0.6, agents.md §4). */
 const H = 497104;
 const HASH = '0x' + 'ab'.repeat(32);
 const valid = {

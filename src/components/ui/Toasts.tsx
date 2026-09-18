@@ -14,7 +14,7 @@ import { SPRING } from './motion';
 
 /**
  * Transaction toasts (Phase 8 M3). A tiny external store (no Zustand: the ui store
- * keeps its five fields, CLAUDE.md §1.2) read through useSyncExternalStore.
+ * keeps its five fields, ENGINEERING.md §1.2) read through useSyncExternalStore.
  * One toast per write, updated in place as the TxState advances:
  *   signing → amber  ·  mining → pending bar  ·  confirmed → up  ·  failed → down
  */

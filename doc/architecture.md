@@ -253,7 +253,7 @@ There is no heavy client computation in v1. `hourId` math and formatting are tri
 
 ```
 argon-web/
-  CLAUDE.md                    operating guardrails for coding sessions
+  ENGINEERING.md                    operating guardrails for coding sessions
   doc/                         this folder: product, architecture, agents, design, essentials
   src/
     app/                       routes: /, /app, /app/deposit, /app/withdraw, /app/forecasts, /app/activity, api/agent (optional proxy)

@@ -21,7 +21,7 @@ import { toast } from '@/components/ui/Toasts';
 
 /**
  * Vault hooks (doc/architecture.md §2.1, §2.5). Every read passes `chainId`
- * explicitly from the pool definition, never from the wallet's chain (CLAUDE.md §2).
+ * explicitly from the pool definition, never from the wallet's chain (ENGINEERING.md §2).
  * Writes: simulate → sign → wait for receipt → invalidate. No optimistic balances.
  */
 export const VAULT_READ_STALE_MS = 15_000;
@@ -147,7 +147,7 @@ export function useTokenAllowance(chainId: SupportedChainId, token: TokenDef | u
 
 export type TxStep = 'approve' | 'deposit' | 'depositETH' | 'withdraw' | 'emergencyWithdraw';
 
-/** Local discriminated union per write (CLAUDE.md §1.2, architecture.md §2.5). */
+/** Local discriminated union per write (ENGINEERING.md §1.2, architecture.md §2.5). */
 export type TxState =
   | { status: 'idle' }
   | { status: 'simulating'; step: TxStep }

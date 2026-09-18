@@ -3,7 +3,7 @@ import type { Config } from 'tailwindcss';
 /**
  * Ultraviolet Argon design system (doc/design.md §2).
  * Every color resolves to a CSS custom property declared in src/styles/tokens.css,
- * so components never carry raw hex (CLAUDE.md §3.5).
+ * so components never carry raw hex (ENGINEERING.md §3.5).
  */
 const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],

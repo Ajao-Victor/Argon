@@ -1,6 +1,6 @@
 /**
  * InferenceRegistry — read surface only (spec §4.4). `submit` is keeper-only and
- * is intentionally absent (CLAUDE.md §0.3).
+ * is intentionally absent (ENGINEERING.md §0.3).
  */
 export const registryAbi = [
   {

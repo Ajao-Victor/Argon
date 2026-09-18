@@ -11,7 +11,7 @@ import { GATE_PCT, gateChip, policyAction } from '@/utils/policy';
 
 /**
  * The number is the hero (design.md §4.2). Renders the API `action`; falls back to
- * the registry row when the agent is down; never fabricates a percent (CLAUDE.md §0.6).
+ * the registry row when the agent is down; never fabricates a percent (ENGINEERING.md §0.6).
  */
 const ACTION_COPY: Record<PolicyAction, string> = {
   exit: `Model expects |ETH| move ≥ ${GATE_PCT}% over 8h. Positions flattened.`,

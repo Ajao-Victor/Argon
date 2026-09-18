@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 /**
  * Resolves brand tokens from tokens.css at runtime so Framer Motion can
  * interpolate real colors (it cannot animate `var(--x)`). tokens.css stays the
- * single source of truth: no hex lives in components (CLAUDE.md §3.5).
+ * single source of truth: no hex lives in components (ENGINEERING.md §3.5).
  * Read once and cached; tokens never change at runtime (no light theme in v1).
  * Returns null on the server.
  */

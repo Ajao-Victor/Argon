@@ -2,7 +2,7 @@
 
 import { Banner, Button, Panel } from '@/components/ui';
 
-/** Dashboard error boundary (CLAUDE.md §3.4): a panel, not a blank page. */
+/** Dashboard error boundary (ENGINEERING.md §3.4): a panel, not a blank page. */
 export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <div className="mx-auto max-w-xl py-12">

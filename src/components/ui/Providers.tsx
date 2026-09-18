@@ -11,7 +11,7 @@ import { makeQueryClient } from './QueryProvider';
 
 /**
  * /app provider tree: wagmi + TanStack Query. TanStack Query is the only cache
- * for network and chain data (CLAUDE.md §1.1).
+ * for network and chain data (ENGINEERING.md §1.1).
  */
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState<QueryClient>(makeQueryClient);

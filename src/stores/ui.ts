@@ -9,7 +9,7 @@ import type { SupportedChainId } from '@/services/chains';
 const DEFAULT_CHAIN_ID: SupportedChainId = 42161;
 
 /**
- * The one UI store (CLAUDE.md §1.1–1.2). Three ephemeral, persisted preferences.
+ * The one UI store (ENGINEERING.md §1.1–1.2). Three ephemeral, persisted preferences.
  * Nothing here has a query key. Balances, forecasts, and pool status live in
  * TanStack Query only. Add a field here only when something reads it.
  */
@@ -39,7 +39,7 @@ export const useUiStore = create<UiState>()(
     }),
     {
       name: 'argon-ui',
-      // Hydrate after mount so the server and first client render agree (CLAUDE.md §2 hydration).
+      // Hydrate after mount so the server and first client render agree (ENGINEERING.md §2 hydration).
       skipHydration: true,
       partialize: (s) => ({ selectedChainId: s.selectedChainId, motion: s.motion, field: s.field }),
     },

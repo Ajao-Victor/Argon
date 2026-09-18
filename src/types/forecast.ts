@@ -63,7 +63,7 @@ export interface AgentErrorBody {
 }
 
 // ---------------------------------------------------------------------------
-// zod schemas (runtime validation at the boundary, CLAUDE.md §3.1)
+// zod schemas (runtime validation at the boundary, ENGINEERING.md §3.1)
 // ---------------------------------------------------------------------------
 
 const hourIdSchema = z

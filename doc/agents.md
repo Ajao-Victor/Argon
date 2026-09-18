@@ -250,7 +250,7 @@ The agent has no role in user transactions. A user `deposit` or `withdraw` is br
 
 `src/services/fixtures/forecasts.ts` generates 24 rows shaped exactly like §4, covering: warmup rows (`action: 'warmup'`), an in-gate row (`+0.50`, matching the partner's committed notebook output), an out-of-gate row (`-2.41`), and matured rows with `realizedPctChange`, advancing `hourId` with the real clock so the `:01` refetch path is exercised.
 
-The fixture is **opt-in and development-only**: `services/agent.ts` serves it only when `NEXT_PUBLIC_AGENT_FIXTURE=true` and the build is not production. With `NEXT_PUBLIC_AGENT_URL` unset and no fixture flag the client is `offline`: every agent query is disabled and the UI renders "waiting for agent telemetry". A production build never shows a sample number (CLAUDE.md §0.6).
+The fixture is **opt-in and development-only**: `services/agent.ts` serves it only when `NEXT_PUBLIC_AGENT_FIXTURE=true` and the build is not production. With `NEXT_PUBLIC_AGENT_URL` unset and no fixture flag the client is `offline`: every agent query is disabled and the UI renders "waiting for agent telemetry". A production build never shows a sample number (ENGINEERING.md §0.6).
 
 ---
 

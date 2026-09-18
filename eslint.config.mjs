@@ -5,7 +5,7 @@ import tseslint from 'typescript-eslint';
 
 /**
  * ESLint 9 flat config. `next lint` no longer exists in Next 16, so `npm run lint`
- * runs eslint directly. Rules enforce CLAUDE.md §3: no `any`, no unused code,
+ * runs eslint directly. Rules enforce ENGINEERING.md §3: no `any`, no unused code,
  * exhaustive hook dependencies.
  */
 export default tseslint.config(
