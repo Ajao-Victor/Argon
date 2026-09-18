@@ -34,8 +34,8 @@ function NavLink({ href, label, active, onClick, block = false }: { href: string
       href={href}
       {...(onClick ? { onClick } : {})}
       className={cn(
-        'relative rounded-chip px-3 py-2 text-label uppercase tracking-[0.12em] transition-colors',
-        block && 'block px-4 py-3',
+        'relative inline-flex min-h-10 items-center rounded-chip px-3 text-label uppercase tracking-[0.12em] transition-colors',
+        block && 'flex min-h-[44px] w-full px-4',
         active ? 'text-argon-300' : 'text-text-lo hover:text-text-hi',
       )}
     >
@@ -66,7 +66,7 @@ function NetworkMenu({ block = false, onPick }: { block?: boolean; onPick?: () =
       type="button"
       onClick={() => pick(c.id as SupportedChainId)}
       className={cn(
-        'flex w-full items-center justify-between gap-4 px-4 py-2.5 text-left text-label uppercase tracking-[0.12em] transition-colors hover:bg-surface-2',
+        'flex min-h-[44px] w-full items-center justify-between gap-4 px-4 text-left text-label uppercase tracking-[0.12em] transition-colors hover:bg-surface-2',
         selected === c.id ? 'text-argon-300' : 'text-text-lo',
       )}
     >
@@ -98,11 +98,12 @@ function NetworkMenu({ block = false, onPick }: { block?: boolean; onPick?: () =
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         className={cn(
-          'flex items-center gap-1.5 rounded-chip px-3 py-2 text-label uppercase tracking-[0.12em] transition-colors',
+          'flex min-h-10 items-center gap-1.5 rounded-chip px-3 text-label uppercase tracking-[0.12em] transition-colors',
           open ? 'text-text-hi' : 'text-text-lo hover:text-text-hi',
         )}
       >
-        network · <span className="text-argon-300">{chainName(selected)}</span>
+        <span className="hidden lg:inline">network ·&nbsp;</span>
+        <span className="text-argon-300">{chainName(selected)}</span>
         {wrong && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-signal-warn" />}
         <ChevronDown size={12} strokeWidth={1.5} className={cn('transition-transform', open && 'rotate-180')} />
       </button>
@@ -132,8 +133,8 @@ function NetworkMenu({ block = false, onPick }: { block?: boolean; onPick?: () =
 
 function WalletControls({ block = false, onNavigate }: { block?: boolean; onNavigate?: () => void }) {
   return (
-    <div className={cn('flex items-center gap-3', block && 'flex-col items-stretch px-4 py-3')}>
-      <div className={cn('flex gap-2', block && 'w-full [&>*]:flex-1')}>
+    <div className={cn('flex items-center gap-3', block && 'flex-col items-stretch gap-3 px-4 py-4')}>
+      <div className={cn('gap-2', block ? 'flex w-full [&>*]:flex-1' : 'hidden lg:flex')}>
         <Link href="/app/deposit" className="contents" {...(onNavigate ? { onClick: onNavigate } : {})}>
           <Button size="sm">deposit</Button>
         </Link>
@@ -166,10 +167,10 @@ export function Navbar() {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-hairline bg-glass backdrop-blur-glass">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4 sm:px-6">
+    <header className="sticky top-0 z-50 w-full overflow-visible border-b border-hairline bg-glass backdrop-blur-glass">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 md:justify-start md:gap-6">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex min-h-[44px] shrink-0 items-center gap-3">
           <span aria-hidden className="relative inline-flex h-5 w-3 items-center justify-center rounded-full border border-argon-500 shadow-glow-sm">
             <span className="absolute inset-x-0 top-1 h-px bg-argon-400/70" />
             <span className="absolute inset-x-0 top-2.5 h-px bg-argon-400/70" />
@@ -179,7 +180,7 @@ export function Navbar() {
         </Link>
 
         {/* Center links (desktop) */}
-        <nav className="hidden flex-1 items-center justify-center gap-1 md:flex" aria-label="primary">
+        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex" aria-label="primary">
           {LINKS.map((l) => (
             <NavLink key={l.href} href={l.href} label={l.label} active={path === l.href} />
           ))}
@@ -187,8 +188,8 @@ export function Navbar() {
         </nav>
 
         {/* Right: wallet (desktop) */}
-        <div className="ml-auto hidden items-center gap-3 md:flex">
-          {mode === 'fixture' && <span className="label text-signal-warn">fixture agent</span>}
+        <div className="ml-auto hidden shrink-0 items-center gap-3 md:flex">
+          {mode === 'fixture' && <span className="label hidden text-signal-warn xl:inline">fixture agent</span>}
           <WalletControls />
         </div>
 
@@ -199,7 +200,7 @@ export function Navbar() {
           aria-expanded={open}
           aria-controls="mobile-nav"
           aria-label={open ? 'close menu' : 'open menu'}
-          className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-chip border border-hairline text-text-mid hover:border-hairline-strong hover:text-text-hi md:hidden"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-chip border border-hairline text-text-mid hover:border-hairline-strong hover:text-text-hi md:hidden"
         >
           {open ? <X size={16} strokeWidth={1.5} /> : <Menu size={16} strokeWidth={1.5} />}
         </button>
@@ -215,7 +216,7 @@ export function Navbar() {
             animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8, transition: { duration: 0.14 } }}
             transition={SPRING.heavy}
-            className="absolute inset-x-0 top-full border-b border-hairline bg-glass backdrop-blur-glass md:hidden"
+            className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-hairline bg-glass shadow-glow-sm backdrop-blur-glass md:hidden"
           >
             <nav className="flex flex-col divide-y divide-hairline" aria-label="mobile">
               <div className="py-1">

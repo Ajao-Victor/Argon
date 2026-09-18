@@ -69,7 +69,7 @@ export function DepositForm() {
                 deposit.reset();
               }}
               className={cn(
-                'rounded-chip border px-2 py-0.5 text-label uppercase tracking-[0.12em]',
+                'inline-flex min-h-[44px] items-center rounded-chip border px-3 text-label uppercase tracking-[0.12em] md:min-h-0 md:px-2 md:py-0.5',
                 symbol === t.symbol ? 'border-hairline-strong text-argon-300' : 'border-hairline text-text-lo hover:text-text-hi',
               )}
             >

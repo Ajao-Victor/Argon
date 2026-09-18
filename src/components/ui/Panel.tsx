@@ -28,7 +28,7 @@ export interface PanelProps extends Omit<HTMLAttributes<HTMLElement>, 'onPointer
 export function Panel({ label, meta, active = false, padded = true, glitch = false, delay = 0, reveal = true, glow = 'none', className, children, ...rest }: PanelProps) {
   const reduced = useReducedMotion();
   const holo = useHoloSheen<HTMLElement>();
-  const classes = cn('panel flex flex-col overflow-hidden', active && glow === 'none' && 'panel-active', glow !== 'none' && `panel-glow-${glow}`, glitch && 'animate-glitch', className);
+  const classes = cn('panel flex min-w-0 flex-col overflow-hidden', active && glow === 'none' && 'panel-active', glow !== 'none' && `panel-glow-${glow}`, glitch && 'animate-glitch', className);
 
   const inner = (
     <>

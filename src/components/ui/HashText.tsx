@@ -32,11 +32,11 @@ export function HashText({ value, href, className, head = 6, tail = 4 }: HashTex
       <span title={value} className={cn('transition-colors', copied && 'text-ion-400')}>
         {truncateHex(value, head, tail)}
       </span>
-      <button type="button" onClick={copy} aria-label="copy" className="text-text-lo hover:text-ion-400">
+      <button type="button" onClick={copy} aria-label="copy" className="-m-2 inline-flex h-8 w-8 items-center justify-center text-text-lo hover:text-ion-400 md:-m-1 md:h-5 md:w-5">
         <Copy size={12} strokeWidth={1.5} />
       </button>
       {href && (
-        <a href={href} target="_blank" rel="noreferrer" aria-label="open in explorer" className="text-text-lo hover:text-ion-400">
+        <a href={href} target="_blank" rel="noreferrer" aria-label="open in explorer" className="-m-2 inline-flex h-8 w-8 items-center justify-center text-text-lo hover:text-ion-400 md:-m-1 md:h-5 md:w-5">
           <ExternalLink size={12} strokeWidth={1.5} />
         </a>
       )}

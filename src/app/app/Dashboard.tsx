@@ -44,7 +44,7 @@ export function Dashboard() {
   }, []);
 
   return (
-    <div className="relative">
+    <div className="relative w-full min-w-0">
       <ParticleField
         ethPctChange={pct ?? null}
         mode={fieldMode}
@@ -58,7 +58,7 @@ export function Dashboard() {
       <div className="flex flex-col gap-6">
         <TelemetryBar />
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-6 md:gap-6 xl:grid-cols-12 xl:auto-rows-min">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:grid-cols-6 md:gap-6 xl:grid-cols-12 xl:auto-rows-min [&>*]:min-w-0">
           {/* Hero: massive spanning slot */}
           <div className="md:col-span-6 xl:col-span-8 xl:row-span-2">
             <ForecastHero chainId={chainId} delay={0} />

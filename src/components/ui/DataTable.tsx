@@ -55,7 +55,7 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, empty = 'no ro
             </tr>
           )}
           {rows.map((r) => (
-            <tr key={rowKey(r)} onClick={onRowClick ? () => onRowClick(r) : undefined} className={cn('h-8 transition-colors hover:bg-surface-2', onRowClick && 'cursor-pointer')}>
+            <tr key={rowKey(r)} onClick={onRowClick ? () => onRowClick(r) : undefined} className={cn('h-8 transition-colors hover:bg-surface-2', onRowClick && 'h-11 cursor-pointer md:h-8')}>
               {columns.map((c) => (
                 <td key={c.key} className={cn('whitespace-nowrap px-2', c.align === 'right' && 'text-right', c.className)}>
                   {c.render(r)}

@@ -60,7 +60,7 @@ export function Button({
         transition={SPRING.tap}
         className={cn(
           'relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-chip border font-mono uppercase tracking-[0.12em] transition-[box-shadow,background-color,border-color] duration-150',
-          size === 'md' ? 'px-4 py-2 text-label' : 'px-2.5 py-1 text-[0.625rem]',
+          size === 'md' ? 'min-h-[44px] px-4 text-label' : 'min-h-[44px] px-3 text-[0.625rem] md:min-h-8 md:px-2.5',
           VARIANTS[variant],
           isDisabled && 'cursor-not-allowed opacity-50 hover:shadow-none',
           success && 'border-signal-up text-signal-up animate-confirm-flash',

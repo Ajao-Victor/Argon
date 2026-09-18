@@ -11,9 +11,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <Providers>
       <AgentClock />
-      <div className="flex min-h-dvh flex-col">
+      <div className="flex min-h-dvh w-full flex-col overflow-x-clip">
         <Navbar />
-        <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</div>
+        <div className="mx-auto w-full min-w-0 max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</div>
         <Footer />
       </div>
       <ToastViewport />

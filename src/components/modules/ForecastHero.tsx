@@ -79,7 +79,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
           <div className="flex flex-col gap-6">
             <div>
               <div className="label-lg mb-3">predicted eth move · next 8 hours</div>
-              <Skeleton chars={7} slow className="data-hero text-7xl sm:text-8xl lg:text-[8.5rem]" />
+              <Skeleton chars={7} slow className="data-hero text-6xl sm:text-8xl lg:text-[8.5rem]" />
             </div>
             <div className="flex flex-col gap-2">
               <div className="label-lg">next action</div>
@@ -99,7 +99,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
             <StaggerText
               text={formatPct(pct)}
               glitch
-              className={cn('data-hero text-7xl glow-text sm:text-8xl lg:text-[8.5rem]', signClass)}
+              className={cn('data-hero break-all text-6xl glow-text sm:text-8xl lg:text-[8.5rem]', signClass)}
             />
           </RevealItem>
           <RevealItem className="flex flex-wrap items-end gap-x-8 gap-y-4">

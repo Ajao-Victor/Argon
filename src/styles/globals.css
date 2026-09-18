@@ -8,6 +8,7 @@
 @layer base {
   html {
     background-color: var(--void);
+    overflow-x: clip; /* never a horizontal scrollbar; clip keeps position: sticky working */
   }
 
   body {
