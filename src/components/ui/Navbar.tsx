@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { ConnectButton } from '@/components/modules/ConnectButton';
 import { useAgentMode, useWallet } from '@/hooks';
 import { chains, type SupportedChainId } from '@/services/chains';
+import { getVault } from '@/services/contracts';
 import { chainName } from '@/services/explorer';
 import { useUiStore } from '@/stores/ui';
 import { cn } from '@/utils/cn';
@@ -132,17 +133,32 @@ function NetworkMenu({ block = false, onPick }: { block?: boolean; onPick?: () =
 }
 
 function WalletControls({ block = false, onNavigate }: { block?: boolean; onNavigate?: () => void }) {
+  const selected = useUiStore((s) => s.selectedChainId);
+  const deployed = Boolean(getVault(selected));
   return (
     <div className={cn('flex items-center gap-3', block && 'flex-col items-stretch gap-3 px-4 py-4')}>
       <div className={cn('gap-2', block ? 'flex w-full [&>*]:flex-1' : 'hidden lg:flex')}>
-        <Link href="/app/deposit" className="contents" {...(onNavigate ? { onClick: onNavigate } : {})}>
-          <Button size="sm">deposit</Button>
-        </Link>
-        <Link href="/app/withdraw" className="contents" {...(onNavigate ? { onClick: onNavigate } : {})}>
-          <Button size="sm" variant="ghost">
-            withdraw
-          </Button>
-        </Link>
+        {deployed ? (
+          <>
+            <Link href="/app/deposit" className="contents" {...(onNavigate ? { onClick: onNavigate } : {})}>
+              <Button size="sm">deposit</Button>
+            </Link>
+            <Link href="/app/withdraw" className="contents" {...(onNavigate ? { onClick: onNavigate } : {})}>
+              <Button size="sm" variant="ghost">
+                withdraw
+              </Button>
+            </Link>
+          </>
+        ) : (
+          <>
+            <Button size="sm" disabled magnetic={false} title="vault not deployed">
+              deposit
+            </Button>
+            <Button size="sm" variant="ghost" disabled magnetic={false} title="vault not deployed">
+              withdraw
+            </Button>
+          </>
+        )}
       </div>
       <ConnectButton size="sm" />
     </div>

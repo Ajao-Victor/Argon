@@ -1,7 +1,7 @@
 'use client';
 
 import { Banner, Chip, Panel, RevealItem, Skeleton, StaggerText, Term } from '@/components/ui';
-import { useHashMatch, useLatestForecast, useAgentStatus, usePoolStatuses } from '@/hooks';
+import { useAgentMode, useHashMatch, useLatestForecast, useAgentStatus, usePoolStatuses, useVaultParams } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import type { PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
@@ -40,10 +40,15 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
   const latest = useLatestForecast();
   const status = useAgentStatus();
   const pools = usePoolStatuses(chainId);
+  const vaultParams = useVaultParams(chainId);
   const match = useHashMatch(chainId, latest.data);
+  const agentMode = useAgentMode();
 
-  const agentDown = latest.status === 'error';
   const api = latest.data;
+  const agentOffline = agentMode === 'offline';
+  const agentDown = latest.status === 'error';
+  // The gate shown is the one the API or the vault reports. No default.
+  const gateBps = api?.gateBps ?? status.data?.gateBps ?? vaultParams.data?.gateBps;
 
   // Source of the number: API, else registry, else nothing.
   const pct = api ? api.ethPctChange : match.chainPct;
@@ -68,6 +73,11 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
       delay={delay}
       glow={glow}
     >
+      {agentOffline && !agentDown && (
+        <Banner tone="idle" className="mb-3">
+          waiting for agent telemetry — NEXT_PUBLIC_AGENT_URL is not set
+        </Banner>
+      )}
       {agentDown && (
         <Banner tone={pct !== null && pct !== undefined ? 'warn' : 'down'} className="mb-3" glitch>
           {pct !== null && pct !== undefined ? 'live agent unreachable — showing last on-chain forecast' : 'live agent unreachable — no on-chain forecast available'}
@@ -75,7 +85,14 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
       )}
 
       {pct === null || pct === undefined ? (
-        latest.status === 'pending' ? (
+        agentOffline && match.chainPct === null ? (
+          <div className="flex flex-col gap-2 py-6">
+            <span className="font-display text-3xl text-text-dim">waiting for agent telemetry</span>
+            <span className="leading-5 text-text-lo">
+              {match.kind === 'not-deployed' ? 'registry not deployed either — nothing to show yet' : 'the on-chain registry has no forecast for this hour'}
+            </span>
+          </div>
+        ) : latest.status === 'pending' ? (
           <div className="flex flex-col gap-6">
             <div>
               <div className="label-lg mb-3">predicted eth move · next 8 hours</div>
@@ -142,7 +159,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
         </div>
         <div className="flex flex-col gap-1">
           <span className="label leading-5"><Term id="gate">gate</Term></span>
-          <span className="font-mono text-sm leading-5 text-text-hi">±{((api?.gateBps ?? status.data?.gateBps ?? 200) / 100).toFixed(2)}%</span>
+          <span className="font-mono text-sm leading-5 text-text-hi">{gateBps === undefined ? '—' : `±${(gateBps / 100).toFixed(2)}%`}</span>
         </div>
         {api && (
           <div className="flex flex-col gap-1">

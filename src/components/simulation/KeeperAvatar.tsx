@@ -19,7 +19,8 @@ export interface KeeperAvatarProps {
   action: PolicyAction | undefined;
   warmupComplete: boolean;
   reachable: boolean;
-  mode: 'live' | 'fixture';
+  /** 'offline' (agent not configured) renders like live with no data: dormant. */
+  mode: 'live' | 'fixture' | 'offline';
   hourId?: number | undefined;
   size?: number;
   className?: string;

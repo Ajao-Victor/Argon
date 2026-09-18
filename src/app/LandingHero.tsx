@@ -54,7 +54,7 @@ export function LandingHero() {
               )}
             </>
           ) : (
-            <span className="text-text-dim">{latest.status === 'error' ? 'agent unreachable' : 'reading the keeper…'}</span>
+            <span className="text-text-dim">{mode === 'offline' ? 'waiting for agent telemetry' : latest.status === 'error' ? 'agent unreachable' : 'reading the keeper…'}</span>
           )}
         </RevealItem>
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { Chip, DataTable, HashText, Panel, SkeletonLines, type ChipTone, type Column } from '@/components/ui';
-import { useForecastHistory } from '@/hooks';
+import { useAgentMode, useForecastHistory } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { txUrl } from '@/services/explorer';
 import type { Forecast, PolicyAction } from '@/types/forecast';
@@ -23,6 +23,7 @@ function pctClass(v: number | null): string {
 
 export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChainId; limit?: number }) {
   const history = useForecastHistory(limit);
+  const mode = useAgentMode();
   const [selected, setSelected] = useState<Forecast | undefined>(undefined);
   const rows = history.data?.items ?? [];
 
@@ -39,8 +40,13 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
 
   return (
     <div className="flex flex-col gap-4">
-      <Panel label="FORECASTS · LAST 24H" meta={history.status === 'error' ? 'agent unreachable' : `${rows.length} rows`} padded={history.status === 'pending'}>
-        {history.status === 'pending' ? (
+      <Panel label="FORECASTS · LAST 24H" meta={mode === 'offline' ? 'agent not configured' : history.status === 'error' ? 'agent unreachable' : `${rows.length} rows`} padded={mode === 'offline' || history.status === 'pending'}>
+        {mode === 'offline' ? (
+          <div className="flex flex-col gap-2 py-6 text-center">
+            <span className="font-display text-2xl text-text-dim">waiting for agent telemetry</span>
+            <span className="leading-5 text-text-lo">Set NEXT_PUBLIC_AGENT_URL and rebuild. History fills from the first hourly print.</span>
+          </div>
+        ) : history.status === 'pending' ? (
           <div className="flex flex-col gap-3">
             <span className="label leading-5">computing history</span>
             <SkeletonLines lines={6} chars={48} />

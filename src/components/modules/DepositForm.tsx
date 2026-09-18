@@ -87,8 +87,10 @@ export function DepositForm() {
             }}
             symbol={token.symbol}
             decimals={token.decimals}
-            balanceLabel={w.isConnected ? `wallet ${formatToken(balance, token.decimals)} ${token.symbol}` : undefined}
-            onMax={w.isConnected ? () => setValue(formatToken(balance, token.decimals, token.decimals).replace(/,/g, '')) : undefined}
+            balanceLabel={
+              !w.isConnected ? undefined : allowance.status === 'success' ? `wallet ${formatToken(balance, token.decimals)} ${token.symbol}` : allowance.status === 'error' ? 'wallet balance unavailable' : 'reading wallet balance…'
+            }
+            onMax={w.isConnected && allowance.status === 'success' ? () => setValue(formatToken(balance, token.decimals, token.decimals).replace(/,/g, '')) : undefined}
             error={error}
             disabled={txBusy(deposit.state)}
           />

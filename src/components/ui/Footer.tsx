@@ -46,8 +46,17 @@ export function Footer() {
   const registry = getRegistry(chainId);
 
   const agentUp = health.status === 'success' && health.data.ok && status.status !== 'error';
-  const agentTone: ChipTone = health.status === 'pending' ? 'plain' : agentUp ? 'up' : 'down';
-  const agentText = health.status === 'pending' ? 'Agent API: connecting…' : mode === 'fixture' ? 'Agent API: fixture' : agentUp ? 'Agent API: Connected' : 'Agent API: Unreachable';
+  const agentTone: ChipTone = mode === 'offline' ? 'idle' : health.status === 'pending' ? 'plain' : agentUp ? 'up' : 'down';
+  const agentText =
+    mode === 'offline'
+      ? 'Agent API: Not configured'
+      : health.status === 'pending'
+        ? 'Agent API: connecting…'
+        : mode === 'fixture'
+          ? 'Agent API: fixture'
+          : agentUp
+            ? 'Agent API: Connected'
+            : 'Agent API: Unreachable';
 
   const mm = clock ? String(Math.floor(clock.secondsToNextHour / 60)).padStart(2, '0') : '--';
   const ss = clock ? String(clock.secondsToNextHour % 60).padStart(2, '0') : '--';
@@ -94,7 +103,7 @@ export function Footer() {
       <div className="border-t border-hairline">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6">
           <span className="label leading-5 text-text-dim">custody on-chain · judgment off-chain · the website is not the keeper</span>
-          <span className="label leading-5 text-text-dim">{explorerName(chainId)} · argon v0.1.0</span>
+          <span className="label leading-5 text-text-dim">{explorerName(chainId)}</span>
         </div>
       </div>
     </footer>

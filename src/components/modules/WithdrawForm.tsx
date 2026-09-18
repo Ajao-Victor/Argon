@@ -98,8 +98,10 @@ export function WithdrawForm() {
             }}
             symbol={token.symbol}
             decimals={token.decimals}
-            balanceLabel={w.isConnected ? `idle ${formatToken(idle, token.decimals)} ${token.symbol}` : undefined}
-            onMax={w.isConnected ? () => setValue(formatToken(idle, token.decimals, token.decimals).replace(/,/g, '')) : undefined}
+            balanceLabel={
+              !w.isConnected ? undefined : balances.status === 'success' ? `idle ${formatToken(idle, token.decimals)} ${token.symbol}` : balances.status === 'error' ? 'idle balance unavailable' : 'reading idle balance…'
+            }
+            onMax={w.isConnected && balances.status === 'success' ? () => setValue(formatToken(idle, token.decimals, token.decimals).replace(/,/g, '')) : undefined}
             error={error}
             disabled={busy}
           />

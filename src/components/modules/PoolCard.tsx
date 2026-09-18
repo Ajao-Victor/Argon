@@ -33,7 +33,7 @@ const STATUS_WORD: Record<PoolCardStatus, string> = {
   IDLE: 'IDLE',
   UNFUNDED: 'UNFUNDED',
   LINK_SOON: 'SOON',
-  NOT_DEPLOYED: 'OFFLINE',
+  NOT_DEPLOYED: 'NOT DEPLOYED',
 };
 
 const STATUS_TERM: Record<PoolCardStatus, 'inPool' | 'idle' | 'warmup' | undefined> = {
@@ -73,7 +73,7 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
           <span className="label-lg">
             {pool.pair[0]} / {pool.pair[1]}
           </span>
-          {exitPending ? <Chip tone="warn">exit pending</Chip> : <Chip tone={TONE[status]} dot flipKey={status}>{status === 'NOT_DEPLOYED' ? 'not deployed' : status.replace('_', ' ').toLowerCase()}</Chip>}
+          {exitPending ? <Chip tone="warn">exit pending</Chip> : <Chip tone={TONE[status]} dot flipKey={status}>{status === 'NOT_DEPLOYED' ? 'contracts not deployed' : status.replace('_', ' ').toLowerCase()}</Chip>}
         </div>
         <div className={cn('data-hero text-4xl sm:text-5xl', STATUS_CLASS[status])}>
           {(() => {
@@ -86,6 +86,12 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
       {status === 'LINK_SOON' ? (
         <RevealItem>
           <p className="mt-5 leading-5 text-text-lo">LINK — model later</p>
+        </RevealItem>
+      ) : status === 'NOT_DEPLOYED' ? (
+        <RevealItem>
+          <p className="mt-5 leading-5 text-text-lo">
+            No vault address for {chainName(pool.chainId)}. Set <span className="font-mono text-text-mid">{pool.chainId === 42161 ? 'NEXT_PUBLIC_VAULT_ARB' : 'NEXT_PUBLIC_VAULT_RH'}</span> and rebuild.
+          </p>
         </RevealItem>
       ) : !address ? (
         <RevealItem className="mt-2 flex flex-1">

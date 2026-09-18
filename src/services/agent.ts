@@ -23,13 +23,23 @@ import {
 
 /**
  * Agent REST client (doc/agents.md §2–§3). GET only. 10 s abort. zod at the boundary.
- * When NEXT_PUBLIC_AGENT_URL is unset the client serves the fixture so UI work is
- * never blocked on the partner's service. The web never POSTs an inference.
+ * Modes:
+ *   live     NEXT_PUBLIC_AGENT_URL is set → real requests
+ *   fixture  NEXT_PUBLIC_AGENT_FIXTURE=true in a non-production build → sample rows,
+ *            labelled 'fixture' everywhere it is shown
+ *   offline  neither → every call throws AgentError('OFFLINE'); the UI renders
+ *            'waiting for agent telemetry'. No number is ever fabricated.
+ * The web never POSTs an inference.
  */
 const BASE = (process.env.NEXT_PUBLIC_AGENT_URL ?? '').trim().replace(/\/+$/, '');
+const FIXTURE_FLAG = (process.env.NEXT_PUBLIC_AGENT_FIXTURE ?? '').trim().toLowerCase() === 'true';
 export const AGENT_TIMEOUT_MS = 10_000;
-export type AgentMode = 'live' | 'fixture';
-export const agentMode: AgentMode = BASE ? 'live' : 'fixture';
+export type AgentMode = 'live' | 'fixture' | 'offline';
+export const agentMode: AgentMode = BASE ? 'live' : FIXTURE_FLAG && process.env.NODE_ENV !== 'production' ? 'fixture' : 'offline';
+
+function offline(): never {
+  throw new AgentError('OFFLINE', 'agent not configured: set NEXT_PUBLIC_AGENT_URL');
+}
 
 export class AgentError extends Error {
   readonly code: AgentErrorCode;
@@ -93,26 +103,31 @@ async function agentGet<S extends z.ZodTypeAny>(path: string, schema: S): Promis
 }
 
 export async function getHealth(): Promise<Health> {
+  if (agentMode === 'offline') offline();
   if (agentMode === 'fixture') return fixtureHealth();
   return agentGet('/health', healthSchema);
 }
 
 export async function getStatus(): Promise<AgentStatus> {
+  if (agentMode === 'offline') offline();
   if (agentMode === 'fixture') return fixtureStatus();
   return agentGet('/status', agentStatusSchema);
 }
 
 export async function getLatestForecast(): Promise<Forecast> {
+  if (agentMode === 'offline') offline();
   if (agentMode === 'fixture') return fixtureLatest();
   return agentGet('/forecasts/latest', forecastSchema);
 }
 
 export async function getForecastHistory(limit = 24): Promise<ForecastList> {
+  if (agentMode === 'offline') offline();
   if (agentMode === 'fixture') return { items: fixtureHistory(limit) };
   return agentGet(`/forecasts?limit=${encodeURIComponent(limit)}`, forecastListSchema);
 }
 
 export async function getForecast(hourId: number): Promise<Forecast> {
+  if (agentMode === 'offline') offline();
   if (agentMode === 'fixture') {
     const row = fixtureForecast(hourId);
     if (!row) throw new AgentError('NOT_FOUND', `no fixture row for hourId ${hourId}`, 404);

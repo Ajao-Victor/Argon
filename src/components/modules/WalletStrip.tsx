@@ -60,15 +60,28 @@ export function WalletStrip({ delay = 0 }: { delay?: number }) {
         )}
       </RevealItem>
 
-      <RevealItem className="mt-5 flex gap-3">
-        <Link href="/app/deposit" className="contents">
-          <Button size="sm">deposit</Button>
-        </Link>
-        <Link href="/app/withdraw" className="contents">
-          <Button size="sm" variant="ghost">
-            withdraw
-          </Button>
-        </Link>
+      <RevealItem className="mt-5 flex flex-wrap gap-3">
+        {deployed ? (
+          <>
+            <Link href="/app/deposit" className="contents">
+              <Button size="sm">deposit</Button>
+            </Link>
+            <Link href="/app/withdraw" className="contents">
+              <Button size="sm" variant="ghost">
+                withdraw
+              </Button>
+            </Link>
+          </>
+        ) : (
+          <>
+            <Button size="sm" disabled magnetic={false} reason={`vault not deployed on ${chainName(chainId)}`}>
+              deposit
+            </Button>
+            <Button size="sm" variant="ghost" disabled magnetic={false}>
+              withdraw
+            </Button>
+          </>
+        )}
       </RevealItem>
     </Panel>
   );

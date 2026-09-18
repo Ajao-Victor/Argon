@@ -54,7 +54,7 @@ export interface ForecastList {
   items: Forecast[];
 }
 
-export type AgentErrorCode = 'MODEL_NOT_LOADED' | 'NOT_FOUND' | 'INTERNAL' | 'NETWORK' | 'TIMEOUT' | 'INVALID';
+export type AgentErrorCode = 'MODEL_NOT_LOADED' | 'NOT_FOUND' | 'INTERNAL' | 'NETWORK' | 'TIMEOUT' | 'INVALID' | 'OFFLINE';
 
 export interface AgentErrorBody {
   ok: false;

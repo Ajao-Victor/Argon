@@ -39,7 +39,7 @@ NEXT_PUBLIC_AGENT_URL  NEXT_PUBLIC_ARB_RPC  NEXT_PUBLIC_RH_RPC
 NEXT_PUBLIC_VAULT_ARB  NEXT_PUBLIC_REGISTRY_ARB  NEXT_PUBLIC_VAULT_RH  NEXT_PUBLIC_REGISTRY_RH
 NEXT_PUBLIC_WALLETCONNECT_ID  NEXT_PUBLIC_ADMIN_ADDRESS
 ```
-Missing vault/registry → `undefined` binding → "not deployed" state. Missing AGENT_URL in dev → fixture.
+Missing vault/registry → `undefined` binding → "contracts not deployed" state, deposit/withdraw disabled. Missing AGENT_URL → agent mode `offline`, queries disabled, "waiting for agent telemetry". `NEXT_PUBLIC_AGENT_FIXTURE=true` (non-production only) → sample rows labelled fixture. Env is inlined at build: restart dev / rebuild after editing `.env.local`.
 
 ## 4. Agent REST
 
@@ -190,4 +190,4 @@ No POST to agent · no `rebalance`/`submit` · no Uniswap manager calls · no ke
 
 ## 18. Known external gaps (2026-09-17)
 
-Partner's notebook retrains each run, prints a dict, has no REST/Postgres/hourId/hash/action. Web ships on fixtures. Contracts have no code and no owner. Partner's README (1h, ETH+LINK, 4 pools live) is superseded by code + web spec (8h, ETH-only).
+Partner's notebook retrains each run, prints a dict, has no REST/Postgres/hourId/hash/action. Web ships offline-honest: no sample data unless the fixture flag is set in development. Contracts have no code and no owner. Partner's README (1h, ETH+LINK, 4 pools live) is superseded by code + web spec (8h, ETH-only).

@@ -19,7 +19,7 @@ export function TelemetryBar() {
 
   const agentTone = status.status === 'error' ? 'down' : status.data?.ok ? 'up' : 'warn';
   const items: TelemetryItem[] = [
-    { key: 'agent', label: 'agent', value: status.status === 'error' ? 'down' : mode === 'fixture' ? <Term id="fixture">fixture</Term> : status.data?.ok ? 'ok' : '…', tone: agentTone },
+    { key: 'agent', label: 'agent', value: mode === 'offline' ? 'not configured' : status.status === 'error' ? 'down' : mode === 'fixture' ? <Term id="fixture">fixture</Term> : status.data?.ok ? 'ok' : '…', tone: mode === 'offline' ? 'idle' : agentTone },
     { key: 'warmup', label: 'warmup', value: status.data ? (status.data.warmupComplete ? '8/8' : `${8 - status.data.hoursUntilFirstDecision}/8`) : '—' },
     { key: 'hour', label: 'last hour', value: latest.data?.hourId ?? '—' },
     { key: 'arb', label: 'arb', value: getVault(arbitrum.id) ? arbitrum.id : 'no vault', tone: getVault(arbitrum.id) ? 'argon' : 'idle' },

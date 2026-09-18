@@ -9,7 +9,7 @@ Read `doc/architecture-essentials.md` first in every session. It is the compress
 3. **The web never calls `rebalance`, `submit`, Uniswap `NonfungiblePositionManager`, or v4 `PoolManager`.** Do not add those ABIs to the codebase.
 4. **No secrets in this repo.** Only `NEXT_PUBLIC_*` env. No keeper key, no Tiingo key, no DIA calls from the browser. If a value would be dangerous in a browser bundle, it does not belong here.
 5. **One gate.** `|ethPctChange| >= 2` → exit. Render the API `action`. The local `policyAction` helper is a fallback and a test fixture. Never introduce a second threshold, slider, or "sensitivity".
-6. **Never fake a number.** Agent down → show the registry row with a banner. Registry down → empty state. No placeholder percent, ever.
+6. **Never fake a number.** Agent not configured → "waiting for agent telemetry". Agent down → show the registry row with a banner. Registry down → empty state. No placeholder percent, no default gate, no sample hash, ever. The fixture exists only behind `NEXT_PUBLIC_AGENT_FIXTURE=true` in non-production builds.
 7. **Never poll under 30 s.** No `setInterval(…, 1000)`. The `:01` UTC refetch is one scheduled timeout in `useAgentClock`.
 
 ## 1. Anti-overengineering manifesto

@@ -21,6 +21,8 @@ export const agentKeys = {
   forecast: (hourId: number) => ['agent', 'forecast', hourId] as const,
 };
 
+const AGENT_ENABLED = agent.agentMode !== 'offline';
+
 export const POLL_LATEST_MS = 30_000;
 export const POLL_STATUS_MS = 30_000;
 export const POLL_HISTORY_MS = 60_000;
@@ -35,6 +37,7 @@ export function useLatestForecast(): UseQueryResult<Forecast, Error> {
   return useQuery({
     queryKey: agentKeys.latest(),
     queryFn: agent.getLatestForecast,
+    enabled: AGENT_ENABLED,
     refetchInterval: POLL_LATEST_MS,
     refetchIntervalInBackground: false,
     staleTime: POLL_LATEST_MS,
@@ -56,6 +59,7 @@ export function useAgentStatus(): UseQueryResult<AgentStatus, Error> {
   return useQuery({
     queryKey: agentKeys.status(),
     queryFn: agent.getStatus,
+    enabled: AGENT_ENABLED,
     refetchInterval: POLL_STATUS_MS,
     refetchIntervalInBackground: false,
     staleTime: POLL_STATUS_MS,
@@ -66,6 +70,7 @@ export function useAgentHealth(): UseQueryResult<Health, Error> {
   return useQuery({
     queryKey: agentKeys.health(),
     queryFn: agent.getHealth,
+    enabled: AGENT_ENABLED,
     staleTime: 5 * 60_000,
     refetchInterval: false,
   });
@@ -75,6 +80,7 @@ export function useForecastHistory(limit = 24): UseQueryResult<ForecastList, Err
   return useQuery({
     queryKey: agentKeys.history(limit),
     queryFn: () => agent.getForecastHistory(limit),
+    enabled: AGENT_ENABLED,
     refetchInterval: POLL_HISTORY_MS,
     refetchIntervalInBackground: false,
     staleTime: POLL_HISTORY_MS,
@@ -86,7 +92,7 @@ export function useForecast(hourId: HourId | number | undefined): UseQueryResult
   return useQuery({
     queryKey: agentKeys.forecast(hourId ?? -1),
     queryFn: () => agent.getForecast(hourId as number),
-    enabled: hourId !== undefined && hourId >= 0,
+    enabled: AGENT_ENABLED && hourId !== undefined && hourId >= 0,
     staleTime: (query) => (query.state.data?.status === 'matured' ? Infinity : POLL_LATEST_MS),
     refetchInterval: (query) => (query.state.data?.status === 'matured' ? false : POLL_LATEST_MS),
     refetchIntervalInBackground: false,
