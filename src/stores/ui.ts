@@ -3,7 +3,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { DEFAULT_CHAIN_ID, type SupportedChainId } from '@/services/chains';
+import type { SupportedChainId } from '@/services/chains';
+
+/** Arbitrum One. Literal so this module has no runtime import of the chain definitions (landing bundle stays free of them). */
+const DEFAULT_CHAIN_ID: SupportedChainId = 42161;
 
 /**
  * The one UI store (CLAUDE.md §1.1–1.2). Three ephemeral, persisted preferences.

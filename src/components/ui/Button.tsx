@@ -44,19 +44,17 @@ export function Button({
 }: ButtonProps) {
   const reduced = useReducedMotion();
   const isDisabled = disabled || pending;
-  const m = useMagnetic(6, magnetic && !isDisabled && variant !== 'link');
+  const { ref: magnetRef, style: magnetStyle, ...magnetHandlers } = useMagnetic(6, magnetic && !isDisabled && variant !== 'link');
 
   return (
     <div className="flex flex-col gap-1">
       <motion.button
-        ref={m.ref as React.Ref<HTMLButtonElement>}
+        ref={magnetRef as React.Ref<HTMLButtonElement>}
         type="button"
         disabled={isDisabled}
         aria-busy={pending || undefined}
-        style={m.style}
-        onPointerEnter={m.onPointerEnter}
-        onPointerMove={m.onPointerMove}
-        onPointerLeave={m.onPointerLeave}
+        style={magnetStyle}
+        {...magnetHandlers}
         whileTap={reduced || isDisabled ? {} : { scale: 0.98 }}
         transition={SPRING.tap}
         className={cn(

@@ -102,7 +102,17 @@ Web3 frontends rot in predictable ways. These are the ones we refuse.
 - `className` composition via `clsx`. No CSS-in-JS.
 - Framer Motion animates `transform` and `opacity` only.
 
-### 3.6 Testing
+### 3.6 Lint (ESLint 9 flat config, `npm run lint`, zero warnings allowed)
+
+- `next lint` no longer exists in Next 16; `eslint.config.mjs` runs `eslint-config-next` (core-web-vitals + typescript) and `typescript-eslint` with `no-explicit-any`, `no-unused-vars`, `consistent-type-imports`, and the React Compiler rules (`react-hooks/refs`, `immutability`, `set-state-in-effect`, `preserve-manual-memoization`) as errors.
+- Refs are written in effects, never during render. The "latest callback" pattern is `useEffect(() => { ref.current = cb; })`, not an assignment in the function body.
+- Media queries and other external values are read through `useSyncExternalStore`, never by returning `ref.current` from a hook.
+- Derive UI state from props (`openAt === path`) instead of `setState` inside an effect keyed on the prop.
+- Do not `useMemo` over an object rebuilt every render; either memoize the object or drop the memo.
+- The only `'use no memo'` in the codebase is the particle field, an imperative canvas system. Do not add another without a comment explaining why the compiler cannot model it.
+- TypeScript is pinned to 5.x: `typescript-eslint` does not support the 7.x line yet.
+
+### 3.7 Testing
 
 - `policy.ts`, `hourId.ts`, `bps.ts`, `format.ts` have unit tests. They are the correctness core.
 - Every hook that reconciles API and chain (`useRegistryForecast` match logic, monotonic guard) has a test with fixture rows.

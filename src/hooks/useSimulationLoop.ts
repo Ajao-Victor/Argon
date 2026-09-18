@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 import { useUiStore } from '@/stores/ui';
 import { subscribeFrame, type FrameCallback } from '@/utils/sim/scheduler';
@@ -10,23 +10,26 @@ import { subscribeFrame, type FrameCallback } from '@/utils/sim/scheduler';
  * The callback is read through a ref so React re-renders never restart the loop.
  * Disabled under prefers-reduced-motion or the user's `motion: reduced` setting.
  */
+const REDUCED_MQ = '(prefers-reduced-motion: reduce)';
+function subscribeReducedMotion(cb: () => void) {
+  const mq = window.matchMedia(REDUCED_MQ);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+}
+const readReducedMotion = () => window.matchMedia(REDUCED_MQ).matches;
+const readReducedMotionServer = () => false;
+
+/** Live media-query value that re-renders on change (a ref read during render never would). */
 export function usePrefersReducedMotion(): boolean {
-  const ref = useRef(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    ref.current = mq.matches;
-    const onChange = (e: MediaQueryListEvent) => {
-      ref.current = e.matches;
-    };
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-  return ref.current;
+  return useSyncExternalStore(subscribeReducedMotion, readReducedMotion, readReducedMotionServer);
 }
 
 export function useSimulationLoop(callback: FrameCallback, enabled = true): void {
   const cbRef = useRef(callback);
-  cbRef.current = callback;
+  // Latest-callback ref, written after commit rather than during render (react-hooks/refs).
+  useEffect(() => {
+    cbRef.current = callback;
+  });
   const motion = useUiStore((s) => s.motion);
 
   useEffect(() => {

@@ -29,7 +29,7 @@ export interface PanelProps extends Omit<HTMLAttributes<HTMLElement>, 'onPointer
 
 export function Panel({ label, meta, active = false, padded = true, glitch = false, delay = 0, reveal = true, glow = 'none', clip = true, className, children, ...rest }: PanelProps) {
   const reduced = useReducedMotion();
-  const holo = useHoloSheen<HTMLElement>();
+  const { ref: holoRef, ...holoHandlers } = useHoloSheen<HTMLElement>();
   const classes = cn('panel flex min-w-0 flex-col', clip ? 'overflow-hidden' : 'panel-unclipped overflow-visible', active && glow === 'none' && 'panel-active', glow !== 'none' && `panel-glow-${glow}`, glitch && 'animate-glitch', className);
 
   const inner = (
@@ -44,7 +44,7 @@ export function Panel({ label, meta, active = false, padded = true, glitch = fal
 
   if (reduced || !reveal) {
     return (
-      <section ref={holo.ref} onPointerEnter={holo.onPointerEnter} onPointerMove={holo.onPointerMove} onPointerLeave={holo.onPointerLeave} className={classes} {...rest}>
+      <section ref={holoRef} {...holoHandlers} className={classes} {...rest}>
         {inner}
       </section>
     );
@@ -52,10 +52,8 @@ export function Panel({ label, meta, active = false, padded = true, glitch = fal
 
   return (
     <motion.section
-      ref={holo.ref as React.Ref<HTMLElement>}
-      onPointerEnter={holo.onPointerEnter}
-      onPointerMove={holo.onPointerMove}
-      onPointerLeave={holo.onPointerLeave}
+      ref={holoRef as React.Ref<HTMLElement>}
+      {...holoHandlers}
       className={classes}
       variants={revealContainer}
       initial="hidden"

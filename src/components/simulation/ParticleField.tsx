@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable react-hooks/immutability -- imperative canvas simulation: hundreds of particles are mutated in place every frame inside a ref; nothing here is React state */
+
 import { memo, useEffect, useRef, type MutableRefObject } from 'react';
 
 import { useSimulationLoop } from '@/hooks/useSimulationLoop';
@@ -57,6 +59,10 @@ function mix(a: readonly [number, number, number], b: readonly [number, number, 
 }
 
 function ParticleFieldImpl({ ethPctChange, mode, action, fixture = false, pulseKey, attractorRef, className }: ParticleFieldProps) {
+  // The field is an imperative simulation: hundreds of particles mutated in place every frame
+  // inside a ref. The React Compiler cannot model that (react-hooks/immutability), so this one
+  // component opts out. Nothing here is React state; memoization is React.memo on the props.
+  'use no memo';
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fieldOn = useUiStore((s) => s.field);
 
@@ -80,18 +86,21 @@ function ParticleFieldImpl({ ethPctChange, mode, action, fixture = false, pulseK
     t: 0,
   });
 
-  // Push props into the ref.
-  s.current.pct = Math.abs(ethPctChange ?? 0);
-  s.current.mode = mode;
-  s.current.fixture = fixture;
-  if (pulseKey !== undefined && pulseKey !== s.current.lastPulseKey) {
-    if (s.current.lastPulseKey !== undefined) s.current.rings.push({ t: 0 });
-    s.current.lastPulseKey = pulseKey;
-  }
-  if (action !== s.current.lastAction) {
-    if (s.current.lastAction !== undefined && (action === 'enter' || action === 'exit')) s.current.surge = 1;
-    s.current.lastAction = action;
-  }
+  // Props enter the loop through the ref, written after commit (never during render).
+  useEffect(() => {
+    const st = s.current;
+    st.pct = Math.abs(ethPctChange ?? 0);
+    st.mode = mode;
+    st.fixture = fixture;
+    if (pulseKey !== undefined && pulseKey !== st.lastPulseKey) {
+      if (st.lastPulseKey !== undefined) st.rings.push({ t: 0 });
+      st.lastPulseKey = pulseKey;
+    }
+    if (action !== st.lastAction) {
+      if (st.lastAction !== undefined && (action === 'enter' || action === 'exit')) st.surge = 1;
+      st.lastAction = action;
+    }
+  }, [ethPctChange, mode, fixture, pulseKey, action]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -269,7 +278,8 @@ function ParticleFieldImpl({ ethPctChange, mode, action, fixture = false, pulseK
         ctx.arc(ax, ay, ease * maxR, 0, Math.PI * 2);
         ctx.stroke();
       }
-      st.rings = st.rings.filter((r) => r.t < 1);
+      // Prune finished rings in place (no reassignment of the ref field).
+      for (let i = st.rings.length - 1; i >= 0; i--) if ((st.rings[i]?.t ?? 1) >= 1) st.rings.splice(i, 1);
     }
   }, fieldOn);
 

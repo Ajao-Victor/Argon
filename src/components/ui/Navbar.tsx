@@ -169,10 +169,15 @@ export function Navbar() {
   const path = usePathname();
   const mode = useAgentMode();
   const reduced = useReducedMotion();
-  const [open, setOpen] = useState(false);
+  // The sheet remembers the path it was opened on, so a route change closes it without an effect.
+  const [openAt, setOpenAt] = useState<string | null>(null);
+  const open = openAt === path;
+  const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
+    const value = typeof next === 'function' ? next(open) : next;
+    setOpenAt(value ? path : null);
+  };
 
-  // Close the sheet on route change and lock body scroll while open.
-  useEffect(() => setOpen(false), [path]);
+  // Lock body scroll while the sheet is open.
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;

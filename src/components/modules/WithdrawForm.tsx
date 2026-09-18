@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { parseUnits } from 'viem';
 
 import { Banner, Button, Panel, Term, TokenInput } from '@/components/ui';
@@ -14,6 +14,15 @@ import { formatToken } from '@/utils/format';
 
 import { ChainSwitcher } from './ChainSwitcher';
 import { TxStatus, txBusy } from './TxStatus';
+
+function parseAmount(value: string, decimals: number | undefined): bigint {
+  if (decimals === undefined || !value) return 0n;
+  try {
+    return parseUnits(value, decimals);
+  } catch {
+    return 0n;
+  }
+}
 
 /** Idle-only withdraw with the in-pool banner (product.md §2.4, §3.6). Fails closed. */
 export function WithdrawForm() {
@@ -32,14 +41,7 @@ export function WithdrawForm() {
   const idle = balances.data?.idle.find((b) => b.token.symbol === symbol)?.idle ?? 0n;
   const inPool = Object.values(pools.data ?? {}).some((s) => s === 1);
 
-  const amount = useMemo(() => {
-    if (!token || !value) return 0n;
-    try {
-      return parseUnits(value, token.decimals);
-    } catch {
-      return 0n;
-    }
-  }, [token, value]);
+  const amount = parseAmount(value, token?.decimals);
 
   let error: string | null = null;
   if (value && amount === 0n) error = 'enter an amount';

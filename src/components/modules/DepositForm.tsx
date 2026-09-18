@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { parseUnits } from 'viem';
 
 import { Banner, Button, Panel, TokenInput } from '@/components/ui';
@@ -15,6 +15,16 @@ import { formatToken } from '@/utils/format';
 import { ChainSwitcher } from './ChainSwitcher';
 import { TxStatus, txBusy } from './TxStatus';
 
+/** parseUnits is cheap; computing it per render avoids memoizing over an object rebuilt each render. */
+function parseAmount(value: string, decimals: number | undefined): bigint {
+  if (decimals === undefined || !value) return 0n;
+  try {
+    return parseUnits(value, decimals);
+  } catch {
+    return 0n;
+  }
+}
+
 /** approve → deposit as one stepping button (design.md §4.9, product.md §3.6). */
 export function DepositForm() {
   const chainId = useUiStore((s) => s.selectedChainId);
@@ -27,14 +37,7 @@ export function DepositForm() {
   const deposit = useDeposit(chainId);
   const deployed = Boolean(getVault(chainId));
 
-  const amount = useMemo(() => {
-    if (!token || !value) return 0n;
-    try {
-      return parseUnits(value, token.decimals);
-    } catch {
-      return 0n;
-    }
-  }, [token, value]);
+  const amount = parseAmount(value, token?.decimals);
 
   const balance = allowance.data?.balance ?? 0n;
   const needsApprove = (allowance.data?.allowance ?? 0n) < amount;
