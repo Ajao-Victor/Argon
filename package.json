@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "description": "Argon dApp — ETH 8h forecast-gated Uniswap LP vault. Web track.",
+  "author": "Victor Oluwatimilryin Ajao",
+  "contributors": [
+    "Victor Oluwatimilryin Ajao"
+  ],
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ajao-Victor/Argon.git"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
