@@ -225,8 +225,10 @@ function ParticleFieldImpl({ ethPctChange, mode, action, fixture = false, pulseK
       const gx = (ux * attract + -uy * tangential * attract) * falloff;
       const gy = (uy * attract + ux * tangential * attract) * falloff;
 
-      p.vx += (fx * 0.8 + gx * 2.2) * speedPx * step;
-      p.vy += (fy * 0.8 + gy * 2.2) * speedPx * step;
+      // Erratic when OUT: random kicks scaled by the warn mix (design.md §7.3, M3 forecast reaction).
+      const jitter = st.warnMix * 1.6;
+      p.vx += (fx * 0.8 + gx * 2.2 + (Math.random() - 0.5) * jitter) * speedPx * step;
+      p.vy += (fy * 0.8 + gy * 2.2 + (Math.random() - 0.5) * jitter) * speedPx * step;
       p.vx *= 0.94;
       p.vy *= 0.94;
 

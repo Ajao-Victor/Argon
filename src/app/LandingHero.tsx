@@ -1,5 +1,6 @@
 'use client';
 
+import { useIsFetching } from '@tanstack/react-query';
 import Link from 'next/link';
 
 import { KeeperAvatar } from '@/components/simulation/KeeperAvatar';
@@ -13,6 +14,7 @@ export function LandingHero() {
   const latest = useLatestForecast();
   const status = useAgentStatus();
   const mode = useAgentMode();
+  const thinking = useIsFetching({ queryKey: ['agent'] }) > 0;
   const f = latest.data;
   const pct = f?.ethPctChange ?? null;
   const warmupComplete = f?.warmupComplete ?? status.data?.warmupComplete ?? false;
@@ -27,6 +29,7 @@ export function LandingHero() {
         mode={mode}
         hourId={f?.hourId}
         size={260}
+        thinking={thinking}
       />
 
       <Reveal delay={0.18} className="flex flex-col items-center gap-4 text-center">

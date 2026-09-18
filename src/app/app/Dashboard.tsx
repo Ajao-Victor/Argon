@@ -1,11 +1,12 @@
 'use client';
 
+import { useIsFetching } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useCallback, useRef } from 'react';
 
 import { ActivityFeed, ForecastHero, HashMatch, PoolCard, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
 import { KeeperAvatar, type Attractor, type FieldMode } from '@/components/simulation';
-import { Panel } from '@/components/ui';
+import { Panel, useTxActivity } from '@/components/ui';
 import { useAgentMode, useAgentStatus, useHashMatch, useLatestForecast } from '@/hooks';
 import { useUiStore } from '@/stores/ui';
 import { POOLS } from '@/types/pools';
@@ -32,6 +33,9 @@ export function Dashboard() {
   const status = useAgentStatus();
   const mode = useAgentMode();
   const match = useHashMatch(chainId, latest.data);
+  // Heartbeat: any in-flight agent query. Overclock: any wallet write signing or mining.
+  const thinking = useIsFetching({ queryKey: ['agent'] }) > 0;
+  const activity = useTxActivity();
 
   const pct = latest.data?.ethPctChange ?? match.chainPct;
   const warmupComplete = latest.data?.warmupComplete ?? status.data?.warmupComplete ?? false;
@@ -67,7 +71,7 @@ export function Dashboard() {
           {/* Keeper */}
           <Panel
             label="KEEPER"
-            meta={mode === 'fixture' ? 'training' : mode === 'offline' ? 'no agent' : 'live'}
+            meta={activity === 'mining' ? 'overclocked · mining' : activity === 'signing' ? 'awaiting signature' : thinking ? 'syncing agent' : mode === 'fixture' ? 'training' : mode === 'offline' ? 'no agent' : 'live'}
             delay={0.16}
             clip={false}
             className="relative z-10 min-h-[18rem] md:col-span-3 xl:col-span-4 xl:min-h-[20rem]"
@@ -82,6 +86,8 @@ export function Dashboard() {
                   mode={mode}
                   hourId={latest.data?.hourId}
                   size="100%"
+                  thinking={thinking}
+                  activity={activity}
                   onCenterChange={onCenterChange}
                 />
               </div>

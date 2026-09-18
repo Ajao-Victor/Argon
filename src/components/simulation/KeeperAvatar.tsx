@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
+import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
 import { memo, useEffect, useMemo, useRef } from 'react';
 
 import { useSimulationLoop } from '@/hooks/useSimulationLoop';
@@ -32,17 +32,23 @@ export interface KeeperAvatarProps {
   className?: string;
   /** Viewport-space center of the avatar, for the particle attractor. Written on resize/scroll. */
   onCenterChange?: ((x: number, y: number) => void) | undefined;
+  /** True while any agent query is in flight: scan line + data-ring pulse ("thinking"). */
+  thinking?: boolean;
+  /** Wallet write in progress: 'signing' holds still and waits; 'mining' overclocks until the receipt. */
+  activity?: 'idle' | 'signing' | 'mining';
 }
 
 const COLOR: Record<KeeperState, { halo: string; ring: string; eye: string }> = {
   dormant: { halo: 'var(--text-dim)', ring: 'var(--text-dim)', eye: 'var(--text-lo)' },
   warmup: { halo: 'var(--text-lo)', ring: 'var(--argon-600)', eye: 'var(--argon-400)' },
   calm: { halo: 'var(--argon-500)', ring: 'var(--argon-400)', eye: 'var(--argon-300)' },
-  charged: { halo: 'var(--plasma-500)', ring: 'var(--plasma-400)', eye: 'var(--plasma-400)' },
-  aggressive: { halo: 'var(--signal-warn)', ring: 'var(--plasma-500)', eye: 'var(--signal-warn)' },
+  charged: { halo: 'var(--plasma-400)', ring: 'var(--plasma-400)', eye: 'var(--plasma-400)' },
+  aggressive: { halo: 'var(--plasma-500)', ring: 'var(--plasma-500)', eye: 'var(--signal-down)' },
 };
 
 const TRAINING = { halo: 'var(--ion-400)', ring: 'var(--ion-400)', eye: 'var(--ion-400)' };
+const OVERCLOCK = { halo: 'var(--ion-400)', ring: 'var(--argon-300)', eye: 'var(--ion-400)' };
+const SIGNING = { halo: 'var(--signal-warn)', ring: 'var(--signal-warn)', eye: 'var(--signal-warn)' };
 
 const RING_BASE_SEC = 24; // one revolution at ringSpeed 1
 const STATE_SPRING = { type: 'spring', stiffness: 220, damping: 24 } as const;
@@ -68,14 +74,18 @@ function KeeperAvatarImpl({
   size = 220,
   className,
   onCenterChange,
+  thinking = false,
+  activity = 'idle',
 }: KeeperAvatarProps) {
   const reduced = useReducedMotion() ?? false;
   const energy = useMemo(
     () => keeperEnergy({ ethPctChange, warmupComplete, reachable, action }),
     [ethPctChange, warmupComplete, reachable, action],
   );
-  const palette = mode === 'fixture' ? TRAINING : COLOR[energy.state];
-  const breath = mode === 'fixture' ? 1.2 : BREATH_SEC[energy.state];
+  const overclocked = activity === 'mining';
+  const signing = activity === 'signing';
+  const palette = overclocked ? OVERCLOCK : signing ? SIGNING : mode === 'fixture' ? TRAINING : COLOR[energy.state];
+  const breath = overclocked ? 0.7 : signing ? 2.6 : mode === 'fixture' ? 1.2 : BREATH_SEC[energy.state];
 
   // ---- pointer → motion values → weighted springs (no React state) ----
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -136,9 +146,11 @@ function KeeperAvatarImpl({
   }, !reduced);
 
   const R = 100; // viewBox radius
-  const speed = reduced ? 0 : energy.ringSpeed;
+  const speed = reduced ? 0 : overclocked ? Math.max(energy.ringSpeed, 1) * 6 : signing ? 0 : energy.ringSpeed;
   const ringDur = speed > 0 ? RING_BASE_SEC / speed : 0;
-  const stateKey = `${energy.state}-${mode}`;
+  const stateKey = `${energy.state}-${mode}-${activity}`;
+  const aperture = signing ? 1 : overclocked ? 0.5 : energy.aperture;
+  const arcs = overclocked ? 3 : energy.arcs;
   const hoverAmp = energy.state === 'dormant' ? 3 : energy.state === 'aggressive' ? 7 : 5;
 
   return (
@@ -181,6 +193,24 @@ function KeeperAvatarImpl({
           className="absolute inset-0 h-full w-full"
           style={reduced ? {} : { rotateX: tiltX, rotateY: tiltY, x: panX, y: panY, transformPerspective: 600 }}
         >
+          {/* Thinking: a data ring expands from the core on every fetch cycle */}
+          <AnimatePresence>
+            {thinking && !reduced && (
+              <motion.circle
+                key="think-ring"
+                r={R * 0.4}
+                fill="none"
+                stroke={palette.ring}
+                strokeWidth={1}
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: [0.6, 2.4], opacity: [0.7, 0] }}
+                exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: 'easeOut' }}
+                style={{ originX: '0px', originY: '0px' }}
+              />
+            )}
+          </AnimatePresence>
+
           {/* Orbital rings */}
           {[
             { r: R * 0.98, dash: '6 10', w: 1, dir: 1 },
@@ -200,7 +230,7 @@ function KeeperAvatarImpl({
             );
           })}
 
-          {/* Energy arcs between core and rings */}
+          {/* Energy arcs between core and rings (all three when overclocked) */}
           {[0, 1, 2].map((i) => (
             <motion.path
               key={i}
@@ -210,8 +240,8 @@ function KeeperAvatarImpl({
               strokeWidth={1.2}
               strokeLinecap="round"
               initial={false}
-              animate={{ opacity: i < energy.arcs ? (reduced ? 0.8 : [0.2, 0.9]) : 0 }}
-              transition={i < energy.arcs && !reduced ? { duration: 0.45 + i * 0.12, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' } : STATE_SPRING}
+              animate={{ opacity: i < arcs ? (reduced ? 0.8 : [0.2, 0.9]) : 0 }}
+              transition={i < arcs && !reduced ? { duration: (overclocked ? 0.18 : 0.45) + i * 0.12, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' } : STATE_SPRING}
             />
           ))}
 
@@ -222,11 +252,19 @@ function KeeperAvatarImpl({
             animate={
               reduced
                 ? { scale: energy.coreScale, x: 0, y: 0 }
-                : energy.state === 'charged'
-                  ? { scale: energy.coreScale, x: [0, 1, -1, 0], y: [0, -1, 1, 0] }
-                  : { scale: energy.coreScale, x: 0, y: 0 }
+                : overclocked
+                  ? { scale: 1.08, x: [0, 1.6, -1.6, 0], y: [0, -1.2, 1.2, 0] }
+                  : energy.state === 'charged'
+                    ? { scale: energy.coreScale, x: [0, 1, -1, 0], y: [0, -1, 1, 0] }
+                    : { scale: energy.coreScale, x: 0, y: 0 }
             }
-            transition={energy.state === 'charged' && !reduced ? { x: { duration: 0.125, repeat: Infinity }, y: { duration: 0.125, repeat: Infinity }, scale: STATE_SPRING } : STATE_SPRING}
+            transition={
+              overclocked && !reduced
+                ? { x: { duration: 0.06, repeat: Infinity }, y: { duration: 0.06, repeat: Infinity }, scale: STATE_SPRING }
+                : energy.state === 'charged' && !reduced
+                  ? { x: { duration: 0.125, repeat: Infinity }, y: { duration: 0.125, repeat: Infinity }, scale: STATE_SPRING }
+                  : STATE_SPRING
+            }
           >
             <polygon points={hexPoints(R * 0.36)} fill="var(--surface-1)" stroke={palette.ring} strokeWidth={1.5} />
             <polygon points={hexPoints(R * 0.28)} fill="none" stroke={palette.ring} strokeWidth={0.6} opacity={0.6} />
@@ -234,11 +272,11 @@ function KeeperAvatarImpl({
             {/* Eyes: translate follows the pointer, scaleY is the aperture. Glitch keyed on hourId. */}
             <motion.g style={reduced ? {} : { x: eyeX, y: eyeY }}>
               <motion.g
-                key={hourId ?? 'none'}
-                className={hourId !== undefined && !reduced ? 'animate-glitch' : undefined}
+                key={`${hourId ?? 'none'}-${thinking ? 't' : 'i'}`}
+                className={(hourId !== undefined || thinking) && !reduced ? 'animate-glitch' : undefined}
                 style={{ originX: '0px', originY: '0px' }}
                 initial={false}
-                animate={{ scaleY: Math.max(0.06, energy.aperture) }}
+                animate={{ scaleY: Math.max(0.06, aperture) }}
                 transition={STATE_SPRING}
               >
                 <rect x={-16} y={-4} width={11} height={8} rx={1.5} fill={palette.eye} />
@@ -249,9 +287,27 @@ function KeeperAvatarImpl({
         </motion.svg>
       </motion.div>
 
+      {/* Thinking: scan line sweeps the body while an agent query is in flight */}
+      <AnimatePresence>
+        {thinking && !reduced && (
+          <motion.div
+            key="scan"
+            aria-hidden
+            className="pointer-events-none absolute inset-x-[8%] top-0 h-px will-change-transform"
+            style={{ background: `linear-gradient(90deg, transparent, ${palette.ring}, transparent)` }}
+            initial={{ y: 0, opacity: 0 }}
+            animate={{ y: ['0%', '10000%'], opacity: [0, 0.9, 0.9, 0] }}
+            exit={{ opacity: 0, transition: { duration: 0.15 } }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Label under the avatar */}
       <div className="pointer-events-none absolute inset-x-0 -bottom-6 text-center label leading-5">
-        keeper · {energy.state}
+        keeper ·{' '}
+        {overclocked ? <span className="text-ion-400">overclocked</span> : signing ? <span className="text-signal-warn">awaiting signature</span> : energy.state}
+        {thinking && !overclocked && !signing && <span className="text-text-mid"> · syncing</span>}
         {mode === 'fixture' && <span className="text-ion-400"> · training</span>}
       </div>
     </div>

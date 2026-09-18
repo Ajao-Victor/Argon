@@ -81,6 +81,15 @@ function subscribe(cb: () => void) {
 const getSnapshot = () => toasts;
 const getServerSnapshot = (): readonly Toast[] => [];
 
+/** What the wallet is doing right now, derived from live toasts. Drives the Keeper's overclock. */
+export type TxActivity = 'idle' | 'signing' | 'mining';
+export function useTxActivity(): TxActivity {
+  const list = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  if (list.some((t) => t.kind === 'mining')) return 'mining';
+  if (list.some((t) => t.kind === 'signing')) return 'signing';
+  return 'idle';
+}
+
 const TONE: Record<ToastKind, ChipTone> = { info: 'plain', signing: 'warn', mining: 'argon', success: 'up', error: 'down' };
 const BORDER: Record<ToastKind, string> = {
   info: 'border-hairline',
