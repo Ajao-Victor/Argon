@@ -188,6 +188,24 @@ export function Navbar() {
   }, [open]);
 
   return (
+    <>
+    {/* Full-screen dimmer behind the sheet, above the dashboard. A sibling of the header on
+        purpose: the header's backdrop-filter makes it the containing block for fixed children. */}
+    <AnimatePresence>
+      {open && (
+        <motion.button
+          key="backdrop"
+          type="button"
+          aria-label="close menu"
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-40 cursor-default bg-black/60 backdrop-blur-sm md:hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.14 } }}
+          transition={{ duration: 0.18 }}
+        />
+      )}
+    </AnimatePresence>
     <header className="sticky top-0 z-50 w-full overflow-visible border-b border-hairline bg-glass backdrop-blur-glass">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 md:justify-start md:gap-6">
         {/* Brand */}
@@ -237,9 +255,9 @@ export function Navbar() {
             animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8, transition: { duration: 0.14 } }}
             transition={SPRING.heavy}
-            className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-hairline bg-glass shadow-glow-sm backdrop-blur-glass md:hidden"
+            className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-hairline-strong bg-glass shadow-2xl shadow-black/80 backdrop-blur-glass md:hidden"
           >
-            <nav className="flex flex-col divide-y divide-hairline" aria-label="mobile">
+            <nav className="flex flex-col divide-y divide-hairline bg-surface-1/70" aria-label="mobile">
               <div className="py-1">
                 {LINKS.map((l) => (
                   <NavLink key={l.href} href={l.href} label={l.label} active={path === l.href} block onClick={() => setOpen(false)} />
@@ -253,5 +271,6 @@ export function Navbar() {
         )}
       </AnimatePresence>
     </header>
+    </>
   );
 }
