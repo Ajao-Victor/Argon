@@ -79,7 +79,10 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 const getSnapshot = () => toasts;
-const getServerSnapshot = (): readonly Toast[] => [];
+// React requires getServerSnapshot to return the SAME reference on every call; a fresh []
+// each time makes React think the store changed and loops during server rendering.
+const emptySnapshot: readonly Toast[] = Object.freeze([]);
+const getServerSnapshot = (): readonly Toast[] => emptySnapshot;
 
 /** What the wallet is doing right now, derived from live toasts. Drives the Keeper's overclock. */
 export type TxActivity = 'idle' | 'signing' | 'mining';
