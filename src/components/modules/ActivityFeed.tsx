@@ -1,5 +1,7 @@
 'use client';
 
+import { useCallback, useMemo } from 'react';
+
 import { Chip, DataTable, DisconnectedState, HashText, Panel, SkeletonLines, type ChipTone, type Column } from '@/components/ui';
 import { useActivity, useWallet } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
@@ -19,7 +21,7 @@ export function ActivityFeed({ chainId, delay = 0 }: { chainId: SupportedChainId
   const deployed = Boolean(getVault(chainId));
   const rows = activity.data ?? [];
 
-  const columns: readonly Column<ActivityEvent>[] = [
+  const columns: readonly Column<ActivityEvent>[] = useMemo(() => [
     { key: 'kind', header: 'event', render: (e) => <Chip tone={KIND_TONE[e.kind]}>{e.kind}</Chip> },
     { key: 'block', header: 'block', render: (e) => <span className="text-text-lo">{e.blockNumber.toString()}</span> },
     {
@@ -43,7 +45,8 @@ export function ActivityFeed({ chainId, delay = 0 }: { chainId: SupportedChainId
     },
     { key: 'hash', header: 'hash', render: (e) => <HashText value={e.forecastHash ?? null} /> },
     { key: 'tx', header: 'tx', render: (e) => <HashText value={e.txHash} href={txUrl(chainId, e.txHash)} /> },
-  ];
+  ], [chainId]);
+  const rowKey = useCallback((e: ActivityEvent) => `${e.txHash}-${e.logIndex}`, []);
 
   return (
     <Panel label="ACTIVITY" meta={`${chainName(chainId)} · ${deployed ? `${rows.length} events` : 'vault not deployed'}`} padded={!address || (deployed && activity.status === 'pending')} delay={delay}>
@@ -58,7 +61,7 @@ export function ActivityFeed({ chainId, delay = 0 }: { chainId: SupportedChainId
       <DataTable
         columns={columns}
         rows={rows}
-        rowKey={(e) => `${e.txHash}-${e.logIndex}`}
+        rowKey={rowKey}
         refreshKey={activity.dataUpdatedAt}
         empty={
           !deployed

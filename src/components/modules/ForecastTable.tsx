@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { Chip, DataTable, HashText, Panel, SkeletonLines, type ChipTone, type Column } from '@/components/ui';
 import { useAgentMode, useForecastHistory } from '@/hooks';
@@ -27,7 +27,7 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
   const [selected, setSelected] = useState<Forecast | undefined>(undefined);
   const rows = history.data?.items ?? [];
 
-  const columns: readonly Column<Forecast>[] = [
+  const columns: readonly Column<Forecast>[] = useMemo(() => [
     { key: 'hour', header: 'hour', render: (r) => <span className="text-text-hi">{r.hourId}</span> },
     { key: 'utc', header: 'utc', render: (r) => <span className="text-text-lo">{formatDateHourUtc(r.hourId)}</span> },
     { key: 'pred', header: 'pred %', align: 'right', render: (r) => <span className={pctClass(r.ethPctChange)}>{formatPct(r.ethPctChange)}</span> },
@@ -36,7 +36,9 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
     { key: 'action', header: 'action', render: (r) => <Chip tone={ACTION_TONE[r.action]}>{r.action}</Chip> },
     { key: 'hash', header: 'hash', render: (r) => <HashText value={r.forecastHash} /> },
     { key: 'tx', header: 'tx', render: (r) => <HashText value={r.txHash} href={r.txHash ? txUrl(chainId, r.txHash) : undefined} /> },
-  ];
+  ], [chainId]);
+  const rowKey = useCallback((r: Forecast) => r.hourId, []);
+  const onRowClick = useCallback((r: Forecast) => setSelected((s) => (s?.hourId === r.hourId ? undefined : r)), []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -55,9 +57,9 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
         <DataTable
           columns={columns}
           rows={rows}
-          rowKey={(r) => r.hourId}
+          rowKey={rowKey}
           refreshKey={history.dataUpdatedAt}
-          onRowClick={(r) => setSelected((s) => (s?.hourId === r.hourId ? undefined : r))}
+          onRowClick={onRowClick}
           empty={history.status === 'error' ? 'live agent unreachable' : 'no forecasts yet'}
         />
         )}

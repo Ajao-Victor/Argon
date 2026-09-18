@@ -52,7 +52,7 @@ function SkeletonImpl({ chars = 12, className, slow = false, scan = true }: Skel
       <span ref={ref} aria-hidden className="whitespace-pre opacity-70">
         {BLOCKS.slice(0, chars)}
       </span>
-      {scan && !reduced && <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-argon-400/60 animate-scanline" style={{ '--scan-h': '2em' } as React.CSSProperties} />}
+      {scan && !reduced && <span aria-hidden className="scan-edge pointer-events-none absolute inset-0 animate-scanline" />}
     </span>
   );
 }

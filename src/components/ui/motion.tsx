@@ -99,10 +99,16 @@ export function useMagnetic(strength = 6, enabled = true) {
   const y = useSpring(my, { stiffness: 300, damping: 20 });
   const active = enabled && !reduced;
 
+  // Geometry is read once on enter (one layout read per hover), never per move.
+  const rect = useRef<DOMRect | null>(null);
+  const onPointerEnter = useCallback(() => {
+    if (active && ref.current) rect.current = ref.current.getBoundingClientRect();
+  }, [active]);
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!active || !ref.current) return;
-      const r = ref.current.getBoundingClientRect();
+      if (!active) return;
+      const r = rect.current ?? (ref.current ? (rect.current = ref.current.getBoundingClientRect()) : null);
+      if (!r) return;
       const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
       const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
       mx.set(Math.max(-1, Math.min(1, dx)) * strength);
@@ -111,11 +117,12 @@ export function useMagnetic(strength = 6, enabled = true) {
     [active, mx, my, strength],
   );
   const onPointerLeave = useCallback(() => {
+    rect.current = null;
     mx.set(0);
     my.set(0);
   }, [mx, my]);
 
-  return { ref, style: active ? { x, y } : {}, onPointerMove, onPointerLeave } as const;
+  return { ref, style: active ? { x, y } : {}, onPointerEnter, onPointerMove, onPointerLeave } as const;
 }
 
 // ---------------------------------------------------------------------------
@@ -131,17 +138,11 @@ export function useRefreshTick(refreshKey: number | string | undefined): number 
   return tick;
 }
 
-export function ScanLine({ tick, heightPx }: { tick: number; heightPx: number }) {
+export function ScanLine({ tick }: { tick: number }) {
   const reduced = useReducedMotion();
   if (reduced || tick === 0) return null;
-  return (
-    <span
-      key={tick}
-      aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 z-20 h-px bg-argon-400/35 animate-scanline"
-      style={{ '--scan-h': `${heightPx}px` } as React.CSSProperties}
-    />
-  );
+  // Full-height element carrying a 1 px top edge, translated 0 → 100% of its own height.
+  return <span key={tick} aria-hidden className="scan-edge pointer-events-none absolute inset-0 z-20 animate-scanline" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -149,15 +150,23 @@ export function ScanLine({ tick, heightPx }: { tick: number; heightPx: number })
 // ---------------------------------------------------------------------------
 export function useHoloSheen<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
+  const rect = useRef<DOMRect | null>(null);
+  // One layout read on enter; every move is pure arithmetic + three style-var writes.
+  const onPointerEnter = useCallback(() => {
+    if (ref.current) rect.current = ref.current.getBoundingClientRect();
+  }, []);
   const onPointerMove = useCallback((e: React.PointerEvent<T>) => {
     const el = ref.current;
     if (!el) return;
-    const r = el.getBoundingClientRect();
+    const r = rect.current ?? (rect.current = el.getBoundingClientRect());
     const x = e.clientX - r.left;
     const y = e.clientY - r.top;
     el.style.setProperty('--mx', `${x}px`);
     el.style.setProperty('--my', `${y}px`);
     el.style.setProperty('--ma', `${Math.atan2(y - r.height / 2, x - r.width / 2) * (180 / Math.PI)}`);
   }, []);
-  return { ref, onPointerMove } as const;
+  const onPointerLeave = useCallback(() => {
+    rect.current = null;
+  }, []);
+  return { ref, onPointerEnter, onPointerMove, onPointerLeave } as const;
 }

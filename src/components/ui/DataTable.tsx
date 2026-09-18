@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, type ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 
 import { cn } from '@/utils/cn';
 
@@ -29,13 +29,11 @@ export interface DataTableProps<T> {
   refreshKey?: number | string | undefined;
 }
 
-export function DataTable<T>({ columns, rows, rowKey, onRowClick, empty = 'no rows', maxHeightClass = 'max-h-[60vh]', refreshKey }: DataTableProps<T>) {
+function DataTableImpl<T>({ columns, rows, rowKey, onRowClick, empty = 'no rows', maxHeightClass = 'max-h-[60vh]', refreshKey }: DataTableProps<T>) {
   const tick = useRefreshTick(refreshKey);
-  const wrap = useRef<HTMLDivElement | null>(null);
-  const h = wrap.current?.clientHeight ?? 400;
   return (
-    <div ref={wrap} className={cn('relative overflow-auto', maxHeightClass)}>
-      <ScanLine tick={tick} heightPx={h} />
+    <div className={cn('relative overflow-auto', maxHeightClass)}>
+      <ScanLine tick={tick} />
       <table key={tick} className={cn('w-full border-collapse text-[0.75rem] tabular-nums', tick > 0 && 'animate-flicker')}>
         <thead className="sticky top-0 z-10 bg-surface-1">
           <tr>
@@ -68,3 +66,6 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, empty = 'no ro
     </div>
   );
 }
+
+/** Memoized; callers must pass stable `columns` (useMemo) and `rowKey` for the memo to hold. */
+export const DataTable = memo(DataTableImpl) as typeof DataTableImpl;

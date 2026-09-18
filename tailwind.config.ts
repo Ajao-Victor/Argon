@@ -109,10 +109,11 @@ const config: Config = {
           '100%': { transform: 'translateX(300%)' },
         },
         // Table refresh: one line sweeps top → bottom (design.md §7.2)
+        // Full-height element with a 1 px top edge (.scan-edge) travels its own height: transform + opacity only.
         scanline: {
-          '0%': { transform: 'translateY(-2px)', opacity: '0' },
+          '0%': { transform: 'translateY(-1px)', opacity: '0' },
           '10%': { opacity: '1' },
-          '100%': { transform: 'translateY(var(--scan-h, 400px))', opacity: '0' },
+          '100%': { transform: 'translateY(100%)', opacity: '0' },
         },
         // Terminal flicker once on refresh
         flicker: {

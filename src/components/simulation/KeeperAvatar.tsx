@@ -101,6 +101,8 @@ function KeeperAvatarImpl({
   const tiltX = useTransform(sy, (v) => v * -7);
   const tiltY = useTransform(sx, (v) => v * 7);
   const finePointer = useRef(true);
+  const dirty = useRef(false);
+  const measureRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -113,10 +115,16 @@ function KeeperAvatarImpl({
       onCenterChange?.(center.current.x, center.current.y);
     };
     measure();
-    const ro = new ResizeObserver(measure);
+    measureRef.current = measure;
+    // Scroll and resize only mark the geometry dirty; the frame loop measures once, so no
+    // layout read happens inside a scroll event (design.md §7.4 rule 7).
+    const markDirty = () => {
+      dirty.current = true;
+    };
+    const ro = new ResizeObserver(markDirty);
     ro.observe(el);
-    window.addEventListener('scroll', measure, { passive: true });
-    window.addEventListener('resize', measure, { passive: true });
+    window.addEventListener('scroll', markDirty, { passive: true });
+    window.addEventListener('resize', markDirty, { passive: true });
 
     const onMove = (e: PointerEvent) => {
       if (!finePointer.current || reduced) return;
@@ -131,14 +139,19 @@ function KeeperAvatarImpl({
 
     return () => {
       ro.disconnect();
-      window.removeEventListener('scroll', measure);
-      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', markDirty);
+      window.removeEventListener('resize', markDirty);
       window.removeEventListener('pointermove', onMove);
+      measureRef.current = null;
     };
   }, [onCenterChange, px, py, reduced]);
 
-  // Touch devices idle on a slow figure-eight through the shared scheduler.
+  // Per-frame tick: re-measure when scroll/resize marked us dirty; on touch, idle on a figure-eight.
   useSimulationLoop((_dt, now) => {
+    if (dirty.current) {
+      dirty.current = false;
+      measureRef.current?.();
+    }
     if (finePointer.current) return;
     const t = now / 1000;
     px.set(Math.sin(t * 0.5) * 0.6);

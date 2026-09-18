@@ -21,7 +21,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
   link: 'border-transparent bg-transparent px-0 text-ion-400 hover:text-ion-400 hover:shadow-none underline-offset-4 hover:underline',
 };
 
-export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onPointerMove' | 'onPointerLeave'> {
+export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onPointerMove' | 'onPointerLeave' | 'onPointerEnter'> {
   variant?: ButtonVariant;
   pending?: boolean;
   success?: boolean;
@@ -54,6 +54,7 @@ export function Button({
         disabled={isDisabled}
         aria-busy={pending || undefined}
         style={m.style}
+        onPointerEnter={m.onPointerEnter}
         onPointerMove={m.onPointerMove}
         onPointerLeave={m.onPointerLeave}
         whileTap={reduced || isDisabled ? {} : { scale: 0.98 }}

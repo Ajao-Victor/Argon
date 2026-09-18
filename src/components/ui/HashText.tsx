@@ -1,7 +1,7 @@
 'use client';
 
 import { Copy, ExternalLink } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/utils/cn';
 import { truncateHex } from '@/utils/format';
@@ -17,13 +17,16 @@ export interface HashTextProps {
 
 export function HashText({ value, href, className, head = 6, tail = 4 }: HashTextProps) {
   const [copied, setCopied] = useState(false);
+  const flash = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(flash.current), []);
   const copy = useCallback(() => {
     if (!value) return;
     navigator.clipboard
       ?.writeText(value)
       .then(() => {
         setCopied(true);
-        setTimeout(() => setCopied(false), 300);
+        clearTimeout(flash.current);
+        flash.current = setTimeout(() => setCopied(false), 300);
       })
       .catch(() => {
         /* clipboard permission denied: the full value is still in the title attribute */

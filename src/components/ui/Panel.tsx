@@ -12,7 +12,7 @@ import { revealContainer, useHoloSheen } from './motion';
  * and holographic hover sheen (§7.2). The sheen is CSS driven by variables written
  * in a pointer handler; no React state.
  */
-export interface PanelProps extends Omit<HTMLAttributes<HTMLElement>, 'onPointerMove'> {
+export interface PanelProps extends Omit<HTMLAttributes<HTMLElement>, 'onPointerMove' | 'onPointerEnter' | 'onPointerLeave'> {
   label: ReactNode;
   meta?: ReactNode;
   active?: boolean;
@@ -44,7 +44,7 @@ export function Panel({ label, meta, active = false, padded = true, glitch = fal
 
   if (reduced || !reveal) {
     return (
-      <section ref={holo.ref} onPointerMove={holo.onPointerMove} className={classes} {...rest}>
+      <section ref={holo.ref} onPointerEnter={holo.onPointerEnter} onPointerMove={holo.onPointerMove} onPointerLeave={holo.onPointerLeave} className={classes} {...rest}>
         {inner}
       </section>
     );
@@ -53,7 +53,9 @@ export function Panel({ label, meta, active = false, padded = true, glitch = fal
   return (
     <motion.section
       ref={holo.ref as React.Ref<HTMLElement>}
+      onPointerEnter={holo.onPointerEnter}
       onPointerMove={holo.onPointerMove}
+      onPointerLeave={holo.onPointerLeave}
       className={classes}
       variants={revealContainer}
       initial="hidden"

@@ -150,6 +150,12 @@
     line-height: 0.9;
   }
 
+  /* A 1 px luminous edge at the top of a full-height box; animate-scanline slides the box (Phase 11 M3). */
+  .scan-edge {
+    background: linear-gradient(to bottom, rgba(192, 132, 252, 0.6) 0, rgba(192, 132, 252, 0.6) 1px, transparent 1px);
+    will-change: transform;
+  }
+
   /* Luminous data text */
   .glow-text {
     text-shadow: 0 0 18px var(--argon-glow);
