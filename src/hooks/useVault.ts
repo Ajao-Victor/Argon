@@ -20,9 +20,14 @@ import { pauseSimulation, resumeSimulation } from '@/utils/sim/scheduler';
 import { toast } from '@/components/ui/Toasts';
 
 /**
- * Vault hooks (doc/architecture.md §2.1, §2.5). Every read passes `chainId`
- * explicitly from the pool definition, never from the wallet's chain (ENGINEERING.md §2).
- * Writes: simulate → sign → wait for receipt → invalidate. No optimistic balances.
+ * Vault hooks (doc/architecture.md §2.1, §2.5) against the deployed ArgonVault.
+ * Every read passes `chainId` explicitly from the pool definition, never from the
+ * wallet's chain (ENGINEERING.md §2). Writes: simulate → sign → wait for receipt →
+ * invalidate. No optimistic balances.
+ *
+ * Deployed accounting: shares are USD-denominated; `withdraw(shares)` flattens any LP
+ * position first and pays pro-rata WETH + stable; `emergencyWithdraw()` burns the whole
+ * balance. There is no per-token withdraw on this contract.
  */
 export const VAULT_READ_STALE_MS = 15_000;
 
@@ -36,13 +41,16 @@ export const VAULT_PARAMS_STALE_MS = 5 * 60_000;
 // Reads
 // ---------------------------------------------------------------------------
 
+/** warmupComplete (registry.forecastCount() >= 9), totalShares, and the two escrowed tokens. */
 export function useVaultParams(chainId: SupportedChainId) {
   const vault = getVault(chainId);
   return useReadContracts({
     contracts: vault
       ? [
-          { ...vault, functionName: 'gateBps' },
           { ...vault, functionName: 'warmupComplete' },
+          { ...vault, functionName: 'totalShares' },
+          { ...vault, functionName: 'weth' },
+          { ...vault, functionName: 'stable' },
         ]
       : [],
     allowFailure: true,
@@ -50,8 +58,10 @@ export function useVaultParams(chainId: SupportedChainId) {
       enabled: Boolean(vault),
       staleTime: VAULT_PARAMS_STALE_MS,
       select: (rows) => ({
-        gateBps: rows[0]?.status === 'success' ? Number(rows[0].result) : undefined,
-        warmupComplete: rows[1]?.status === 'success' ? Boolean(rows[1].result) : undefined,
+        warmupComplete: rows[0]?.status === 'success' ? Boolean(rows[0].result) : undefined,
+        totalShares: rows[1]?.status === 'success' ? asBigInt(rows[1].result) : undefined,
+        weth: rows[2]?.status === 'success' ? (rows[2].result as Address) : undefined,
+        stable: rows[3]?.status === 'success' ? (rows[3].result as Address) : undefined,
       }),
     },
   });
@@ -86,7 +96,7 @@ export interface VaultBalance {
   idle: bigint;
 }
 
-/** idleBalance per deposit token + shareBalance, for the connected user, on one chain. */
+/** idleBalance per deposit token + shareBalance + totalShares, for the connected user, on one chain. */
 export function useVaultBalances(chainId: SupportedChainId, user: Address | undefined) {
   const vault = getVault(chainId);
   const tokens = depositTokens(chainId);
@@ -97,6 +107,7 @@ export function useVaultBalances(chainId: SupportedChainId, user: Address | unde
         ? [
             ...tokens.map((t) => ({ ...vault, functionName: 'idleBalance' as const, args: [user, t.address] as const })),
             { ...vault, functionName: 'shareBalance' as const, args: [user] as const },
+            { ...vault, functionName: 'totalShares' as const },
           ]
         : [],
     allowFailure: true,
@@ -109,9 +120,11 @@ export function useVaultBalances(chainId: SupportedChainId, user: Address | unde
           return { token, idle: r?.status === 'success' ? asBigInt(r.result) : 0n };
         });
         const shareRow = rows[tokens.length];
+        const totalRow = rows[tokens.length + 1];
         const shares = shareRow?.status === 'success' ? asBigInt(shareRow.result) : 0n;
+        const totalShares = totalRow?.status === 'success' ? asBigInt(totalRow.result) : 0n;
         const funded = shares > 0n || idle.some((b) => b.idle > 0n);
-        return { idle, shares, funded };
+        return { idle, shares, totalShares, funded };
       },
     },
   });
@@ -352,7 +365,11 @@ export function useDepositEth(chainId: SupportedChainId) {
   return { state, write, reset } as const;
 }
 
-/** withdraw(token, amount) — idle balances only (product.md §3.6). */
+/**
+ * withdraw(shares) — burns shares and pays pro-rata WETH + stable (the vault flattens
+ * LP first if needed). The share balance is re-read on-chain right before signing so a
+ * stale UI can never over-burn: fail closed (ENGINEERING.md §0.6).
+ */
 export function useWithdraw(chainId: SupportedChainId) {
   const config = useConfig();
   const { address: user } = useAccount();
@@ -360,25 +377,24 @@ export function useWithdraw(chainId: SupportedChainId) {
   const { state, setState, run, reset } = useGuardedWrite('withdraw');
 
   const write = useCallback(
-    (token: TokenDef, amount: bigint) =>
+    (shares: bigint) =>
       run(async () => {
         const vault = getVault(chainId);
         if (!vault || !user) {
           setState({ status: 'failed', step: 'withdraw', error: vault ? 'wallet not connected' : 'vault not deployed' });
           return;
         }
-        if (amount <= 0n) {
-          setState({ status: 'failed', step: 'withdraw', error: 'amount must be greater than zero' });
+        if (shares <= 0n) {
+          setState({ status: 'failed', step: 'withdraw', error: 'shares must be greater than zero' });
           return;
         }
         setState({ status: 'simulating', step: 'withdraw' });
-        // Idle-only invariant, re-read on-chain right before signing (product.md §4.5): fail closed.
-        const idle = await readContract(config, { ...vault, functionName: 'idleBalance', args: [user, token.address] });
-        if (amount > idle) {
-          setState({ status: 'failed', step: 'withdraw', error: 'amount exceeds idle balance' });
+        const balance = await readContract(config, { ...vault, functionName: 'shareBalance', args: [user] });
+        if (shares > balance) {
+          setState({ status: 'failed', step: 'withdraw', error: 'shares exceed your balance' });
           return;
         }
-        await runWrite(config, 'withdraw', { ...vault, functionName: 'withdraw', args: [token.address, amount], account: user }, setState);
+        await runWrite(config, 'withdraw', { ...vault, functionName: 'withdraw', args: [shares], account: user }, setState);
         await invalidate();
       }),
     [chainId, config, user, invalidate, run, setState],
@@ -387,7 +403,7 @@ export function useWithdraw(chainId: SupportedChainId) {
   return { state, write, reset } as const;
 }
 
-/** emergencyWithdraw() — all idle balances, always available. */
+/** emergencyWithdraw() — burns the caller's entire share balance; allowed while the keeper is paused. */
 export function useEmergencyWithdraw(chainId: SupportedChainId) {
   const config = useConfig();
   const { address: user } = useAccount();

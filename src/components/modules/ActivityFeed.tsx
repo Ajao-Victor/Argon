@@ -13,7 +13,6 @@ import { formatToken } from '@/utils/format';
 
 /** Deposited / Withdrawn / Rebalanced events (spec §5.1 /app/activity). Source: bounded getLogs. */
 const KIND_TONE: Record<ActivityEvent['kind'], ChipTone> = { Deposited: 'up', Withdrawn: 'warn', Rebalanced: 'argon' };
-const ACTION_NAME: Record<number, string> = { 0: 'exit', 1: 'enter', 2: 'hold' };
 
 export function ActivityFeed({ chainId, delay = 0 }: { chainId: SupportedChainId; delay?: number }) {
   const { address } = useWallet();
@@ -31,7 +30,7 @@ export function ActivityFeed({ chainId, delay = 0 }: { chainId: SupportedChainId
         if (e.kind === 'Rebalanced') {
           return (
             <span className="text-text-mid">
-              pool {e.poolId} · {ACTION_NAME[e.action ?? -1] ?? e.action} · hour {e.hourId?.toString()}
+              pool {e.poolId} · {e.action ?? '—'} · hour {e.hourId?.toString()}
             </span>
           );
         }
@@ -39,6 +38,7 @@ export function ActivityFeed({ chainId, delay = 0 }: { chainId: SupportedChainId
         return (
           <span className="text-text-mid">
             {e.amount !== undefined && t ? `${formatToken(e.amount, t.decimals)} ${t.symbol}` : e.amount?.toString()}
+            {e.shares !== undefined && <span className="text-text-dim"> · {formatToken(e.shares, 18, 4)} sh</span>}
           </span>
         );
       },

@@ -1,12 +1,14 @@
 import type { Address, PublicClient } from 'viem';
 
-import { vaultAbi } from '@/types/abi/Vault';
+import { VAULT_ACTION_NAME, vaultAbi } from '@/types/abi/Vault';
 
 import type { SupportedChainId } from './chains';
 
 /**
- * Activity feed source (doc/architecture.md §1.4): viem getLogs over a bounded
- * block range, chunked to what public RPCs accept. No indexer in v1.
+ * Activity feed source (doc/architecture.md §1.4): viem getLogs over a bounded block
+ * range, chunked to what public RPCs accept. No indexer in v1. Event shapes follow the
+ * deployed ArgonVault: Deposited / Withdrawn carry (user, token, amount, shares) with
+ * user and token indexed; Rebalanced carries (hourId, poolId, action, forecastHash).
  */
 export type ActivityKind = 'Deposited' | 'Withdrawn' | 'Rebalanced';
 
@@ -19,9 +21,10 @@ export interface ActivityEvent {
   user?: Address | undefined;
   token?: Address | undefined;
   amount?: bigint | undefined;
+  shares?: bigint | undefined;
   hourId?: bigint | undefined;
   poolId?: number | undefined;
-  action?: number | undefined;
+  action?: 'hold' | 'enter' | 'exit' | undefined;
   forecastHash?: `0x${string}` | undefined;
 }
 
@@ -51,31 +54,21 @@ export async function fetchVaultActivity(opts: {
     const end = start + LOG_CHUNK_BLOCKS > latest ? latest : start + LOG_CHUNK_BLOCKS;
 
     const [deposits, withdrawals, rebalances] = await Promise.all([
-      user
-        ? client.getLogs({ address: vault, event: depositedEvent, args: { user }, fromBlock: start, toBlock: end })
-        : Promise.resolve([]),
-      user
-        ? client.getLogs({ address: vault, event: withdrawnEvent, args: { user }, fromBlock: start, toBlock: end })
-        : Promise.resolve([]),
+      user ? client.getLogs({ address: vault, event: depositedEvent, args: { user }, fromBlock: start, toBlock: end }) : Promise.resolve([]),
+      user ? client.getLogs({ address: vault, event: withdrawnEvent, args: { user }, fromBlock: start, toBlock: end }) : Promise.resolve([]),
       client.getLogs({ address: vault, event: rebalancedEvent, fromBlock: start, toBlock: end }),
     ]);
 
     for (const l of deposits) {
-      events.push({
-        kind: 'Deposited', chainId, blockNumber: l.blockNumber, txHash: l.transactionHash, logIndex: l.logIndex,
-        user: l.args.user, token: l.args.token, amount: l.args.amount,
-      });
+      events.push({ kind: 'Deposited', chainId, blockNumber: l.blockNumber, txHash: l.transactionHash, logIndex: l.logIndex, user: l.args.user, token: l.args.token, amount: l.args.amount, shares: l.args.shares });
     }
     for (const l of withdrawals) {
-      events.push({
-        kind: 'Withdrawn', chainId, blockNumber: l.blockNumber, txHash: l.transactionHash, logIndex: l.logIndex,
-        user: l.args.user, token: l.args.token, amount: l.args.amount,
-      });
+      events.push({ kind: 'Withdrawn', chainId, blockNumber: l.blockNumber, txHash: l.transactionHash, logIndex: l.logIndex, user: l.args.user, token: l.args.token, amount: l.args.amount, shares: l.args.shares });
     }
     for (const l of rebalances) {
       events.push({
         kind: 'Rebalanced', chainId, blockNumber: l.blockNumber, txHash: l.transactionHash, logIndex: l.logIndex,
-        hourId: l.args.hourId, poolId: l.args.poolId, action: l.args.action, forecastHash: l.args.forecastHash,
+        hourId: l.args.hourId, poolId: l.args.poolId, action: l.args.action === undefined ? undefined : VAULT_ACTION_NAME[l.args.action], forecastHash: l.args.forecastHash,
       });
     }
   }

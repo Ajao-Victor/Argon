@@ -37,9 +37,15 @@ export function HashMatch({ chainId, api, delay = 0 }: { chainId: SupportedChain
         <dd>
           {r.kind === 'loading' ? <Skeleton chars={11} /> : <HashText value={r.chainHash} href={registry ? addressUrl(chainId, registry.address) : undefined} />}
         </dd>
-        <dt className="label leading-5"><Term id="bps">bps</Term></dt>
+        <dt className="label leading-5"><Term id="bps">bps 1h·2h·8h</Term></dt>
         <dd className="text-text-mid">
-          {r.apiBps?.toString() ?? '—'} · {r.kind === 'loading' ? <Skeleton chars={4} scan={false} /> : (r.chainBps?.toString() ?? '—')}
+          {r.apiBps ? `${r.apiBps.h1}·${r.apiBps.h2}·${r.apiBps.h8}` : '—'}
+          <span className="text-text-dim"> vs </span>
+          {r.kind === 'loading' ? <Skeleton chars={10} scan={false} /> : r.chainBps ? `${r.chainBps.h1}·${r.chainBps.h2}·${r.chainBps.h8}` : '—'}
+        </dd>
+        <dt className="label leading-5"><Term id="apiHash">recompute</Term></dt>
+        <dd className={r.apiHashVerified ? 'text-signal-up' : api ? 'text-signal-down' : 'text-text-dim'}>
+          {api ? (r.apiHashVerified ? 'keccak of the published numbers = published hash' : 'published hash ≠ keccak of its numbers') : '—'}
         </dd>
       </dl>
       </RevealItem>

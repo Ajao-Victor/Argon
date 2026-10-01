@@ -18,7 +18,7 @@ const api: Forecast = {
 };
 
 const row = (over: Partial<RegistryRow> = {}): RegistryRow => ({
-  ethPctBps: -241n, targetHourId: (H + 8) as HourId, forecastHash: HASH, submittedAt: 0, submitter: '0x0000000000000000000000000000000000000001', ...over,
+  pct1hBps: -30n, pct2hBps: -90n, pct8hBps: -241n, forecastHash: HASH, submittedAt: 0, submitter: '0x0000000000000000000000000000000000000001', ...over,
 });
 
 describe('reconcileForecast', () => {
@@ -31,8 +31,14 @@ describe('reconcileForecast', () => {
   it('mismatch on hash', () => {
     expect(reconcileForecast({ api, deployed: true, queryStatus: 'success', registryLatestHourId: H, registryRow: row({ forecastHash: OTHER }) }).kind).toBe('mismatch');
   });
-  it('mismatch on bps even if hash matches', () => {
-    expect(reconcileForecast({ api, deployed: true, queryStatus: 'success', registryLatestHourId: H, registryRow: row({ ethPctBps: -240n }) }).kind).toBe('mismatch');
+  it('mismatch on any horizon bps even if hash matches', () => {
+    expect(reconcileForecast({ api, deployed: true, queryStatus: 'success', registryLatestHourId: H, registryRow: row({ pct8hBps: -240n }) }).kind).toBe('mismatch');
+    expect(reconcileForecast({ api, deployed: true, queryStatus: 'success', registryLatestHourId: H, registryRow: row({ pct1hBps: -31n }) }).kind).toBe('mismatch');
+  });
+  it('reports browser-side hash verification independently of the chain', () => {
+    const r = reconcileForecast({ api, deployed: false, queryStatus: 'pending', registryLatestHourId: undefined, registryRow: undefined });
+    // HASH is a dummy constant, so the recomputation must say "not verified" — never a false positive.
+    expect(r.apiHashVerified).toBe(false);
   });
   it('api ahead of chain → pending, not red', () => {
     expect(reconcileForecast({ api, deployed: true, queryStatus: 'success', registryLatestHourId: (H - 1) as HourId, registryRow: undefined }).kind).toBe('pending-chain');

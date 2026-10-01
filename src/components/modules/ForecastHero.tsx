@@ -1,7 +1,7 @@
 'use client';
 
 import { Banner, Chip, Panel, RevealItem, Skeleton, StaggerText, Term } from '@/components/ui';
-import { useAgentMode, useHashMatch, useLatestForecast, useAgentStatus, usePoolStatuses, useVaultParams } from '@/hooks';
+import { useAgentMode, useHashMatch, useLatestForecast, useAgentStatus, usePoolStatuses } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import type { PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
@@ -40,15 +40,14 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
   const latest = useLatestForecast();
   const status = useAgentStatus();
   const pools = usePoolStatuses(chainId);
-  const vaultParams = useVaultParams(chainId);
   const match = useHashMatch(chainId, latest.data);
   const agentMode = useAgentMode();
 
   const api = latest.data;
   const agentOffline = agentMode === 'offline';
   const agentDown = latest.status === 'error';
-  // The gate shown is the one the API or the vault reports. No default.
-  const gateBps = api?.gateBps ?? status.data?.gateBps ?? vaultParams.data?.gateBps;
+  // The gate shown is the one the API reports (the deployed vault exposes no gate getter). No default.
+  const gateBps = api?.gateBps ?? status.data?.gateBps;
 
   // Source of the number: API, else registry, else nothing.
   const pct = api ? api.ethPctChange : match.chainPct;
