@@ -20,7 +20,7 @@ export function WarmupBar() {
 
   return (
     <Panel label="WARMUP" meta={`${done} / ${WARMUP_HOURS} hours`}>
-      <div className="grid grid-cols-8 gap-1">
+      <div className="grid grid-cols-9 gap-1">
         {Array.from({ length: WARMUP_HOURS }, (_, i) => (
           <span
             key={i}

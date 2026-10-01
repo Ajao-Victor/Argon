@@ -7,28 +7,35 @@ import type { PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
 import { formatPct, formatUsd } from '@/utils/format';
 import { formatHourUtc } from '@/utils/hourId';
-import { GATES_PCT, GATE_PCT, gateChip, policyAction } from '@/utils/policy';
+import { GATES_PCT, WARMUP_HOURS, gateChip, policyAction } from '@/utils/policy';
 import { forecastLagHours, isForecastStale } from '@/utils/agentStaleness';
 
 /**
  * The number is the hero (design.md §4.2). Renders the API `action`; falls back to
  * the registry row when the agent is down; never fabricates a percent (ENGINEERING.md §0.6).
  */
-const ACTION_COPY: Record<PolicyAction, string> = {
-  exit: `Model expects |ETH| move ≥ ${GATE_PCT}% over 8h. Positions flattened.`,
-  enter: `Model expects ETH within ±${GATE_PCT}% over 8h. Liquidity in range.`,
-  hold: `Model expects ETH within ±${GATE_PCT}% over 8h. Liquidity in range.`,
-  warmup: 'Collecting the first 8 hourly forecasts. No trades until hour 8.',
-};
+/** Gate percentages from the agent payload, falling back to the contract constants. */
+interface Gates {
+  g1: number;
+  g2: number;
+  g8: number;
+}
+function gatesFrom(api: { gate1hBps: number; gate2hBps: number; gate8hBps: number } | undefined): Gates {
+  return { g1: api ? api.gate1hBps / 100 : GATES_PCT['1h'], g2: api ? api.gate2hBps / 100 : GATES_PCT['2h'], g8: api ? api.gate8hBps / 100 : GATES_PCT['8h'] };
+}
 
-const ACTION_TONE: Record<PolicyAction, 'down' | 'up' | 'argon' | 'idle'> = {
-  exit: 'down',
-  enter: 'up',
-  hold: 'argon',
-  warmup: 'idle',
-};
-
-void ACTION_TONE;
+function actionCopy(action: PolicyAction, g: Gates, tripped: readonly string[]): string {
+  const which = tripped.length ? tripped.join(' + ') : 'a short horizon';
+  switch (action) {
+    case 'exit':
+      return `Model expects ETH to move past its gate on ${which} (1h ≥ ${g.g1}%, 2h ≥ ${g.g2}%, 8h ≥ ${g.g8}%). Positions flattened.`;
+    case 'enter':
+    case 'hold':
+      return `Model expects ETH inside every gate (1h ±${g.g1}%, 2h ±${g.g2}%, 8h ±${g.g8}%). Liquidity in range.`;
+    case 'warmup':
+      return `Collecting the first ${WARMUP_HOURS} hourly submits. No trades until the registry opens at submit ${WARMUP_HOURS}.`;
+  }
+}
 
 const ACTION_CLASS: Record<PolicyAction, string> = {
   exit: 'text-signal-down',
@@ -61,6 +68,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
     api?.action ?? (pct !== null && pct !== undefined ? policyAction({ ethPctChange: pct, warmupComplete, currentlyInPool: inPool }) : undefined);
 
   const gate = pct !== null && pct !== undefined ? gateChip(pct) : undefined;
+  const gates = gatesFrom(api ?? status.data);
   const glow: NonNullable<Parameters<typeof Panel>[0]['glow']> =
     agentDown && (pct === null || pct === undefined) ? 'error' : action === 'exit' ? 'exit' : action === 'enter' ? 'enter' : action === 'hold' ? 'hold' : action === 'warmup' ? 'warmup' : 'none';
   const signClass = pct === null || pct === undefined ? 'text-text-hi' : pct < 0 ? 'text-signal-down' : pct > 0 ? 'text-signal-up' : 'text-text-hi';
@@ -144,7 +152,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
               <div className="flex flex-col gap-2 pb-1">
                 <div className="label-lg">gate</div>
                 <Chip tone={gate === 'IN' ? 'argon' : 'warn'} dot flipKey={gate} className="w-fit">
-                  {gate === 'IN' ? 'inside ±2%' : 'outside ±2%'}
+                  {gate === 'IN' ? `inside ±${gates.g8}%` : `outside ±${gates.g8}%`}
                 </Chip>
               </div>
             )}
@@ -163,7 +171,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
                     return (
                       <Chip key={h} tone={tripped ? 'down' : 'plain'} flipKey={`${h}-${tripped}`} title={`source: ${src}`}>
                         {h} <span className={cn('normal-case tracking-normal', v < 0 ? 'text-signal-down' : v > 0 ? 'text-signal-up' : '')}>{formatPct(v)}</span>
-                        <span className="text-text-dim">/ ±{GATES_PCT[h]}%</span>
+                        <span className="text-text-dim">/ ±{h === '1h' ? gates.g1 : h === '2h' ? gates.g2 : gates.g8}%</span>
                       </Chip>
                     );
                   })}
@@ -176,7 +184,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
 
       {action && (
         <RevealItem>
-          <p className="mt-6 max-w-xl leading-6 text-text-mid">{ACTION_COPY[action]}</p>
+          <p className="mt-6 max-w-xl leading-6 text-text-mid">{actionCopy(action, gates, api?.trippedHorizons ?? [])}</p>
         </RevealItem>
       )}
 

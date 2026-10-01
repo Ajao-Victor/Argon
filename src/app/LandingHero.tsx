@@ -49,6 +49,7 @@ export function LandingHero() {
               </span>
               <span>
                 gate <span className={gateChip(pct) === 'IN' ? 'text-argon-300' : 'text-signal-warn'}>{gateChip(pct)}</span>
+                <span className="text-text-dim"> ±{f ? f.gate8hBps / 100 : 2}% · 8h</span>
               </span>
               {f && (
                 <span>

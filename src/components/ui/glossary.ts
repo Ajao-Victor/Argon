@@ -1,3 +1,5 @@
+import { GATES_PCT, WARMUP_HOURS } from '@/utils/policy';
+
 /**
  * Micro-copy for Web3 terms (Phase 7 M3). One short sentence each, written for a
  * first-time user. Rendered through <Term id="…"> as a hover / focus tooltip.
@@ -8,11 +10,11 @@ export const GLOSSARY = {
   bps: 'Basis points for each horizon, as the registry stores them: percent × 100, rounded half-to-even. −241 is −2.41%.',
   hourId: 'Hours since 1970 UTC. Every forecast, hash, and rebalance is keyed on this number.',
   targetHour: 'The hour eight ahead, when this forecast can be compared against the real price.',
-  gate: 'The one rule: if the model expects ETH to move 2% or more in eight hours, liquidity leaves the pool.',
+  gate: `The one rule, per horizon: liquidity leaves the pool if the model expects |ETH| to move ≥ ${GATES_PCT['1h']}% in 1h or ≥ ${GATES_PCT['2h']}% in 2h; it only enters when 1h, 2h and 8h (±${GATES_PCT['8h']}%) are all inside.`,
   spot: 'The ETH price the model saw when it ran, from the DIA oracle.',
   model: 'The version of the forecasting model. It changes only when the training policy changes.',
   action: 'What the keeper does this hour: ENTER puts liquidity in range, HOLD leaves it, EXIT pulls it to the vault.',
-  warmup: 'The first eight hours after launch collect forecasts without trading.',
+  warmup: `The first ${WARMUP_HOURS} hourly submits after launch are observation only; the registry opens trading at submit ${WARMUP_HOURS}.`,
   idle: 'Your pro-rata claim on the tokens the vault holds outside Uniswap right now. Withdrawing pays pro-rata WETH + stable.',
   inPool: 'Your share of the vault is deployed as concentrated Uniswap liquidity right now.',
   shares: 'USD-denominated vault shares minted on deposit (oracle-priced). Withdraw burns shares; the vault pays pro-rata WETH + stable.',
