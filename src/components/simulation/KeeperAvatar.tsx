@@ -51,18 +51,9 @@ const TRAINING = { halo: 'var(--ion-400)', ring: 'var(--ion-400)', eye: 'var(--i
 const OVERCLOCK = { halo: 'var(--ion-400)', ring: 'var(--argon-300)', eye: 'var(--ion-400)' };
 const SIGNING = { halo: 'var(--signal-warn)', ring: 'var(--signal-warn)', eye: 'var(--signal-warn)' };
 
-/** Aura recipe per state (tokens.css --aura-*). Applied as a static filter on the wrapper. */
-const AURA: Record<KeeperState, string> = {
-  dormant: 'var(--aura-dormant)',
-  warmup: 'var(--aura-dormant)',
-  calm: 'var(--aura-calm)',
-  charged: 'var(--aura-charged)',
-  aggressive: 'var(--aura-exit)',
-};
-
 const RING_BASE_SEC = 24; // one revolution at ringSpeed 1
 const STATE_SPRING = { type: 'spring', stiffness: 220, damping: 24 } as const;
-const TRACK_SPRING = { stiffness: 100, damping: 30, mass: 1.1 } as const;
+const TRACK_SPRING = { stiffness: 120, damping: 18, mass: 1 } as const;
 
 /** Breathing period per state, seconds. Faster = more agitated. */
 const BREATH_SEC: Record<KeeperState, number> = { dormant: 6, warmup: 4.5, calm: 3.4, charged: 2.2, aggressive: 1.3 };
@@ -96,7 +87,6 @@ function KeeperAvatarImpl({
   const signing = activity === 'signing';
   const palette = overclocked ? OVERCLOCK : signing ? SIGNING : mode === 'fixture' ? TRAINING : COLOR[energy.state];
   const breath = overclocked ? 0.7 : signing ? 2.6 : mode === 'fixture' ? 1.2 : BREATH_SEC[energy.state];
-  const aura = overclocked ? 'var(--aura-overclock)' : mode === 'fixture' ? 'var(--aura-training)' : AURA[energy.state];
 
   // Color breathing keyframes from resolved tokens. EXIT blazes plasma → signal-down;
   // ENTER / HOLD breathe deep argon-600 → argon-300 → plasma-400; training breathes ion.
@@ -221,7 +211,6 @@ function KeeperAvatarImpl({
     '--spin-dur': `${spinBase}s`,
     '--flow-dur': `${Math.max(0.6, breath)}s`,
   } as React.CSSProperties;
-  const stateKey = `${energy.state}-${mode}-${activity}`;
   const aperture = signing ? 1 : overclocked ? 0.5 : energy.aperture;
   const arcs = overclocked ? 3 : energy.arcs;
   const hoverAmp = energy.state === 'dormant' ? 3 : energy.state === 'aggressive' ? 7 : 5;
@@ -243,7 +232,8 @@ function KeeperAvatarImpl({
           <div aria-hidden className="ooze ooze-c" />
         </>
       )}
-      <div aria-hidden className="ooze-rim" style={{ opacity: reduced ? 0.2 : signing ? 0.22 : 0.3 + energy.halo * 0.25 }} />
+      <div aria-hidden className="ooze-rim" style={{ opacity: reduced ? 0.3 : signing ? 0.3 : 0.45 + energy.halo * 0.4 }} />
+      <div aria-hidden className="ooze-rim ooze-rim-wide" style={{ opacity: reduced ? 0.18 : 0.22 + energy.halo * 0.3 }} />
 
       {/* Outer halo: radial gradient, breathes on opacity + scale (mirror) */}
       <motion.div
@@ -265,7 +255,7 @@ function KeeperAvatarImpl({
       />
 
       {/* Aura: layered drop-shadows from tokens.css; static per state, transitions on change only */}
-      <div className="keeper-aura absolute inset-0" style={{ filter: aura }}>
+      <div className="absolute inset-0">
       {/* Hover group: the whole body drifts on Y like something heavy floating */}
       <motion.div
         className="absolute inset-0 will-change-transform"
@@ -319,7 +309,7 @@ function KeeperAvatarImpl({
             { rx: R * 0.9, ry: R * 0.42, tilt: 48, dur: 1.45, reverse: true, grad: 't2', width: 1.1 },
             { rx: R * 0.76, ry: R * 0.3, tilt: 112, dur: 0.8, reverse: false, grad: 't3', width: 1.2 },
           ].map((o, i) => (
-            <g key={`orbit-${i}-${stateKey}`} transform={`rotate(${o.tilt})`}>
+            <g key={`orbit-${i}`} transform={`rotate(${o.tilt})`}>
               <g
                 className={cn('orbit', o.reverse && 'orbit-reverse')}
                 style={{ '--spin-dur': `${spinBase * o.dur}s` } as React.CSSProperties}
@@ -364,11 +354,10 @@ function KeeperAvatarImpl({
           ].map((ring, i) => {
             const dir = energy.counterRotate && i === 1 ? -ring.dir : ring.dir;
             return (
-              <motion.g
-                key={`${i}-${stateKey}`}
-                style={{ originX: '0px', originY: '0px' }}
-                animate={ringDur > 0 ? { rotate: 360 * dir } : { rotate: 0 }}
-                transition={ringDur > 0 ? { duration: ringDur * (1 + i * 0.35), repeat: Infinity, ease: 'linear' } : STATE_SPRING}
+              <g
+                key={`ring-${i}`}
+                className={cn('orbit', dir < 0 && 'orbit-reverse')}
+                style={{ '--spin-dur': ringDur > 0 ? `${ringDur * (1 + i * 0.35)}s` : '0s', animationPlayState: ringDur > 0 ? 'running' : 'paused' } as React.CSSProperties}
               >
                 <motion.circle
                 r={ring.r}
@@ -380,7 +369,7 @@ function KeeperAvatarImpl({
                 animate={ringStroke ? { stroke: ringStroke } : {}}
                 transition={{ ...colorLoop, delay: i * 0.2 }}
               />
-              </motion.g>
+              </g>
             );
           })}
 
@@ -443,8 +432,8 @@ function KeeperAvatarImpl({
             {/* Eyes: translate follows the pointer, scaleY is the aperture. Glitch keyed on hourId. */}
             <motion.g style={reduced ? {} : { x: eyeX, y: eyeY }}>
               <motion.g
-                key={`${hourId ?? 'none'}-${thinking ? 't' : 'i'}`}
-                className={(hourId !== undefined || thinking) && !reduced ? 'animate-glitch' : undefined}
+                key={`${hourId ?? 'none'}`}
+                className={hourId !== undefined && !reduced ? 'animate-glitch' : undefined}
                 style={{ originX: '0px', originY: '0px' }}
                 initial={false}
                 animate={{ scaleY: Math.max(0.06, aperture) }}
