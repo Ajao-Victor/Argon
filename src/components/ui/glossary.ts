@@ -20,6 +20,7 @@ export const GLOSSARY = {
   keeper: 'The off-chain bot that reads the forecast and calls the vault. It can only rebalance, never move funds elsewhere.',
   emergency: 'Burns your entire share balance in one transaction, flattening any LP position first. Works even while the keeper is paused.',
   fixture: 'The agent service is not connected. Numbers come from a local sample so the interface can be exercised.',
+  apr: 'Fee APR of the underlying Uniswap pool from DefiLlama, refreshed every minute. Robinhood pools may not be listed there yet, shown as —%.',
   sequencer: 'The vault refuses to trade if the L2 sequencer is down or the price feed is stale.',
 } as const;
 
