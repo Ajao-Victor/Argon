@@ -33,10 +33,12 @@
 
 @layer components {
   /* Glass panel: translucent fill, blur, hairline (design.md §4.1) */
+  /* Glass panel over the full-screen particle canvas. backdrop-filter here forced the GPU
+     to re-blur the canvas behind every panel (9+ blurs per frame); a 90 % tint plus the
+     inner hairline sheen and noise keeps the look at a flat compositing cost. Navbar,
+     mobile menu, modals and toasts keep backdrop-blur-glass as true overlays. */
   .panel {
-    background-color: var(--glass);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
+    background-color: rgba(14, 12, 22, 0.9);
     border: 1px solid var(--hairline);
     border-radius: var(--radius-panel);
   }

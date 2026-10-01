@@ -133,7 +133,8 @@ function ParticleFieldImpl({ ethPctChange, mode, action, fixture = false, pulseK
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      st.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Cap the backing store: 1× on phones, 1.5× on desktop. Additive-blended particles do not need retina density and the fill cost scales with the square of the DPR.
+      st.dpr = Math.min(window.devicePixelRatio || 1, st.w < 640 ? 1 : 1.5);
       st.w = Math.max(1, Math.floor(rect.width));
       st.h = Math.max(1, Math.floor(rect.height));
       canvas.width = Math.floor(st.w * st.dpr);
