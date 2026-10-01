@@ -36,7 +36,7 @@ export function useLatestForecast(): UseQueryResult<Forecast, Error> {
 
   return useQuery({
     queryKey: agentKeys.latest(),
-    queryFn: ({ signal }) => agent.getLatestForecast(signal),
+    queryFn: ({ signal }) => agent.fetchLatestForecast(signal),
     enabled: AGENT_ENABLED,
     refetchInterval: POLL_LATEST_MS,
     refetchIntervalInBackground: false,
@@ -58,7 +58,7 @@ export function useLatestForecast(): UseQueryResult<Forecast, Error> {
 export function useAgentStatus(): UseQueryResult<AgentStatus, Error> {
   return useQuery({
     queryKey: agentKeys.status(),
-    queryFn: ({ signal }) => agent.getStatus(signal),
+    queryFn: ({ signal }) => agent.fetchStatus(signal),
     enabled: AGENT_ENABLED,
     refetchInterval: POLL_STATUS_MS,
     refetchIntervalInBackground: false,
@@ -69,7 +69,7 @@ export function useAgentStatus(): UseQueryResult<AgentStatus, Error> {
 export function useAgentHealth(): UseQueryResult<Health, Error> {
   return useQuery({
     queryKey: agentKeys.health(),
-    queryFn: ({ signal }) => agent.getHealth(signal),
+    queryFn: ({ signal }) => agent.fetchHealth(signal),
     enabled: AGENT_ENABLED,
     staleTime: 5 * 60_000,
     refetchInterval: false,
@@ -79,7 +79,7 @@ export function useAgentHealth(): UseQueryResult<Health, Error> {
 export function useForecastHistory(limit = 24): UseQueryResult<ForecastList, Error> {
   return useQuery({
     queryKey: agentKeys.history(limit),
-    queryFn: ({ signal }) => agent.getForecastHistory(limit, signal),
+    queryFn: ({ signal }) => agent.fetchForecastHistory(limit, signal),
     enabled: AGENT_ENABLED,
     refetchInterval: POLL_HISTORY_MS,
     refetchIntervalInBackground: false,
@@ -91,7 +91,7 @@ export function useForecastHistory(limit = 24): UseQueryResult<ForecastList, Err
 export function useForecast(hourId: HourId | number | undefined): UseQueryResult<Forecast, Error> {
   return useQuery({
     queryKey: agentKeys.forecast(hourId ?? -1),
-    queryFn: ({ signal }) => agent.getForecast(hourId as number, signal),
+    queryFn: ({ signal }) => agent.fetchForecast(hourId as number, signal),
     enabled: AGENT_ENABLED && hourId !== undefined && hourId >= 0,
     staleTime: (query) => (query.state.data?.status === 'matured' ? Infinity : POLL_LATEST_MS),
     refetchInterval: (query) => (query.state.data?.status === 'matured' ? false : POLL_LATEST_MS),

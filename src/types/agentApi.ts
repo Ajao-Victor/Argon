@@ -83,12 +83,18 @@ export interface ChainPortfolio {
   error?: string | undefined;
 }
 
+/** Per-chain snapshot; a chain is absent (or undefined) when the agent could not read it. */
+export interface ChainMap {
+  arbitrum?: ChainPortfolio | undefined;
+  robinhood?: ChainPortfolio | undefined;
+}
+
 export interface VaultSnapshot {
   address: null;
   updatedAt: string;
   pollSeconds: number;
   totalUsd: number;
-  chains: Partial<Record<ChainKey, ChainPortfolio>>;
+  chains: ChainMap;
 }
 
 export interface Portfolio {
@@ -96,7 +102,7 @@ export interface Portfolio {
   updatedAt: string;
   pollSeconds: number;
   totalUsd: number;
-  chains: Partial<Record<ChainKey, ChainPortfolio>>;
+  chains: ChainMap;
   forecast: Forecast | null;
 }
 
