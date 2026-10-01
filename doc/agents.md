@@ -53,15 +53,18 @@ If the partner later offers `GET /events` as Server-Sent Events, the web adopts 
 
 ## 3. Endpoints
 
-Base: `NEXT_PUBLIC_AGENT_URL`, for example `https://argon-agent.herokuapp.com`.
+Base: `NEXT_PUBLIC_AGENT_URL` = `https://argon-bd8888db5430.herokuapp.com` (live since 2026-10-01; see §9 for the as-deployed contract).
 
-| Method | Path | Returns | Web use |
-|---|---|---|---|
-| `GET` | `/health` | `Health` | Agent up, model loaded |
-| `GET` | `/status` | `AgentStatus` | Warmup progress, last hour, gate, model id |
-| `GET` | `/forecasts/latest` | `Forecast` | Dashboard hero |
-| `GET` | `/forecasts?limit=24` | `{ items: Forecast[] }` newest first | History table and chart |
-| `GET` | `/forecasts/:hourId` | `Forecast` | Detail, predicted vs realized |
+| Method | Path | Returns | Poll | Web use |
+|---|---|---|---|---|
+| `GET` | `/health` | `Health` | boot | Agent up, model loaded, database |
+| `GET` | `/status` | `AgentStatus` | 30 s | Warmup progress, clock, gates, DRY_RUN |
+| `GET` | `/forecasts/latest` | `Forecast` | 30 s | Dashboard hero, avatar, hash match |
+| `GET` | `/forecasts?limit=24` | `{ items: Forecast[] }` newest first | 60 s | History table and ticker |
+| `GET` | `/forecasts/:hourId` | `Forecast` | on demand | Detail, predicted vs realized |
+| `GET` | `/pools` | `PoolsResponse` | 60 s | APR / TVL cards, chain selection |
+| `GET` | `/vault` | `VaultSnapshot` | 10 s | Global TVL before any wallet connects |
+| `GET` | `/portfolio/:address` | `Portfolio` | 10 s (wallet only) | Live user equity in USD |
 
 Error shape for any non-2xx:
 
@@ -265,3 +268,53 @@ Concise list to hand over:
 5. Set CORS to the web origin. Return `503` while the model is loading.
 6. Move the Tiingo key out of the notebook and into an env var; rotate the one currently committed.
 7. Use the clock `:00` UTC timestamp for `submittedAt`, not the DIA price timestamp.
+
+---
+
+## 9. As deployed (2026-10-01): the live contract
+
+Everything above §9 is the original plan; this section records what the partner actually shipped and what the web binds to. Where they differ, **this section wins** and `src/types/forecast.ts` / `src/types/agentApi.ts` are the executable truth.
+
+### 9.1 Three horizons, one action
+
+The live model is `eth-1-2-8h-v1`. Each row carries `ethPct1h`, `ethPct2h`, `ethPct8h` (with a `…Source` of `lgbm` or `persistence`), three gates (`gate1hBps 100`, `gate2hBps 250`, `gate8hBps 200`), `trippedHorizons`, and the server-computed `action`. The gate is `DualHorizonGate.sol`: EXIT if |1h| ≥ 1.00 % or |2h| ≥ 2.50 %; HOLD if in pool; ENTER only when idle and all three are inside; idle with only the 8 h horizon outside stays flat. The web derives `ethPctChange = ethPct8h` and `gateBps = gate8hBps` as the headline view and renders the three horizons as chips.
+
+Per chain fields: `txHash` / `rebalanceTx` (Arbitrum), `txHashRh` / `rebalanceTxRh` (Robinhood), `poolStatusArb`, `poolStatusRh`. `spotUsd` may be null. `submittedAt` carries microseconds and a `+00:00` offset. Errors are FastAPI `{ "detail": string }` (400 invalid address, 404 unknown hourId).
+
+### 9.2 Hash scheme (verifiable in the browser)
+
+```
+bps        = round_half_even(pct × 100)                      # Python round(); -2.41 % → -241
+modelId    = keccak256(utf8("eth-1-2-8h-v1"))
+forecastHash = keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, int256 bps8h, bytes32 modelId))
+```
+
+`src/utils/forecastHash.ts` recomputes this client-side; `src/types/forecast.test.ts` proves it reproduces the live published hash `0x1db0b9d6…` from the live numbers, and `InferenceRegistry.computeHash(497434, -1, -13, -39)` on both chains returns the same bytes. The HashMatch panel therefore shows two independent proofs: "keccak of the published numbers = published hash" (no chain needed) and "registry stores the same triple + hash".
+
+### 9.3 Polling, as implemented
+
+| Hook | Endpoint | Interval | Notes |
+|---|---|---|---|
+| `useLatestForecast` | `/forecasts/latest` | 30 s + `:01` UTC | monotonic hourId guard |
+| `useAgentStatus` | `/status` | 30 s | |
+| `useForecastHistory` | `/forecasts?limit=24` | 60 s | re-sorted newest-first client-side |
+| `usePools` | `/pools` | 60 s | selection lives in the UI store |
+| `useVaultTelemetry` | `/vault` | 10 s | no wallet required |
+| `usePortfolio` | `/portfolio/:address` | 10 s | enabled only with a wallet; the one exception to the 30 s floor, required by the backend handover |
+
+Timeouts: 15 s for the feed, 30 s for `/pools`, `/vault`, `/portfolio` (measured 9–13 s: they read two chains and DefiLlama). TanStack de-duplicates in-flight requests, so a 10 s cadence over a 12 s response never stacks. After any deposit or withdraw receipt the web invalidates its chain reads and the agent's portfolio and vault snapshots.
+
+### 9.4 CORS
+
+The agent answers `Access-Control-Allow-Origin: *` to tooling, and allowlists browsers through Heroku's `FRONTEND_ORIGIN` (exact scheme + host of the Vercel production URL; `https://*.vercel.app` previews already match). A bare browser `TypeError: Failed to fetch` is reported by the web as a CORS / origin hint.
+
+### 9.5 Deployed contracts
+
+| Contract | Address (both chains) | Arbitrum One 42161 | Robinhood Chain 4663 |
+|---|---|---|---|
+| ArgonVault | `0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` | [Arbiscan](https://arbiscan.io/address/0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60) | [Blockscout](https://robinhoodchain.blockscout.com/address/0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60) |
+| InferenceRegistry | `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` | [Arbiscan](https://arbiscan.io/address/0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f) | [Blockscout](https://robinhoodchain.blockscout.com/address/0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f) |
+| ChainlinkEthOracle | `0xfC22F2C49Ce6Fa46c5081f900fD691b127Bd1bc5` | read by the vault | read by the vault |
+| UniswapV3Adapter | `0xECCc4B8946D0DB206f977d3021544D0cD5Dc69D4` | pool 1 WETH/USDC 0.05 % | pool 4 WETH/USDG 0.05 % |
+
+Owner and keeper: `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E`. Deployed-contract semantics the web honours: `withdraw(shares)` flattens every LP position first and pays pro-rata WETH + stable (there is no per-token idle withdraw); `emergencyWithdraw()` burns all shares; `warmupComplete()` is `registry.forecastCount() >= 9`; there is no `gateBps()` getter (gates come from the API).

@@ -79,7 +79,10 @@ v1 has no indexer. The activity feed uses viem `getLogs` against the vault addre
 | Registry row | `getForecast(hourId)`, `latestHourId()` | `useRegistryForecast` | wagmi read key | 30s |
 | Pool status | `poolStatus(poolId)` | `usePoolStatus` | wagmi read key | 15s |
 | Vault balances | `idleBalance`, `shareBalance` | `useVaultBalances` | wagmi read key | 15s, invalidate on receipt |
-| Vault params | `gateBps()`, `warmupComplete()` | `useVaultParams` | wagmi read key | 5 min |
+| Vault params | `warmupComplete()`, `totalShares()`, `weth()`, `stable()` | `useVaultParams` | wagmi read key | 5 min |
+| Pools (market) | `GET /pools` | `usePools` | `['agent','pools']` | 60s |
+| Vault snapshot (USD) | `GET /vault` | `useVaultTelemetry` | `['agent','vault']` | 10s |
+| Portfolio (USD) | `GET /portfolio/:address` | `usePortfolio` | `['agent','portfolio',addr]` | 10s, wallet only |
 | Wallet | `useAccount`, `useChainId`, `useBalance` | wagmi | wagmi | wagmi defaults |
 | Activity | `getLogs` | `useActivity` | `['logs',chainId,vault,user]` | 60s, invalidate on receipt |
 
@@ -181,8 +184,8 @@ Functions bound:
 
 | Contract | Reads | Writes | Events |
 |---|---|---|---|
-| `ArgonVault` | `idleBalance`, `shareBalance`, `poolStatus`, `gateBps`, `warmupComplete` | `deposit`, `depositETH` (optional), `withdraw`, `emergencyWithdraw` | `Deposited`, `Withdrawn`, `Rebalanced` |
-| `InferenceRegistry` | `latestHourId`, `getForecast` | none | `ForecastSubmitted` (read-only, for activity) |
+| `ArgonVault` | `idleBalance`, `shareBalance`, `totalShares`, `poolStatus`, `warmupComplete`, `weth`, `stable`, `stableDecimals`, `keeper` | `deposit`, `depositETH`, `withdraw(shares)`, `emergencyWithdraw` | `Deposited`, `Withdrawn` (user, token, amount, shares), `Rebalanced` (action HOLD 0 / ENTER 1 / EXIT 2) |
+| `InferenceRegistry` | `latestHourId`, `forecastCount`, `warmupComplete`, `modelId`, `getForecast` (six-field struct), `computeHash` | none | `ForecastSubmitted` (five fields) |
 | ERC-20 | `allowance`, `balanceOf`, `decimals` | `approve` | none |
 
 Never bound: `rebalance`, `submit`, Uniswap `NonfungiblePositionManager`, v4 `PoolManager`.
@@ -276,13 +279,13 @@ argon-web/
 From spec §6. All public. Anything else does not belong in this app.
 
 ```
-NEXT_PUBLIC_AGENT_URL
+NEXT_PUBLIC_AGENT_URL        https://argon-bd8888db5430.herokuapp.com
 NEXT_PUBLIC_ARB_RPC
 NEXT_PUBLIC_RH_RPC
-NEXT_PUBLIC_VAULT_ARB
-NEXT_PUBLIC_REGISTRY_ARB
-NEXT_PUBLIC_VAULT_RH
-NEXT_PUBLIC_REGISTRY_RH
+NEXT_PUBLIC_VAULT_ARB        0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60
+NEXT_PUBLIC_REGISTRY_ARB     0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f
+NEXT_PUBLIC_VAULT_RH         0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60
+NEXT_PUBLIC_REGISTRY_RH      0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f
 NEXT_PUBLIC_WALLETCONNECT_ID
 NEXT_PUBLIC_ADMIN_ADDRESS
 ```

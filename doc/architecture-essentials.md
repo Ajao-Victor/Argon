@@ -39,55 +39,66 @@ NEXT_PUBLIC_AGENT_URL  NEXT_PUBLIC_ARB_RPC  NEXT_PUBLIC_RH_RPC
 NEXT_PUBLIC_VAULT_ARB  NEXT_PUBLIC_REGISTRY_ARB  NEXT_PUBLIC_VAULT_RH  NEXT_PUBLIC_REGISTRY_RH
 NEXT_PUBLIC_WALLETCONNECT_ID  NEXT_PUBLIC_ADMIN_ADDRESS
 ```
+Live values (2026-10-01): `AGENT_URL=https://argon-bd8888db5430.herokuapp.com` · `VAULT_ARB=VAULT_RH=0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` · `REGISTRY_ARB=REGISTRY_RH=0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` · `ADMIN=0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E` (owner + keeper). Same deployer nonce on both chains, so addresses match.
 Missing vault/registry → `undefined` binding → "contracts not deployed" state, deposit/withdraw disabled. Missing AGENT_URL → agent mode `offline`, queries disabled, "waiting for agent telemetry". `NEXT_PUBLIC_AGENT_FIXTURE=true` (non-production only) → sample rows labelled fixture. Env is inlined at build: restart dev / rebuild after editing `.env.local`.
 
-## 4. Agent REST
+## 4. Agent REST (live FastAPI on Heroku, model `eth-1-2-8h-v1`)
 
-Base `NEXT_PUBLIC_AGENT_URL`. No auth. CORS = web origin. 10 s timeout. GET only.
+Base `NEXT_PUBLIC_AGENT_URL`. No auth. CORS = web origin (`FRONTEND_ORIGIN` on Heroku; `*.vercel.app` previews allowed). GET only. Timeouts: 15 s feed, 30 s chain-reading endpoints (measured 9–13 s). Errors: FastAPI `{ detail }`.
 
-| Path | Returns | Poll |
-|---|---|---|
-| /health | `{ok, modelLoaded}` | boot |
-| /status | `AgentStatus` | 30s |
-| /forecasts/latest | `Forecast` | 30s + `:01` UTC + focus |
-| /forecasts?limit=24 | `{items: Forecast[]}` newest first | 60s |
-| /forecasts/:hourId | `Forecast` | on demand; Infinity once matured |
+| Path | Returns | Poll | Hook |
+|---|---|---|---|
+| /health | `{ok, modelLoaded, database}` | boot | useAgentHealth |
+| /status | `AgentStatus` | 30s | useAgentStatus |
+| /forecasts/latest | `Forecast` | 30s + `:01` UTC + focus | useLatestForecast |
+| /forecasts?limit=24 | `{items: Forecast[]}` newest first (max 168) | 60s | useForecastHistory |
+| /forecasts/:hourId | `Forecast` (404 unknown) | on demand; Infinity once matured | useForecast |
+| /pools | `PoolsResponse` (APR, TVL, selectOneChain) | 60s | usePools |
+| /vault | `VaultSnapshot` (global TVL, no wallet) | 10s | useVaultTelemetry |
+| /portfolio/:address | `Portfolio` (totalUsd, per-chain, forecast) | 10s, wallet only | usePortfolio |
 
 ```ts
-interface Forecast {
-  hourId: number; targetHourId: number; submittedAt: string; horizonHours: 8;
-  ethPctChange: number; ethLogReturn: number; spotUsd: number; modelId: string;
-  status: 'pending'|'matured'; realizedPctChange: number|null; realizedSpotUsd: number|null;
-  action: 'warmup'|'exit'|'enter'|'hold'; gateBps: number; warmupComplete: boolean;
-  txHash: `0x${string}`|null; forecastHash: `0x${string}`|null;
+interface Forecast {   // three horizons; ethPctChange/gateBps are the derived 8 h headline
+  hourId; targetHourId (= hourId+8); submittedAt; ethPct1h; ethPct2h; ethPct8h; ethPct{1h,2h,8h}Source: 'lgbm'|'persistence';
+  spotUsd|null; modelId; status: 'pending'|'matured'; realizedPctChange|null; realizedSpotUsd|null;
+  action: 'warmup'|'exit'|'enter'|'hold'; gate1hBps 100; gate2hBps 250; gate8hBps 200; warmupComplete;
+  forecastHash (bytes32)|null; txHash (arb)|null; txHashRh|null; rebalanceTx|null; rebalanceTxRh|null;
+  poolStatusArb: 0|1|null; poolStatusRh: 0|1|null; trippedHorizons: ('1h'|'2h'|'8h')[];
 }
-interface AgentStatus { ok: boolean; warmupComplete: boolean; hoursUntilFirstDecision: number;
-  gateBps: number; lastHourId: number; modelId: string; modelLoaded: boolean; lastError?: string|null }
+interface AgentStatus { ok; warmupComplete; hoursUntilFirstDecision (≤9); gate{1h,2h,8h}Bps; lastHourId|null; currentHourId; modelId; modelLoaded; dryRun: boolean (string on wire); database? }
+interface LpPool { id: 'arbitrum'|'robinhood'; chainId; poolId; pair; feePercent; uniswapFee; vault; pool; weth; stable; stableSymbol; inPool; poolTvlUsd; ethUsd; selectable; depositHint; aprPct|null; aprBasePct|null; aprSource: 'defillama'|'unavailable'; llamaTvlUsd|null; volumeUsd1d|null }
+interface ChainPortfolio { name; chainId; vault; poolId; pair; inPool; ethUsd; totalShares (uint string); tvlUsd; shares (uint string); shareUsd; idleWeth; idleStable; idle*Formatted; wallet*; stableSymbol; stableDecimals }
+VaultSnapshot = { address: null; updatedAt; pollSeconds; totalUsd; chains: { arbitrum?; robinhood? } }
+Portfolio     = VaultSnapshot & { address; forecast: Forecast|null }
 ```
-`ethPctChange = (exp(ethLogReturn) - 1) * 100`. Validate with zod. Bad row = agent error.
+Validate with zod (`src/types/forecast.ts`, `src/types/agentApi.ts`); addresses → EIP-55 at the boundary. Bad row = agent error.
 
-## 5. Contracts (spec §4.4, same ABI both chains)
+## 5. Contracts (deployed; same address on 42161 and 4663)
+
+Vault `0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` · Registry `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` · Oracle `0xfC22F2C49Ce6Fa46c5081f900fD691b127Bd1bc5` · Adapter `0xECCc4B8946D0DB206f977d3021544D0cD5Dc69D4`. Gated pools: Arb **1** (WETH/USDC 0.05 %), RH **4** (WETH/USDG 0.05 %).
 
 ```solidity
-// InferenceRegistry
-function latestHourId() view returns (uint64);
-function getForecast(uint64 hourId) view returns (int256 ethPctBps, uint64 targetHourId, bytes32 forecastHash, uint64 submittedAt, address submitter);
-event ForecastSubmitted(uint64 indexed hourId, int256 ethPctBps, bytes32 forecastHash);
+// InferenceRegistry (reads we bind)
+function latestHourId() view returns (uint64);  function forecastCount() view returns (uint64);  function warmupComplete() view returns (bool); // forecastCount >= 9
+function modelId() view returns (bytes32);      // keccak256("eth-1-2-8h-v1")
+function getForecast(uint64 hourId) view returns (Forecast{int256 pct1hBps; int256 pct2hBps; int256 pct8hBps; bytes32 forecastHash; uint64 submittedAt; address submitter}); // reverts UnknownHour
+function computeHash(uint64,int256,int256,int256) view returns (bytes32); // keccak256(abi.encode(hourId, bps1h, bps2h, bps8h, modelId))
+event ForecastSubmitted(uint64 indexed hourId, int256 pct1hBps, int256 pct2hBps, int256 pct8hBps, bytes32 forecastHash);
 // ArgonVault (user-facing)
-function deposit(address token, uint256 amount);
-function depositETH() payable;                  // optional; feature-detect
-function withdraw(address token, uint256 amount);
-function emergencyWithdraw();                   // idle only
-function idleBalance(address user, address token) view returns (uint256);
-function shareBalance(address user) view returns (uint256);
-function poolStatus(uint8 poolId) view returns (uint8); // 0 idle, 1 in pool
-function gateBps() view returns (uint16);       // 200
-function warmupComplete() view returns (bool);
-event Deposited(address indexed user, address token, uint256 amount);
-event Withdrawn(address indexed user, address token, uint256 amount);
-event Rebalanced(uint64 indexed hourId, uint8 poolId, uint8 action, bytes32 forecastHash);
+function deposit(address token, uint256 amount);   function depositETH() payable;
+function withdraw(uint256 shares);                 // flattens LP first, pays pro-rata WETH + stable
+function emergencyWithdraw();                      // burns ALL caller shares; allowed while paused
+function idleBalance(address user, address token) view returns (uint256); // pro-rata claim on vault token balance
+function shareBalance(address) view returns (uint256);  function totalShares() view returns (uint256);
+function poolStatus(uint8 poolId) view returns (uint8); // adapter.inPosition() ? 1 : 0
+function warmupComplete() view returns (bool);  function weth()/stable()/oracle()/keeper() view returns (address);
+event Deposited(address indexed user, address indexed token, uint256 amount, uint256 shares);
+event Withdrawn(address indexed user, address indexed token, uint256 amount, uint256 shares);
+event Rebalanced(uint64 indexed hourId, uint8 indexed poolId, uint8 action, bytes32 forecastHash); // HOLD 0, ENTER 1, EXIT 2
 ```
-NEVER bind: `rebalance`, `submit`, NonfungiblePositionManager, PoolManager.
+No `gateBps()` on chain: gates come from the API (100/250/200). NEVER bind: `rebalance`, `submit`, setters, NonfungiblePositionManager, PoolManager.
+
+Gate (DualHorizonGate): EXIT if |1h| ≥ 1.00 % or |2h| ≥ 2.50 %; HOLD if in pool; ENTER only if idle and all three inside (8h gate 2.00 %); idle + 8h outside = EXIT (stay flat). bps = round-half-even(pct × 100).
 
 ## 6. Time and math
 
@@ -188,6 +199,6 @@ Deposit USDC on Arb, idle updates · hero shows 8h % same sign 2 decimals · |pr
 
 No POST to agent · no `rebalance`/`submit` · no Uniswap manager calls · no keeper key, Tiingo key, DIA call in browser · no second gate threshold · no polling < 30s · no second cache · no touching `agent/`.
 
-## 18. Known external gaps (2026-09-17)
+## 18. Live state (2026-10-01)
 
-Partner's notebook retrains each run, prints a dict, has no REST/Postgres/hourId/hash/action. Web ships offline-honest: no sample data unless the fixture flag is set in development. Contracts have no code and no owner. Partner's README (1h, ETH+LINK, 4 pools live) is superseded by code + web spec (8h, ETH-only).
+Agent live on Heroku (FastAPI, Postgres, LightGBM 8 h pickle; 1 h and 2 h via persistence), `DRY_RUN=true` so the keeper is not sending txs yet: registry `forecastCount = 0`, `latestHourId = 0` on both chains, every API row shows `action: warmup`, hash match reads "pending on chain". Contracts deployed and verified by decoding with our ABIs; `registry.computeHash(live row) == API forecastHash == browser recomputation`. Web ships offline-honest: no sample data unless the fixture flag is set in development.
