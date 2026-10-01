@@ -8,6 +8,7 @@ import { addressUrl, chainName, explorerName } from '@/services/explorer';
 import { useUiStore } from '@/stores/ui';
 import { cn } from '@/utils/cn';
 import { truncateAddress } from '@/utils/format';
+import { forecastLagHours, isForecastStale } from '@/utils/agentStaleness';
 
 import { StatusDot, type ChipTone } from './Chip';
 
@@ -46,6 +47,8 @@ export function Footer() {
   const registry = getRegistry(chainId);
 
   const agentUp = health.status === 'success' && health.data.ok && status.status !== 'error';
+  const stale = status.data ? isForecastStale(status.data) : false;
+  const lag = status.data ? forecastLagHours(status.data) : 0;
   const agentTone: ChipTone = mode === 'offline' ? 'idle' : health.status === 'pending' ? 'plain' : agentUp ? 'up' : 'down';
   const agentText =
     mode === 'offline'
@@ -55,7 +58,9 @@ export function Footer() {
         : mode === 'fixture'
           ? 'Agent API: fixture'
           : agentUp
-            ? 'Agent API: Connected'
+            ? stale
+              ? `Agent API: Connected · stale ${lag} h`
+              : 'Agent API: Connected'
             : 'Agent API: Unreachable';
 
   const mm = clock ? String(Math.floor(clock.secondsToNextHour / 60)).padStart(2, '0') : '--';
@@ -70,7 +75,7 @@ export function Footer() {
             {agentTone === 'up' && <span aria-hidden className="absolute inline-flex h-full w-full rounded-full bg-signal-up opacity-70 animate-ping" />}
             <StatusDot tone={agentTone} className="relative h-2 w-2" />
           </span>
-          <span className={cn(agentTone === 'down' && 'text-signal-down')}>{agentText}</span>
+          <span className={cn(agentTone === 'down' && 'text-signal-down', stale && agentUp && 'text-signal-warn')}>{agentText}</span>
           {status.data && <span className="text-text-dim">· {status.data.modelId}</span>}
         </Cell>
 
@@ -94,8 +99,8 @@ export function Footer() {
           <span className="tabular-nums text-text-hi" suppressHydrationWarning>
             {clock?.hhmmss ?? '--:--:--'}
           </span>
-          <span className="text-text-dim tabular-nums" suppressHydrationWarning>
-            · next print {mm}:{ss}
+          <span className={cn('tabular-nums', stale ? 'text-signal-warn' : 'text-text-dim')} suppressHydrationWarning>
+            {stale && status.data ? `· last print #${status.data.lastHourId ?? '—'} · ${lag} h ago` : `· next print ${mm}:${ss}`}
           </span>
           {clock && <span className="hidden text-text-dim xl:inline">· hour {clock.hourId}</span>}
         </Cell>

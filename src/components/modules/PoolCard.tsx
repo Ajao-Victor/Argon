@@ -23,6 +23,16 @@ const STATUS_CLASS: Record<PoolCardStatus, string> = { IN_POOL: 'text-signal-up'
 const STATUS_WORD: Record<PoolCardStatus, string> = { IN_POOL: 'IN POOL', IDLE: 'IDLE', UNFUNDED: 'UNFUNDED', LINK_SOON: 'SOON', NOT_DEPLOYED: 'NOT DEPLOYED' };
 const STATUS_TERM: Record<PoolCardStatus, 'inPool' | 'idle' | undefined> = { IN_POOL: 'inPool', IDLE: 'idle', UNFUNDED: 'idle', LINK_SOON: undefined, NOT_DEPLOYED: undefined };
 
+/** The agent's free-text keeper outcome per chain, rendered as a chip (or a link when it is a tx hash). */
+function RebalanceTag({ value, chainId }: { value: string | null; chainId: 42161 | 4663 }) {
+  if (!value) return <Chip tone="idle">no rebalance yet</Chip>;
+  if (/^0x[0-9a-fA-F]{64}$/.test(value)) return <HashText value={value} href={txUrl(chainId, value)} />;
+  if (value === 'warmup-skip') return <Chip tone="idle">warmup · skipped</Chip>;
+  if (value === 'hold') return <Chip tone="argon">hold</Chip>;
+  if (/dry/i.test(value)) return <Chip tone="warn">{value}</Chip>;
+  return <Chip tone="plain">{value}</Chip>;
+}
+
 function compactUsd(v: number): string {
   if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
   if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
@@ -145,7 +155,7 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
                 </dd>
                 <dt className="label leading-5"><Term id="lastRebalance">keeper</Term></dt>
                 <dd className="text-text-mid">
-                  {keeperTx ? <HashText value={keeperTx} href={txUrl(pool.chainId, keeperTx)} /> : latest.data ? (pool.chainId === 42161 ? latest.data.rebalanceTx : latest.data.rebalanceTxRh) ?? '— no rebalance yet' : '—'}
+                  {keeperTx ? <HashText value={keeperTx} href={txUrl(pool.chainId, keeperTx)} /> : latest.data ? <RebalanceTag value={pool.chainId === 42161 ? latest.data.rebalanceTx : latest.data.rebalanceTxRh} chainId={pool.chainId} /> : '—'}
                   {latest.data && <span className="ml-2 text-text-dim">hour {latest.data.hourId}</span>}
                 </dd>
               </dl>

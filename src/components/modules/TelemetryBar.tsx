@@ -8,6 +8,7 @@ import { getVault } from '@/services/contracts';
 import { cn } from '@/utils/cn';
 import { formatPct, formatUsd } from '@/utils/format';
 import { WARMUP_HOURS } from '@/utils/policy';
+import { forecastLagHours, isForecastStale } from '@/utils/agentStaleness';
 
 /** Ticker of the last 12 forecasts plus the telemetry strip (design.md §3.4, §4.6). */
 export function TelemetryBar() {
@@ -19,6 +20,8 @@ export function TelemetryBar() {
   const w = useWallet();
   const perf = usePerfReadout();
   const vault = useVaultTelemetry();
+  const stale = status.data ? isForecastStale(status.data) : false;
+  const lag = status.data ? forecastLagHours(status.data) : undefined;
   const tvl = vault.data ? Object.values(vault.data.chains).reduce((acc, c) => acc + (c?.tvlUsd ?? 0), 0) : undefined;
 
   const agentTone = status.status === 'error' ? 'down' : status.data?.ok ? 'up' : 'warn';
@@ -27,6 +30,8 @@ export function TelemetryBar() {
     { key: 'warmup', label: 'warmup', value: status.data ? (status.data.warmupComplete ? `${WARMUP_HOURS}/${WARMUP_HOURS}` : `${WARMUP_HOURS - status.data.hoursUntilFirstDecision}/${WARMUP_HOURS}`) : '—' },
     { key: 'tvl', label: 'vault tvl', value: vault.status === 'error' ? 'unavailable' : tvl === undefined ? '…' : formatUsd(tvl), tone: vault.status === 'error' ? 'warn' : 'argon' },
     { key: 'hour', label: 'last hour', value: latest.data?.hourId ?? '—' },
+    { key: 'print', label: 'last print', value: lag === undefined ? '—' : lag === 0 ? 'this hour' : `${lag} h ago`, tone: stale ? 'warn' : 'up' },
+    ...(status.data ? [{ key: 'keeper', label: 'keeper', value: status.data.dryRun ? 'dry-run · no on-chain submits' : 'live', tone: status.data.dryRun ? 'warn' : 'up' } as TelemetryItem] : []),
     { key: 'arb', label: 'arb', value: getVault(arbitrum.id) ? arbitrum.id : 'no vault', tone: getVault(arbitrum.id) ? 'argon' : 'idle' },
     { key: 'rh', label: 'rh', value: getVault(robinhood.id) ? robinhood.id : 'no vault', tone: getVault(robinhood.id) ? 'argon' : 'idle' },
     { key: 'wallet', label: 'wallet', value: w.isConnected ? `${w.walletChainId ?? '?'}` : 'off', tone: w.isConnected ? 'up' : 'idle' },

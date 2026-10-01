@@ -8,6 +8,7 @@ import { cn } from '@/utils/cn';
 import { formatPct, formatUsd } from '@/utils/format';
 import { formatHourUtc } from '@/utils/hourId';
 import { GATES_PCT, GATE_PCT, gateChip, policyAction } from '@/utils/policy';
+import { forecastLagHours, isForecastStale } from '@/utils/agentStaleness';
 
 /**
  * The number is the hero (design.md §4.2). Renders the API `action`; falls back to
@@ -74,6 +75,16 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
       delay={delay}
       glow={glow}
     >
+      {status.data && isForecastStale(status.data) && (
+        <Banner tone="warn" className="mb-3">
+          last print was {forecastLagHours(status.data)} h ago (hour {status.data.lastHourId ?? '—'}, now {status.data.currentHourId}) — the agent clock is behind; this forecast is stale
+        </Banner>
+      )}
+      {status.data?.dryRun && (
+        <Banner tone="idle" className="mb-3">
+          keeper in dry-run: forecasts are published and hashed off-chain, on-chain submission and rebalancing are paused
+        </Banner>
+      )}
       {agentOffline && !agentDown && (
         <Banner tone="idle" className="mb-3">
           waiting for agent telemetry — NEXT_PUBLIC_AGENT_URL is not set

@@ -1,7 +1,7 @@
 'use client';
 
 import { Chip, HashText, Panel, RevealItem, Skeleton, Term, type ChipTone } from '@/components/ui';
-import { useHashMatch } from '@/hooks';
+import { useAgentStatus, useHashMatch, useRegistryForecast } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { getRegistry } from '@/services/contracts';
 import { addressUrl, explorerName } from '@/services/explorer';
@@ -23,7 +23,10 @@ const LABEL: Record<ReconciliationKind, { text: string; tone: ChipTone }> = {
 export function HashMatch({ chainId, api, delay = 0 }: { chainId: SupportedChainId; api: Forecast | undefined; delay?: number }) {
   const r = useHashMatch(chainId, api);
   const registry = getRegistry(chainId);
-  const l = LABEL[r.kind];
+  const status = useAgentStatus();
+  const reg = useRegistryForecast(chainId, api?.hourId); // same query key as useHashMatch: no extra request
+  const dryRunPending = r.kind === 'pending-chain' && status.data?.dryRun === true;
+  const l = dryRunPending ? { text: 'pending · keeper dry-run', tone: 'idle' as ChipTone } : LABEL[r.kind];
 
   return (
     <Panel label="ON-CHAIN MATCH" meta={explorerName(chainId)} glitch={r.kind === 'mismatch'} active={r.kind === 'match'} delay={delay}>
@@ -50,9 +53,12 @@ export function HashMatch({ chainId, api, delay = 0 }: { chainId: SupportedChain
       </dl>
       </RevealItem>
       <RevealItem className="mt-5">
-        <Chip tone={l.tone} dot flipKey={r.kind}>
+        <Chip tone={l.tone} dot flipKey={`${r.kind}-${dryRunPending}`}>
           {l.text}
         </Chip>
+        {reg.data?.forecastCount !== undefined && (
+          <span className="ml-3 font-mono text-[0.6875rem] text-text-dim">{reg.data.forecastCount} submit{reg.data.forecastCount === 1 ? '' : 's'} on chain</span>
+        )}
       </RevealItem>
     </Panel>
   );
