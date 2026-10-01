@@ -84,7 +84,7 @@ function NetworkMenu({ block = false, onPick }: { block?: boolean; onPick?: () =
         {wrong && (
           <div className="px-4 py-2">
             <Chip tone="warn" dot>
-              wallet on {w.walletChainId}
+              wallet on {w.walletChainId ?? '?'}
             </Chip>
           </div>
         )}
@@ -121,7 +121,7 @@ function NetworkMenu({ block = false, onPick }: { block?: boolean; onPick?: () =
             {wrong && (
               <div className="border-t border-hairline px-4 py-2">
                 <Chip tone="warn" dot>
-                  wallet on {w.walletChainId}
+                  wallet on {w.walletChainId ?? '?'}
                 </Chip>
               </div>
             )}

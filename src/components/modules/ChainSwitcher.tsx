@@ -36,7 +36,7 @@ export function ChainSwitcher() {
       {wrong && (
         <>
           <Chip tone="warn" dot>
-            wallet on {w.walletChainId}
+            wallet on {w.walletChainId ?? '?'}
           </Chip>
           <Button size="sm" variant="ghost" onClick={() => w.switchChain(selected)} pending={w.isSwitching}>
             switch to {chainName(selected)}

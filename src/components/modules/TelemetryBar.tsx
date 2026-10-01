@@ -29,7 +29,7 @@ export function TelemetryBar() {
     { key: 'hour', label: 'last hour', value: latest.data?.hourId ?? '—' },
     { key: 'arb', label: 'arb', value: getVault(arbitrum.id) ? arbitrum.id : 'no vault', tone: getVault(arbitrum.id) ? 'argon' : 'idle' },
     { key: 'rh', label: 'rh', value: getVault(robinhood.id) ? robinhood.id : 'no vault', tone: getVault(robinhood.id) ? 'argon' : 'idle' },
-    { key: 'wallet', label: 'wallet', value: w.isConnected ? `${w.walletChainId}` : 'off', tone: w.isConnected ? 'up' : 'idle' },
+    { key: 'wallet', label: 'wallet', value: w.isConnected ? `${w.walletChainId ?? '?'}` : 'off', tone: w.isConnected ? 'up' : 'idle' },
     ...(perf
       ? [{ key: 'frame', label: 'frame', value: `${perf.avgMs.toFixed(1)}ms · drop ${perf.dropped}`, tone: perf.avgMs > 4 ? 'warn' : 'up' } as TelemetryItem]
       : []),

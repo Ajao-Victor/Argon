@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Globe, Monitor, QrCode, Wallet, X } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { connectorLabel, hasInjectedProvider, metaMaskDeepLink, useWallet } from '@/hooks/useWallet';
+import { connectorLabel, injectedDetected, metaMaskDeepLink, useWallet } from '@/hooks/useWallet';
 import { useUiStore } from '@/stores/ui';
 import { cn } from '@/utils/cn';
 
@@ -29,7 +29,7 @@ export function ConnectPicker() {
   const setModal = useUiStore((s) => s.setModal);
   const w = useWallet();
   const reduced = useReducedMotion();
-  const injectedPresent = open ? hasInjectedProvider() : false;
+  const injectedPresent = open ? injectedDetected(w.connectors) : false;
 
   useEffect(() => {
     if (!open) return;
