@@ -8,7 +8,7 @@ Read `doc/architecture-essentials.md` first in every session. It is the compress
 2. **The web never writes to the agent.** No `POST`, `PUT`, `DELETE`, no WebSocket sends. `GET` only.
 3. **The web never calls `rebalance`, `submit`, Uniswap `NonfungiblePositionManager`, or v4 `PoolManager`.** Do not add those ABIs to the codebase.
 4. **No secrets in this repo.** Only `NEXT_PUBLIC_*` env. No keeper key, no Tiingo key, no DIA calls from the browser. If a value would be dangerous in a browser bundle, it does not belong here.
-5. **One gate.** `|ethPctChange| >= 2` → exit. Render the API `action`. The local `policyAction` helper is a fallback and a test fixture. Never introduce a second threshold, slider, or "sensitivity".
+5. **One gate.** The deployed rule is `DualHorizonGate.sol`: EXIT if |1h| ≥ 1.00 % or |2h| ≥ 2.50 %; HOLD if in pool; ENTER only when idle and all three horizons are inside (8h gate 2.00 %). Render the API `action`. `dualHorizonAction()` mirrors the contract for the fallback path and tests; `policyAction()` is the legacy 8 h helper. Never introduce another threshold, slider, or "sensitivity". Gates come from the API (`gate1hBps/2hBps/8hBps`); the vault has no gate getter.
 6. **Never fake a number.** Agent not configured → "waiting for agent telemetry". Agent down → show the registry row with a banner. Registry down → empty state. No placeholder percent, no default gate, no sample hash, ever. The fixture exists only behind `NEXT_PUBLIC_AGENT_FIXTURE=true` in non-production builds.
 7. **Never poll under 30 s.** No `setInterval(…, 1000)`. The `:01` UTC refetch is one scheduled timeout in `useAgentClock`.
 
@@ -134,3 +134,24 @@ Web3 frontends rot in predictable ways. These are the ones we refuse.
 3. Confirm which build-order step (`essentials` §15) is in progress.
 4. If the task touches the agent contract, re-read `doc/agents.md` §4 before writing a type.
 5. If the task touches visuals, re-read `doc/design.md` §2 tokens and §3 budgets.
+
+## 6. Hackathon judge verification and live deployment
+
+What a reviewer can check without trusting this repository, and what every change must keep true.
+
+| Item | Value |
+|---|---|
+| Agent | `https://argon-bd8888db5430.herokuapp.com` (FastAPI, Heroku), model `eth-1-2-8h-v1` |
+| ArgonVault | `0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` on Arbitrum One 42161 and Robinhood Chain 4663 |
+| InferenceRegistry | `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` on both chains |
+| Owner / keeper | `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E` (= `NEXT_PUBLIC_ADMIN_ADDRESS`, unlocks a read-only panel only) |
+| Hash | `keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, int256 bps8h, keccak256("eth-1-2-8h-v1")))`, bps = round-half-even(pct × 100) |
+
+Polling: `/forecasts/latest` and `/status` 30 s; `/forecasts` and `/pools` 60 s; `/vault` 10 s; `/portfolio/{address}` 10 s with a wallet only (the documented exception to §0.7). Timeouts 15 s feed / 30 s chain-reading endpoints.
+
+Invariants a change must not break:
+
+- `src/types/forecast.test.ts` recomputes the live published hash from the live numbers. If that test fails, either the agent changed its encoding or someone touched `forecastHash.ts` or `bps.ts`; find out which before merging.
+- ABIs in `src/types/abi/` are transcriptions of the deployed Solidity in the partner repo (`contracts/src/ArgonVault.sol`, `InferenceRegistry.sol`). Verify any ABI edit by decoding a live call on both chains before committing.
+- `withdraw(shares)` flattens LP first and pays pro-rata WETH + stable. The UI copy says so. Do not reintroduce the spec's idle-only withdraw language.
+- Addresses enter the app only through `getAddress()` (env, tokens) or the zod address schema (agent payloads). No raw string address reaches a contract call.
