@@ -55,7 +55,7 @@ export function DisconnectedState({
         <span className="label-lg">{title}</span>
         {!compact && <p className="max-w-xs text-[0.75rem] leading-5 text-text-lo">{copy}</p>}
       </div>
-      <Button size={compact ? 'sm' : 'md'} onClick={w.connect} pending={w.isConnecting} reason={w.error?.message}>
+      <Button size={compact ? 'sm' : 'md'} onClick={w.connect} pending={w.isConnecting}>
         {cta}
       </Button>
     </div>

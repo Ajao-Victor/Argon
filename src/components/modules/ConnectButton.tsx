@@ -9,13 +9,13 @@ export function ConnectButton({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const w = useWallet();
   if (w.isConnected && w.address) {
     return (
-      <Button variant="ghost" size={size} onClick={w.disconnect} title={w.address}>
+      <Button variant="ghost" size={size} onClick={w.disconnect} title={`${w.connectorName ?? 'wallet'} · ${w.address}`}>
         {truncateAddress(w.address)} · disconnect
       </Button>
     );
   }
   return (
-    <Button size={size} onClick={w.connect} pending={w.isConnecting} reason={w.error?.message}>
+    <Button size={size} onClick={w.connect} pending={w.isConnecting}>
       connect wallet
     </Button>
   );

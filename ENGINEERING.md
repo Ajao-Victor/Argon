@@ -19,7 +19,7 @@ Web3 frontends rot in predictable ways. These are the ones we refuse.
 ### 1.1 Duplicate caching
 
 **Symptom:** wagmi/TanStack Query holds `idleBalance`, and a Zustand store also holds `idleBalance`, and they disagree after a tx.
-**Rule:** TanStack Query is the only cache for anything that came from the network or the chain. Zustand holds three fields of ephemeral UI state (`selectedChainId`, `motion`, `field`) and nothing that has a query key. A field is added only when something reads it. If you find yourself writing `setBalance(...)` in a store, stop and invalidate a query instead.
+**Rule:** TanStack Query is the only cache for anything that came from the network or the chain. Zustand holds four fields of ephemeral UI state (`modal`, `selectedChainId`, `motion`, `field`) and nothing that has a query key. A field is added only when something reads it. If you find yourself writing `setBalance(...)` in a store, stop and invalidate a query instead.
 
 ### 1.2 Micro-store sprawl
 

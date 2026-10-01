@@ -29,6 +29,8 @@ export interface Toast {
   chainId?: SupportedChainId | undefined;
   /** ms until auto-dismiss; undefined = sticky */
   ttl?: number | undefined;
+  /** Optional call to action, e.g. a wallet deep link. */
+  link?: { href: string; label: string } | undefined;
 }
 
 let toasts: readonly Toast[] = [];
@@ -134,6 +136,11 @@ export function ToastViewport() {
                 {t.hash && t.chainId && (
                   <a href={txUrl(t.chainId, t.hash)} target="_blank" rel="noreferrer" className="font-mono text-[0.75rem] leading-5 text-ion-400 hover:underline">
                     {truncateHex(t.hash, 10, 6)} ↗
+                  </a>
+                )}
+                {t.link && (
+                  <a href={t.link.href} target="_blank" rel="noreferrer" className="text-[0.75rem] leading-5 text-ion-400 hover:underline">
+                    {t.link.label} ↗
                   </a>
                 )}
               </div>

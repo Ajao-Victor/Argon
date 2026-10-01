@@ -17,6 +17,7 @@ export { Tooltip, Term } from './Tooltip';
 export { GLOSSARY } from './glossary';
 export type { TermId } from './glossary';
 export { Navbar } from './Navbar';
+export { ConnectPicker } from './ConnectPicker';
 export { Footer } from './Footer';
 export { ToastViewport, toast, useTxActivity } from './Toasts';
 export type { Toast, ToastKind, TxActivity } from './Toasts';
