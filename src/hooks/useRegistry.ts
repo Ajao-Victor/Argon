@@ -60,15 +60,57 @@ export function useRegistryForecast(chainId: SupportedChainId, hourId: HourId | 
   });
 }
 
-/** Full reconciliation for the HashMatch widget. Pure logic lives in utils/reconcile.ts. */
+/**
+ * The newest forecast the registry holds, independent of the agent: latestHourId and
+ * forecastCount in one multicall, then getForecast(latestHourId) once there is one.
+ * This is the hero's source of truth when the agent is unreachable (ENGINEERING.md §0.6).
+ */
+export function useRegistryLatest(chainId: SupportedChainId) {
+  const registry = getRegistry(chainId);
+  const head = useReadContracts({
+    contracts: registry
+      ? [
+          { ...registry, functionName: 'latestHourId' as const },
+          { ...registry, functionName: 'forecastCount' as const },
+        ]
+      : [],
+    allowFailure: true,
+    query: {
+      enabled: Boolean(registry),
+      staleTime: REGISTRY_STALE_MS,
+      refetchInterval: REGISTRY_STALE_MS,
+      refetchIntervalInBackground: false,
+      select: (rows) => ({
+        latestHourId: rows[0]?.status === 'success' ? (Number(rows[0].result) as HourId) : undefined,
+        forecastCount: rows[1]?.status === 'success' ? Number(rows[1].result) : undefined,
+      }),
+    },
+  });
+  const latestHourId = head.data?.latestHourId;
+  const row = useRegistryForecast(chainId, latestHourId !== undefined && latestHourId > 0 ? latestHourId : undefined);
+  return {
+    status: head.status,
+    latestHourId,
+    forecastCount: head.data?.forecastCount,
+    row: row.data?.row,
+  } as const;
+}
+
+/**
+ * Full reconciliation for the HashMatch widget. With an API row, the registry is read at
+ * that row's hour. Without one (agent down or not configured) the latest on-chain row is
+ * used instead, so chainPct and registryLatestHourId still populate and the hero can show
+ * the number the vault last acted on. Pure logic lives in utils/reconcile.ts.
+ */
 export function useHashMatch(chainId: SupportedChainId, api: Forecast | undefined): Reconciliation {
   const deployed = Boolean(getRegistry(chainId));
   const q = useRegistryForecast(chainId, api?.hourId);
+  const latest = useRegistryLatest(chainId);
   return reconcileForecast({
     api,
     deployed,
-    queryStatus: q.status,
-    registryLatestHourId: q.data?.latestHourId,
-    registryRow: q.data?.row,
+    queryStatus: api ? q.status : latest.status,
+    registryLatestHourId: api ? q.data?.latestHourId : latest.latestHourId,
+    registryRow: api ? q.data?.row : latest.row,
   });
 }

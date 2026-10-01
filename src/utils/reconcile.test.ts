@@ -54,3 +54,15 @@ describe('reconcileForecast', () => {
     expect(r.chainPct).toBe(-2.41);
   });
 });
+
+describe('no-api fallback (agent down, registry up)', () => {
+  it('still exposes the latest on-chain number and hour so the hero can render it', () => {
+    const r = reconcileForecast({ api: undefined, deployed: true, queryStatus: 'success', registryLatestHourId: H, registryRow: row() });
+    expect(r.kind).toBe('no-api');
+    expect(r.chainPct).toBe(-2.41);
+    expect(r.chainHash).toBe(HASH);
+    expect(r.registryLatestHourId).toBe(H);
+    expect(r.chainBps).toEqual({ h1: -30n, h2: -90n, h8: -241n });
+    expect(r.apiHashVerified).toBe(false);
+  });
+});
