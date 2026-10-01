@@ -192,6 +192,9 @@ function useInvalidateChainReads() {
       queryClient.invalidateQueries({ queryKey: ['readContracts'] }),
       queryClient.invalidateQueries({ queryKey: ['balance'] }),
       queryClient.invalidateQueries({ queryKey: ['logs'] }),
+      // Agent-side USD views (HANDOVER: refetch portfolio on tx receipt)
+      queryClient.invalidateQueries({ queryKey: ['agent', 'portfolio'] }),
+      queryClient.invalidateQueries({ queryKey: ['agent', 'vault'] }),
     ]);
   }, [queryClient]);
 }

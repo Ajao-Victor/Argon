@@ -19,6 +19,9 @@ export const agentKeys = {
   health: () => ['agent', 'health'] as const,
   history: (limit: number) => ['agent', 'history', limit] as const,
   forecast: (hourId: number) => ['agent', 'forecast', hourId] as const,
+  pools: () => ['agent', 'pools'] as const,
+  vault: () => ['agent', 'vault'] as const,
+  portfolio: (address: string | null) => ['agent', 'portfolio', address?.toLowerCase() ?? null] as const,
 };
 
 const AGENT_ENABLED = agent.agentMode !== 'offline';
