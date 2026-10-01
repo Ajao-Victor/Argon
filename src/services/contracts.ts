@@ -53,6 +53,9 @@ export function getRegistry(chainId: SupportedChainId): RegistryBinding | undefi
   return address ? { address, abi: registryAbi, chainId } : undefined;
 }
 
+/** Block at which ArgonVault was deployed per chain (from the Foundry broadcasts). Log scans start here. */
+export const VAULT_DEPLOY_BLOCK: Record<SupportedChainId, bigint> = { 42161: 506504359n, 4663: 66396814n };
+
 export const ADMIN_ADDRESS: Address | undefined = envAddress(process.env.NEXT_PUBLIC_ADMIN_ADDRESS);
 
 export function isAdmin(address: Address | undefined): boolean {
