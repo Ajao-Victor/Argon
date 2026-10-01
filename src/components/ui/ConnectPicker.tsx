@@ -89,9 +89,17 @@ export function ConnectPicker() {
                         missing && 'opacity-70',
                       )}
                     >
-                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-chip border border-hairline text-argon-300">{iconFor(c.type)}</span>
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-chip border border-hairline text-argon-300">
+                        {c.icon ? (
+                          // EIP-6963 wallet icons are data: URIs; next/image cannot optimise them.
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={c.icon} alt="" width={20} height={20} className="h-5 w-5" />
+                        ) : (
+                          iconFor(c.type)
+                        )}
+                      </span>
                       <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="font-mono text-[0.8125rem] leading-5 text-text-hi">{connectorLabel(c)}</span>
+                        <span className="font-mono text-[0.8125rem] leading-5 text-text-hi">{c.type === 'injected' && c.id !== 'injected' ? c.name : connectorLabel(c)}</span>
                         <span className="text-[0.6875rem] leading-4 text-text-lo">
                           {c.type === 'coinbaseWallet'
                             ? 'Extension, mobile app, or Smart Wallet · no extension required'
@@ -109,6 +117,9 @@ export function ConnectPicker() {
               })}
             </ul>
 
+            {process.env.NODE_ENV !== 'production' && !w.connectors.some((c) => c.type === 'walletConnect') && (
+              <footer className="border-t border-hairline px-5 py-2 text-[0.6875rem] leading-5 text-text-dim">WalletConnect is not configured on this deployment</footer>
+            )}
             {!injectedPresent && (
               <footer className="border-t border-hairline px-5 py-3 text-[0.6875rem] leading-5 text-text-lo">
                 No browser wallet here. On mobile, open this page inside your wallet&apos;s browser:{' '}

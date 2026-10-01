@@ -31,7 +31,8 @@ const rhRpcs = rpcList(process.env.NEXT_PUBLIC_RH_RPC, RH_RPC_DEFAULT);
 const walletConnectId = (process.env.NEXT_PUBLIC_WALLETCONNECT_ID ?? '').trim();
 
 export const APP_NAME = 'Argon Vault';
-export const APP_URL = 'https://argon.vercel.app';
+/** Public origin for wallet metadata: env first, else the page's own origin at runtime. */
+export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? '').trim() || (typeof window !== 'undefined' ? window.location.origin : 'https://localhost:3000');
 
 export const wagmiConfig = createConfig({
   chains,

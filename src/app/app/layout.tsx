@@ -1,16 +1,24 @@
+import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
+import { cookieToInitialState } from 'wagmi';
 
 import { AgentClock } from '@/components/modules/AgentClock';
+import { ConnectPicker } from '@/components/ui/ConnectPicker';
 import { Footer } from '@/components/ui/Footer';
 import { Navbar } from '@/components/ui/Navbar';
 import { Providers } from '@/components/ui/Providers';
-import { ConnectPicker } from '@/components/ui/ConnectPicker';
 import { ToastViewport } from '@/components/ui/Toasts';
+import { wagmiConfig } from '@/services/wagmi';
 
-/** Providers mount here, not at the root, so the landing page ships no wallet code. */
-export default function AppLayout({ children }: { children: ReactNode }) {
+/**
+ * Providers mount here, not at the root, so the landing page ships no wallet code.
+ * wagmi state is rehydrated from the request cookie on the server, so a reload renders
+ * the connected wallet immediately instead of flashing "connect wallet" first.
+ */
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const initialState = cookieToInitialState(wagmiConfig, (await headers()).get('cookie'));
   return (
-    <Providers>
+    <Providers initialState={initialState}>
       <AgentClock />
       <div className="flex min-h-dvh w-full flex-col overflow-x-clip">
         <Navbar />
