@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 import { KeeperAvatar } from '@/components/simulation/KeeperAvatar';
 import { Reveal, RevealItem, StaggerText } from '@/components/ui/motion';
-import { useAgentMode, useAgentStatus, useLatestForecast } from '@/hooks/useAgent';
+import { agentKeys, useAgentMode, useAgentStatus, useLatestForecast } from '@/hooks/useAgent';
 import { formatPct } from '@/utils/format';
 import { gateChip } from '@/utils/policy';
 
@@ -14,7 +14,7 @@ export function LandingHero() {
   const latest = useLatestForecast();
   const status = useAgentStatus();
   const mode = useAgentMode();
-  const thinking = useIsFetching({ queryKey: ['agent'] }) > 0;
+  const thinking = useIsFetching({ queryKey: agentKeys.latest() }) + useIsFetching({ queryKey: agentKeys.status() }) > 0;
   const f = latest.data;
   const pct = f?.ethPctChange ?? null;
   const warmupComplete = f?.warmupComplete ?? status.data?.warmupComplete ?? false;

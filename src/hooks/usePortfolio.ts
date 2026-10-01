@@ -10,16 +10,16 @@ import { agentKeys } from './useAgent';
 
 /**
  * GET /portfolio/{address} — the connected wallet's live vault USD across both chains,
- * polled every 10 s. This is the one place the 30 s floor in ENGINEERING.md §0.7 is
- * relaxed, by explicit requirement of the backend linkage spec (apps/web/HANDOVER.md):
- * near-real-time equity for an active user. Disabled with no wallet, so a visitor never
- * generates portfolio traffic. The endpoint reads two chains and can take ~10 s; TanStack
- * de-duplicates in-flight requests, so overlapping ticks never stack.
+ * polled every 30 s. The backend handover suggests 10 s, but the endpoint reads two
+ * chains and answers in 9.6–12.7 s on Heroku, so a 10 s cadence never settles and only
+ * stacks requests; 30 s is the app's polling floor (ENGINEERING.md §0.7). Disabled with
+ * no wallet, so a visitor never generates portfolio traffic. Every deposit / withdraw
+ * receipt invalidates this query immediately, which is where freshness actually matters.
  *
  * On-chain shares remain the source of truth for money (useVaultBalances); this feed
  * supplies USD valuation and per-chain breakdown.
  */
-export const POLL_PORTFOLIO_MS = 10_000;
+export const POLL_PORTFOLIO_MS = 30_000;
 
 export function usePortfolio(address: Address | undefined): UseQueryResult<Portfolio, Error> {
   return useQuery({

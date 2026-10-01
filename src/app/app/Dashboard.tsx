@@ -7,7 +7,7 @@ import { useCallback, useRef } from 'react';
 import { ActivityFeed, ForecastHero, HashMatch, KeeperPanel, PoolCard, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
 import { KeeperAvatar, type Attractor, type FieldMode } from '@/components/simulation';
 import { Panel, useTxActivity } from '@/components/ui';
-import { useAgentMode, useAgentStatus, useHashMatch, useLatestForecast } from '@/hooks';
+import { agentKeys, useAgentMode, useAgentStatus, useHashMatch, useLatestForecast } from '@/hooks';
 import { useUiStore } from '@/stores/ui';
 import { POOLS } from '@/types/pools';
 import { gateChip } from '@/utils/policy';
@@ -34,7 +34,7 @@ export function Dashboard() {
   const mode = useAgentMode();
   const match = useHashMatch(chainId, latest.data);
   // Heartbeat: any in-flight agent query. Overclock: any wallet write signing or mining.
-  const thinking = useIsFetching({ queryKey: ['agent'] }) > 0;
+  const thinking = useIsFetching({ queryKey: agentKeys.latest() }) + useIsFetching({ queryKey: agentKeys.status() }) > 0;
   const activity = useTxActivity();
 
   const pct = latest.data?.ethPctChange ?? match.chainPct;

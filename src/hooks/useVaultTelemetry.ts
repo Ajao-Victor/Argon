@@ -9,11 +9,12 @@ import { agentKeys } from './useAgent';
 
 /**
  * GET /vault — global TVL, share supply and pool status per chain with no wallet, so a
- * judge sees live vault telemetry before connecting. Polled every 10 s to match the
- * agent's `pollSeconds`; de-duplicated in flight. This is the agent's USD view; the
- * on-chain wagmi reads in useVault.ts stay authoritative for balances.
+ * judge sees live vault telemetry before connecting. The agent advertises 10 s, but the
+ * endpoint reads two chains and answers in 9.6–12.7 s on Heroku, so a 10 s poll never
+ * settles; 30 s (the app's polling floor, ENGINEERING.md §0.7) is used instead. This is
+ * the agent's USD view; the on-chain wagmi reads in useVault.ts stay authoritative.
  */
-export const POLL_VAULT_MS = 10_000;
+export const POLL_VAULT_MS = 30_000;
 
 export function useVaultTelemetry(): UseQueryResult<VaultSnapshot, Error> {
   return useQuery({
