@@ -70,7 +70,8 @@ export function useVaultParams(chainId: SupportedChainId) {
 /** poolStatus for every pool on one chain, in one multicall. Keyed by poolId. */
 export function usePoolStatuses(chainId: SupportedChainId) {
   const vault = getVault(chainId);
-  const pools = POOLS.filter((p) => p.chainId === chainId);
+  // Only gated pools are configured on-chain; poolStatus(2) / poolStatus(3) revert with UnknownPool.
+  const pools = POOLS.filter((p) => p.chainId === chainId && p.gated);
   return useReadContracts({
     contracts: vault ? pools.map((p) => ({ ...vault, functionName: 'poolStatus' as const, args: [p.id] as const })) : [],
     allowFailure: true,

@@ -19,6 +19,11 @@ export const robinhood = defineChain({
   blockExplorers: {
     default: { name: 'Blockscout', url: 'https://robinhoodchain.blockscout.com' },
   },
+  // Multicall3 is deployed at the canonical address on Robinhood Chain; without this entry
+  // wagmi falls back to one RPC round-trip per read.
+  contracts: {
+    multicall3: { address: '0xcA11bde05977b3631167028862bE2a173976CA11' },
+  },
 });
 
 export { arbitrum };
