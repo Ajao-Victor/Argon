@@ -1,13 +1,13 @@
 'use client';
 
 import { Banner, Chip, Panel, RevealItem, Skeleton, StaggerText, Term } from '@/components/ui';
-import { useAgentMode, useHashMatch, useLatestForecast, useAgentStatus, usePoolStatuses } from '@/hooks';
+import { useAgentMode, useHashMatch, useLatestForecast, useAgentStatus, usePoolStatuses, useVaultTelemetry } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import type { PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
 import { formatPct, formatUsd } from '@/utils/format';
 import { formatHourUtc } from '@/utils/hourId';
-import { GATE_PCT, gateChip, policyAction } from '@/utils/policy';
+import { GATES_PCT, GATE_PCT, gateChip, policyAction } from '@/utils/policy';
 
 /**
  * The number is the hero (design.md §4.2). Renders the API `action`; falls back to
@@ -42,6 +42,8 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
   const pools = usePoolStatuses(chainId);
   const match = useHashMatch(chainId, latest.data);
   const agentMode = useAgentMode();
+  const vault = useVaultTelemetry();
+  const tvl = vault.data ? Object.values(vault.data.chains).reduce((acc, c) => acc + (c?.tvlUsd ?? 0), 0) : undefined;
 
   const api = latest.data;
   const agentOffline = agentMode === 'offline';
@@ -135,6 +137,28 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
                 </Chip>
               </div>
             )}
+            {api && (
+              <div className="flex flex-col gap-2 pb-1">
+                <div className="label-lg">horizons · gate</div>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ['1h', api.ethPct1h, api.ethPct1hSource],
+                      ['2h', api.ethPct2h, api.ethPct2hSource],
+                      ['8h', api.ethPct8h, api.ethPct8hSource],
+                    ] as const
+                  ).map(([h, v, src]) => {
+                    const tripped = api.trippedHorizons.includes(h);
+                    return (
+                      <Chip key={h} tone={tripped ? 'down' : 'plain'} flipKey={`${h}-${tripped}`} title={`source: ${src}`}>
+                        {h} <span className={cn('normal-case tracking-normal', v < 0 ? 'text-signal-down' : v > 0 ? 'text-signal-up' : '')}>{formatPct(v)}</span>
+                        <span className="text-text-dim">/ ±{GATES_PCT[h]}%</span>
+                      </Chip>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </RevealItem>
         </div>
       )}
@@ -166,6 +190,10 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
             <span className="font-mono text-sm leading-5 text-text-hi">hour {api.targetHourId}</span>
           </div>
         )}
+        <div className="flex flex-col gap-1">
+          <span className="label leading-5">vault tvl · live</span>
+          <span className="font-mono text-sm leading-5 text-text-hi">{vault.status === 'error' ? 'unavailable' : tvl === undefined ? '…' : formatUsd(tvl)}</span>
+        </div>
       </RevealItem>
     </Panel>
   );

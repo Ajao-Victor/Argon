@@ -4,7 +4,7 @@ import { useIsFetching } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useCallback, useRef } from 'react';
 
-import { ActivityFeed, ForecastHero, HashMatch, PoolCard, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
+import { ActivityFeed, ForecastHero, HashMatch, KeeperPanel, PoolCard, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
 import { KeeperAvatar, type Attractor, type FieldMode } from '@/components/simulation';
 import { Panel, useTxActivity } from '@/components/ui';
 import { useAgentMode, useAgentStatus, useHashMatch, useLatestForecast } from '@/hooks';
@@ -117,6 +117,11 @@ export function Dashboard() {
           </div>
           <div className="md:col-span-6 xl:col-span-7">
             <ActivityFeed chainId={chainId} delay={0.74} />
+          </div>
+
+          {/* Admin-only diagnostics (NEXT_PUBLIC_ADMIN_ADDRESS); renders nothing otherwise */}
+          <div className="md:col-span-6 xl:col-span-12 empty:hidden">
+            <KeeperPanel delay={0.8} />
           </div>
         </div>
 

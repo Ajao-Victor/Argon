@@ -1,12 +1,13 @@
 'use client';
 
 import { Telemetry, TickerTape, type TelemetryItem, type TickerItem } from '@/components/simulation';
-import { useAgentMode, useAgentStatus, useForecastHistory, useLatestForecast, usePerfReadout, useWallet } from '@/hooks';
+import { useAgentMode, useAgentStatus, useForecastHistory, useLatestForecast, usePerfReadout, useVaultTelemetry, useWallet } from '@/hooks';
 import { Term } from '@/components/ui';
 import { arbitrum, robinhood } from '@/services/chains';
 import { getVault } from '@/services/contracts';
 import { cn } from '@/utils/cn';
-import { formatPct } from '@/utils/format';
+import { formatPct, formatUsd } from '@/utils/format';
+import { WARMUP_HOURS } from '@/utils/policy';
 
 /** Ticker of the last 12 forecasts plus the telemetry strip (design.md §3.4, §4.6). */
 export function TelemetryBar() {
@@ -17,11 +18,14 @@ export function TelemetryBar() {
   const mode = useAgentMode();
   const w = useWallet();
   const perf = usePerfReadout();
+  const vault = useVaultTelemetry();
+  const tvl = vault.data ? Object.values(vault.data.chains).reduce((acc, c) => acc + (c?.tvlUsd ?? 0), 0) : undefined;
 
   const agentTone = status.status === 'error' ? 'down' : status.data?.ok ? 'up' : 'warn';
   const items: TelemetryItem[] = [
     { key: 'agent', label: 'agent', value: mode === 'offline' ? 'not configured' : status.status === 'error' ? 'down' : mode === 'fixture' ? <Term id="fixture">fixture</Term> : status.data?.ok ? 'ok' : '…', tone: mode === 'offline' ? 'idle' : agentTone },
-    { key: 'warmup', label: 'warmup', value: status.data ? (status.data.warmupComplete ? '8/8' : `${8 - status.data.hoursUntilFirstDecision}/8`) : '—' },
+    { key: 'warmup', label: 'warmup', value: status.data ? (status.data.warmupComplete ? `${WARMUP_HOURS}/${WARMUP_HOURS}` : `${WARMUP_HOURS - status.data.hoursUntilFirstDecision}/${WARMUP_HOURS}`) : '—' },
+    { key: 'tvl', label: 'vault tvl', value: vault.status === 'error' ? 'unavailable' : tvl === undefined ? '…' : formatUsd(tvl), tone: vault.status === 'error' ? 'warn' : 'argon' },
     { key: 'hour', label: 'last hour', value: latest.data?.hourId ?? '—' },
     { key: 'arb', label: 'arb', value: getVault(arbitrum.id) ? arbitrum.id : 'no vault', tone: getVault(arbitrum.id) ? 'argon' : 'idle' },
     { key: 'rh', label: 'rh', value: getVault(robinhood.id) ? robinhood.id : 'no vault', tone: getVault(robinhood.id) ? 'argon' : 'idle' },

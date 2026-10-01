@@ -28,7 +28,7 @@ export function WarmupBar() {
           />
         ))}
       </div>
-      <p className="mt-5 leading-6 text-text-mid">Collecting the first 8 hourly forecasts. No trades until hour 8.</p>
+      <p className="mt-5 leading-6 text-text-mid">Collecting the first {WARMUP_HOURS} hourly submits. The registry opens trading at submit {WARMUP_HOURS}.</p>
       <p className="mt-2 label leading-5">
         first decision in {remaining} h{minsToHour !== null && ` · next print in ~${minsToHour} min UTC`}
       </p>

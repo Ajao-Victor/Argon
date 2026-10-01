@@ -13,3 +13,4 @@ export { ConnectButton } from './ConnectButton';
 export { TxStatus, txBusy } from './TxStatus';
 export { AgentClock } from './AgentClock';
 export { TelemetryBar } from './TelemetryBar';
+export { KeeperPanel } from './KeeperPanel';
