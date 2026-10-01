@@ -26,7 +26,7 @@ export function ChainSwitcher() {
           type="button"
           onClick={() => setSelected(c.id as SupportedChainId)}
           className={cn(
-            'inline-flex min-h-[44px] items-center rounded-chip border px-3 text-label uppercase tracking-[0.12em] md:min-h-0 md:px-2 md:py-0.5 transition-colors',
+            'inline-flex min-h-[44px] items-center rounded-chip border px-3 text-label uppercase tracking-[0.12em] md:min-h-8 md:px-2.5 transition-colors',
             selected === c.id ? 'border-hairline-strong text-argon-300 shadow-glow-sm' : 'border-hairline text-text-lo hover:text-text-hi',
           )}
         >

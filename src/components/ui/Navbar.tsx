@@ -36,7 +36,7 @@ function NavLink({ href, label, active, onClick, block = false }: { href: string
       {...(onClick ? { onClick } : {})}
       className={cn(
         'relative inline-flex min-h-10 items-center rounded-chip px-3 text-label uppercase tracking-[0.12em] transition-colors',
-        block && 'flex min-h-[44px] w-full px-4',
+        block && 'flex min-h-12 w-full px-4 text-[0.8125rem]',
         active ? 'text-argon-300' : 'text-text-lo hover:text-text-hi',
       )}
     >

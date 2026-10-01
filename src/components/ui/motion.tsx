@@ -70,7 +70,8 @@ export function StaggerText({ text, className, glitch = false }: { text: string;
   if (reduced) return <span className={className}>{text}</span>;
   const per = Math.min(0.02, 0.24 / Math.max(chars.length, 1));
   return (
-    <span key={text} className={cn('inline-block whitespace-pre', glitch && 'animate-glitch', className)} aria-label={text}>
+    <span key={text} className={cn('inline-block whitespace-pre', glitch && 'animate-glitch', className)}>
+      <span className="sr-only">{text}</span>
       {chars.map((c, i) => (
         <motion.span
           key={`${i}-${c}`}
