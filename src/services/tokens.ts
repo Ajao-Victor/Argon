@@ -3,7 +3,11 @@ import { getAddress, type Address } from 'viem';
 import type { SupportedChainId } from './chains';
 import type { TokenSymbol } from '@/types/pools';
 
-/** Checksummed canonical tokens (spec §4.2). */
+/**
+ * Canonical ERC-20s per chain, written as EIP-55 checksummed literals and re-validated
+ * through viem's `getAddress()` at module load so a typo can never ship as a lowercase
+ * lookalike. These are the exact tokens the deployed vaults escrow (contracts/deployments.md).
+ */
 export interface TokenDef {
   symbol: TokenSymbol;
   address: Address;
@@ -18,8 +22,8 @@ export const TOKENS: Record<SupportedChainId, readonly TokenDef[]> = {
     { symbol: 'LINK', address: getAddress('0xf97f4df75117a78c1A5a0DBb814Af92458539FB4'), decimals: 18, chainId: 42161 },
   ],
   4663: [
-    { symbol: 'WETH', address: getAddress('0x0bd7d308f8e1639fab988df18a8011f41eacad73'), decimals: 18, chainId: 4663 },
-    { symbol: 'USDG', address: getAddress('0x5fc5360d0400a0fd4f2af552add042d716f1d168'), decimals: 6, chainId: 4663 },
+    { symbol: 'WETH', address: getAddress('0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73'), decimals: 18, chainId: 4663 },
+    { symbol: 'USDG', address: getAddress('0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168'), decimals: 6, chainId: 4663 },
   ],
 };
 

@@ -9,6 +9,11 @@ import type { SupportedChainId } from './chains';
  * Contract bindings from env (doc/architecture.md §3.4). A missing or invalid
  * address yields `undefined`, which the UI renders as "not deployed". Nothing throws
  * at import time. Env keys must be literal for Next.js inlining.
+ *
+ * Live deployments (same deployer nonce on both chains, so the addresses match):
+ *   ArgonVault         0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60   Arbitrum One 42161 · Robinhood 4663
+ *   InferenceRegistry  0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f   Arbitrum One 42161 · Robinhood 4663
+ * Every address is normalised to EIP-55 through viem's getAddress() before use.
  */
 function envAddress(raw: string | undefined): Address | undefined {
   const v = raw?.trim();
