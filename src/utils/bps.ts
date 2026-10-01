@@ -1,6 +1,11 @@
-/** On-chain ethPctBps = trunc(ethPctChange * 100). -2.41% → -241 (spec §7). */
+import { roundHalfEven } from './forecastHash';
+
+/**
+ * Percent ↔ basis points, encoded exactly as the agent and registry do:
+ * bps = round-half-even(pct × 100). -2.41 % → -241. -2.419 % → -242.
+ */
 export function toBps(pct: number): bigint {
-  return BigInt(Math.trunc(pct * 100));
+  return BigInt(roundHalfEven(pct * 100));
 }
 
 export function fromBps(bps: bigint | number): number {

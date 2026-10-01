@@ -81,19 +81,16 @@ async function agentGet<S extends z.ZodType>(path: string, schema: S, signal?: A
   signal?.removeEventListener('abort', onOuterAbort);
 
   if (!res.ok) {
-    let code: AgentErrorCode = 'INTERNAL';
-    let message = `agent ${res.status}`;
+    // FastAPI envelope: { "detail": "unknown hourId" }. Map HTTP status → code.
+    let message = `agent ${res.status} ${path}`;
     try {
       const body: unknown = await res.json();
       const parsed = agentErrorBodySchema.safeParse(body);
-      if (parsed.success) {
-        code = parsed.data.code;
-        message = parsed.data.error;
-      }
+      if (parsed.success) message = parsed.data.detail;
     } catch {
-      // non-JSON error body; keep defaults
+      // non-JSON error body; keep the status message
     }
-    if (res.status === 404) code = 'NOT_FOUND';
+    const code: AgentErrorCode = res.status === 404 ? 'NOT_FOUND' : res.status === 400 || res.status === 422 ? 'BAD_REQUEST' : res.status === 503 ? 'MODEL_NOT_LOADED' : 'INTERNAL';
     throw new AgentError(code, message, res.status);
   }
 

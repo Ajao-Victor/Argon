@@ -1,9 +1,21 @@
 import { z } from 'zod';
 
 /**
- * Web ↔ agent contract (doc/agents.md §4). This is the only place the shape is defined.
- * The partner's service must emit exactly these fields. Extra fields are ignored.
- * Missing or mistyped fields fail validation and trigger the fallback path.
+ * Web ↔ agent contract, aligned 1:1 with the live Heroku service
+ * (https://argon-bd8888db5430.herokuapp.com, FastAPI, model `eth-1-2-8h-v1`).
+ *
+ * The model is three-horizon: it publishes the predicted ETH % change over 1 h, 2 h and
+ * 8 h, and the vault's DualHorizonGate trips on any horizon crossing its own gate
+ * (100 / 250 / 200 bps). `action` is computed server-side from that rule and the UI
+ * renders it verbatim (ENGINEERING.md §0.5).
+ *
+ * Derived view: `ethPctChange` and `gateBps` are the 8 h headline horizon, produced by a
+ * zod transform so the dashboard's hero, avatar, and reconciliation keep one number to
+ * anchor on. The three-horizon fields are canonical; the derived pair is convenience.
+ *
+ * Every payload is validated here at the boundary. Extra fields are ignored; a missing
+ * or mistyped field fails validation and the UI falls back to the registry (never a
+ * fabricated number, ENGINEERING.md §0.6).
  */
 
 /** floor(unixUtcSeconds / 3600). Branded so it is never confused with a plain number. */
@@ -13,40 +25,70 @@ export type Hex = `0x${string}`;
 
 export type PolicyAction = 'warmup' | 'exit' | 'enter' | 'hold';
 export type ForecastStatus = 'pending' | 'matured';
+export type Horizon = '1h' | '2h' | '8h';
+export type HorizonSource = 'lgbm' | 'persistence';
+/** On-chain pool status as the agent last read it: 0 idle, 1 in pool, null unknown. */
+export type ApiPoolStatus = 0 | 1 | null;
 
 export interface Forecast {
   hourId: HourId;
   targetHourId: HourId;
   submittedAt: string;
-  horizonHours: 8;
-  ethPctChange: number;
-  ethLogReturn: number;
-  spotUsd: number;
+  ethPct1h: number;
+  ethPct2h: number;
+  ethPct8h: number;
+  ethPct1hSource: HorizonSource;
+  ethPct2hSource: HorizonSource;
+  ethPct8hSource: HorizonSource;
+  spotUsd: number | null;
   modelId: string;
   status: ForecastStatus;
   realizedPctChange: number | null;
   realizedSpotUsd: number | null;
   action: PolicyAction;
-  gateBps: number;
+  gate1hBps: number;
+  gate2hBps: number;
+  gate8hBps: number;
   warmupComplete: boolean;
-  txHash: Hex | null;
   forecastHash: Hex | null;
+  /** Keeper `submit` / `rebalance` tx on Arbitrum One. */
+  txHash: Hex | null;
+  /** Keeper tx on Robinhood Chain. */
+  txHashRh: Hex | null;
+  /** Free-text keeper outcome per chain, e.g. "warmup-skip" or a tx hash. */
+  rebalanceTx: string | null;
+  rebalanceTxRh: string | null;
+  poolStatusArb: ApiPoolStatus;
+  poolStatusRh: ApiPoolStatus;
+  trippedHorizons: Horizon[];
+  /** Derived: the 8 h headline horizon (= ethPct8h). */
+  ethPctChange: number;
+  /** Derived: the 8 h gate in bps (= gate8hBps). */
+  gateBps: number;
 }
 
 export interface AgentStatus {
   ok: boolean;
   warmupComplete: boolean;
   hoursUntilFirstDecision: number;
-  gateBps: number;
-  lastHourId: HourId;
+  gate1hBps: number;
+  gate2hBps: number;
+  gate8hBps: number;
+  lastHourId: HourId | null;
+  currentHourId: HourId;
   modelId: string;
   modelLoaded: boolean;
-  lastError?: string | null | undefined;
+  /** Heroku DRY_RUN flag as the agent reports it (string or boolean). True = keeper is not sending txs. */
+  dryRun: boolean;
+  database?: string | undefined;
+  /** Derived: the 8 h gate in bps (= gate8hBps). */
+  gateBps: number;
 }
 
 export interface Health {
   ok: boolean;
   modelLoaded: boolean;
+  database?: string | undefined;
   version?: string | undefined;
 }
 
@@ -54,12 +96,11 @@ export interface ForecastList {
   items: Forecast[];
 }
 
-export type AgentErrorCode = 'MODEL_NOT_LOADED' | 'NOT_FOUND' | 'INTERNAL' | 'NETWORK' | 'TIMEOUT' | 'INVALID' | 'OFFLINE';
+export type AgentErrorCode = 'MODEL_NOT_LOADED' | 'NOT_FOUND' | 'BAD_REQUEST' | 'INTERNAL' | 'NETWORK' | 'TIMEOUT' | 'INVALID' | 'OFFLINE';
 
+/** FastAPI error envelope: `{ "detail": "unknown hourId" }`. */
 export interface AgentErrorBody {
-  ok: false;
-  error: string;
-  code: 'MODEL_NOT_LOADED' | 'NOT_FOUND' | 'INTERNAL';
+  detail: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,48 +119,77 @@ const hash32Schema = z
   .regex(/^0x[0-9a-fA-F]{64}$/, '32-byte hex hash')
   .transform((s) => s as Hex);
 
-export const policyActionSchema = z.enum(['warmup', 'exit', 'enter', 'hold']);
-export const forecastStatusSchema = z.enum(['pending', 'matured']);
-
 // A percent change below -100 is impossible; above +1000 in 8 h is corruption, not a forecast.
 const pctSchema = z.number().finite().gt(-100).lt(1000);
+const bpsGateSchema = z.number().int().nonnegative().max(10_000);
+
+export const policyActionSchema = z.enum(['warmup', 'exit', 'enter', 'hold']);
+export const forecastStatusSchema = z.enum(['pending', 'matured']);
+export const horizonSchema = z.enum(['1h', '2h', '8h']);
+export const horizonSourceSchema = z.enum(['lgbm', 'persistence']);
+const apiPoolStatusSchema = z.union([z.literal(0), z.literal(1)]).nullable();
 
 export const forecastSchema = z
   .object({
     hourId: hourIdSchema,
     targetHourId: hourIdSchema,
     submittedAt: z.string().datetime({ offset: true }),
-    horizonHours: z.literal(8),
-    ethPctChange: pctSchema,
-    ethLogReturn: z.number().finite().gt(-10).lt(10),
-    spotUsd: z.number().finite().positive(),
+    ethPct1h: pctSchema,
+    ethPct2h: pctSchema,
+    ethPct8h: pctSchema,
+    ethPct1hSource: horizonSourceSchema,
+    ethPct2hSource: horizonSourceSchema,
+    ethPct8hSource: horizonSourceSchema,
+    spotUsd: z.number().finite().positive().nullable(),
     modelId: z.string().min(1).max(64),
     status: forecastStatusSchema,
     realizedPctChange: pctSchema.nullable(),
     realizedSpotUsd: z.number().finite().positive().nullable(),
     action: policyActionSchema,
-    gateBps: z.number().int().nonnegative().max(10_000),
+    gate1hBps: bpsGateSchema,
+    gate2hBps: bpsGateSchema,
+    gate8hBps: bpsGateSchema,
     warmupComplete: z.boolean(),
-    txHash: hash32Schema.nullable(),
     forecastHash: hash32Schema.nullable(),
+    txHash: hash32Schema.nullable(),
+    txHashRh: hash32Schema.nullable(),
+    rebalanceTx: z.string().max(128).nullable(),
+    rebalanceTxRh: z.string().max(128).nullable(),
+    poolStatusArb: apiPoolStatusSchema,
+    poolStatusRh: apiPoolStatusSchema,
+    trippedHorizons: z.array(horizonSchema).max(3),
   })
-  .refine((f) => f.targetHourId === f.hourId + f.horizonHours, { message: 'targetHourId must equal hourId + horizonHours', path: ['targetHourId'] })
-  .refine((f) => f.warmupComplete || f.action === 'warmup', { message: 'action must be warmup while warmupComplete is false', path: ['action'] });
+  .refine((f) => f.targetHourId === f.hourId + 8, { message: 'targetHourId must equal hourId + 8', path: ['targetHourId'] })
+  .refine((f) => f.warmupComplete || f.action === 'warmup', { message: 'action must be warmup while warmupComplete is false', path: ['action'] })
+  .transform((f) => ({ ...f, ethPctChange: f.ethPct8h, gateBps: f.gate8hBps }));
 
-export const agentStatusSchema = z.object({
-  ok: z.boolean(),
-  warmupComplete: z.boolean(),
-  hoursUntilFirstDecision: z.number().int().nonnegative().max(8),
-  gateBps: z.number().int().nonnegative().max(10_000),
-  lastHourId: hourIdSchema,
-  modelId: z.string().min(1).max(64),
-  modelLoaded: z.boolean(),
-  lastError: z.string().max(500).nullable().optional(),
-});
+/** Heroku reports DRY_RUN as the string "true" / "false"; accept a boolean too. */
+const dryRunSchema = z
+  .union([z.boolean(), z.string()])
+  .optional()
+  .transform((v) => (typeof v === 'boolean' ? v : v === undefined ? true : v.trim().toLowerCase() === 'true'));
+
+export const agentStatusSchema = z
+  .object({
+    ok: z.boolean(),
+    warmupComplete: z.boolean(),
+    hoursUntilFirstDecision: z.number().int().nonnegative().max(9),
+    gate1hBps: bpsGateSchema,
+    gate2hBps: bpsGateSchema,
+    gate8hBps: bpsGateSchema,
+    lastHourId: hourIdSchema.nullable(),
+    currentHourId: hourIdSchema,
+    modelId: z.string().min(1).max(64),
+    modelLoaded: z.boolean(),
+    dryRun: dryRunSchema,
+    database: z.string().max(64).optional(),
+  })
+  .transform((s) => ({ ...s, gateBps: s.gate8hBps }));
 
 export const healthSchema = z.object({
   ok: z.boolean(),
   modelLoaded: z.boolean(),
+  database: z.string().max(64).optional(),
   version: z.string().max(64).optional(),
 });
 
@@ -128,9 +198,7 @@ export const forecastListSchema = z.object({
 });
 
 export const agentErrorBodySchema = z.object({
-  ok: z.literal(false),
-  error: z.string(),
-  code: z.enum(['MODEL_NOT_LOADED', 'NOT_FOUND', 'INTERNAL']),
+  detail: z.string().max(500),
 });
 
 // Compile-time guarantee that the schemas and the interfaces agree.
@@ -139,7 +207,9 @@ const _forecastMatches: Equals<z.infer<typeof forecastSchema>, Forecast> = true;
 const _statusMatches: Equals<z.infer<typeof agentStatusSchema>, AgentStatus> = true;
 const _healthMatches: Equals<z.infer<typeof healthSchema>, Health> = true;
 const _listMatches: Equals<z.infer<typeof forecastListSchema>, ForecastList> = true;
+const _errorMatches: Equals<z.infer<typeof agentErrorBodySchema>, AgentErrorBody> = true;
 void _forecastMatches;
 void _statusMatches;
 void _healthMatches;
 void _listMatches;
+void _errorMatches;

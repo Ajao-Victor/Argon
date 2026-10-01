@@ -1,67 +1,117 @@
 import { describe, expect, it } from 'vitest';
 
-import { agentStatusSchema, forecastListSchema, forecastSchema } from './forecast';
+import { computeForecastHash, roundHalfEven, verifyForecastHash } from '@/utils/forecastHash';
 
-/** Malformed agent payloads must fail validation, never reach the UI (ENGINEERING.md §0.6, agents.md §4). */
-const H = 497104;
-const HASH = '0x' + 'ab'.repeat(32);
-const valid = {
-  hourId: H, targetHourId: H + 8, submittedAt: '2026-09-16T16:00:00.000Z', horizonHours: 8,
-  ethPctChange: -2.41, ethLogReturn: -0.0244, spotUsd: 2410.12, modelId: 'eth-8h-v1', status: 'pending',
-  realizedPctChange: null, realizedSpotUsd: null, action: 'exit', gateBps: 200, warmupComplete: true,
-  txHash: HASH, forecastHash: HASH,
+import { agentStatusSchema, forecastListSchema, forecastSchema, healthSchema } from './forecast';
+
+/**
+ * The reference rows below are verbatim captures from the live Heroku agent on
+ * 2026-10-01 (GET /forecasts/latest, /status, /health). The schemas must accept them
+ * 100 %; malformed variants must be rejected without throwing (ENGINEERING.md §0.6).
+ */
+const LIVE_FORECAST = {
+  hourId: 497434, targetHourId: 497442, submittedAt: '2026-09-30T10:00:12.238927+00:00',
+  ethPct1h: -0.009529417765063997, ethPct2h: -0.13206519240578363, ethPct8h: -0.3860876579837247,
+  ethPct1hSource: 'persistence', ethPct2hSource: 'persistence', ethPct8hSource: 'lgbm',
+  spotUsd: 2688.2571423216777, modelId: 'eth-1-2-8h-v1', status: 'pending',
+  realizedPctChange: null, realizedSpotUsd: null, action: 'warmup',
+  gate1hBps: 100, gate2hBps: 250, gate8hBps: 200, warmupComplete: false,
+  forecastHash: '0x1db0b9d6064bfcba03285dfb5430e357f10f61097ae726986e00319a6f04451e',
+  txHash: null, txHashRh: null, rebalanceTx: 'warmup-skip', rebalanceTxRh: 'warmup-skip',
+  poolStatusArb: 0, poolStatusRh: 0, trippedHorizons: [],
 };
 
-describe('forecastSchema', () => {
-  it('accepts the reference payload', () => {
-    expect(forecastSchema.safeParse(valid).success).toBe(true);
+const LIVE_STATUS = {
+  ok: true, warmupComplete: false, hoursUntilFirstDecision: 7, gate1hBps: 100, gate2hBps: 250, gate8hBps: 200,
+  lastHourId: 497434, currentHourId: 497461, modelId: 'eth-1-2-8h-v1', modelLoaded: true, dryRun: 'true', database: 'postgres',
+};
+
+const LIVE_HEALTH = { ok: true, modelLoaded: true, database: 'postgres' };
+
+describe('live payloads (captured 2026-10-01)', () => {
+  it('accepts the live forecast row and derives the 8 h headline', () => {
+    const res = forecastSchema.safeParse(LIVE_FORECAST);
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.ethPctChange).toBe(LIVE_FORECAST.ethPct8h);
+      expect(res.data.gateBps).toBe(200);
+    }
   });
-  it('ignores extra fields', () => {
-    expect(forecastSchema.safeParse({ ...valid, extra: 1 }).success).toBe(true);
+  it('accepts the live status row and coerces dryRun', () => {
+    const res = agentStatusSchema.safeParse(LIVE_STATUS);
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.dryRun).toBe(true);
+      expect(res.data.gateBps).toBe(200);
+    }
   });
+  it('accepts the live health row', () => {
+    expect(healthSchema.safeParse(LIVE_HEALTH).success).toBe(true);
+  });
+  it('recomputes the published forecastHash from the published numbers', () => {
+    // keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, int256 bps8h, keccak256("eth-1-2-8h-v1")))
+    expect(computeForecastHash(LIVE_FORECAST)).toBe(LIVE_FORECAST.forecastHash);
+    expect(verifyForecastHash(LIVE_FORECAST)).toBe(true);
+  });
+  it('detects a tampered number', () => {
+    expect(verifyForecastHash({ ...LIVE_FORECAST, ethPct8h: -0.4 })).toBe(false);
+  });
+});
+
+describe('forecastSchema rejects malformed rows', () => {
   it.each([
     ['short hash', { forecastHash: '0xabc' }],
-    ['non-hex hash', { txHash: '0x' + 'zz'.repeat(32) }],
-    ['string percent', { ethPctChange: '-2.41' }],
-    ['NaN percent', { ethPctChange: Number.NaN }],
-    ['Infinity percent', { ethPctChange: Number.POSITIVE_INFINITY }],
-    ['impossible percent', { ethPctChange: -150 }],
+    ['non-hex tx hash', { txHash: '0x' + 'zz'.repeat(32) }],
+    ['string percent', { ethPct8h: '-0.38' }],
+    ['NaN percent', { ethPct1h: Number.NaN }],
+    ['impossible percent', { ethPct2h: -150 }],
     ['unknown action', { action: 'yolo' }],
-    ['wrong horizon', { horizonHours: 1 }],
-    ['target hour mismatch', { targetHourId: H + 7 }],
+    ['unknown source', { ethPct8hSource: 'oracle' }],
+    ['unknown horizon', { trippedHorizons: ['4h'] }],
+    ['pool status out of range', { poolStatusArb: 2 }],
+    ['target hour mismatch', { targetHourId: 497441 }],
     ['non-integer hourId', { hourId: 1.5 }],
-    ['negative hourId', { hourId: -1 }],
     ['bad timestamp', { submittedAt: 'yesterday' }],
     ['zero spot', { spotUsd: 0 }],
     ['warmup incomplete but action enter', { warmupComplete: false, action: 'enter' }],
     ['missing field', { status: undefined }],
   ])('rejects %s', (_label, patch) => {
-    expect(forecastSchema.safeParse({ ...valid, ...patch }).success).toBe(false);
+    expect(forecastSchema.safeParse({ ...LIVE_FORECAST, ...patch }).success).toBe(false);
   });
   it('rejects non-objects without throwing', () => {
     expect(() => forecastSchema.safeParse(null)).not.toThrow();
     expect(forecastSchema.safeParse(null).success).toBe(false);
     expect(forecastSchema.safeParse('<html>').success).toBe(false);
   });
+  it('rejects a list containing one bad row', () => {
+    expect(forecastListSchema.safeParse({ items: [LIVE_FORECAST, { ...LIVE_FORECAST, forecastHash: '0x1' }] }).success).toBe(false);
+  });
 });
 
-describe('agentStatusSchema / forecastListSchema', () => {
-  it('bounds hoursUntilFirstDecision to the 8 h warmup', () => {
-    expect(agentStatusSchema.safeParse({ ok: true, warmupComplete: false, hoursUntilFirstDecision: 9, gateBps: 200, lastHourId: H, modelId: 'x', modelLoaded: true }).success).toBe(false);
-  });
-  it('rejects a list containing one bad row', () => {
-    expect(forecastListSchema.safeParse({ items: [valid, { ...valid, forecastHash: '0x1' }] }).success).toBe(false);
+describe('bps rounding matches the agent (Python round = half to even)', () => {
+  it.each([
+    [-0.95, -1],
+    [-13.2, -13],
+    [-38.6, -39],
+    [0.5, 0],
+    [1.5, 2],
+    [2.5, 2],
+    [-0.5, 0],
+    [-1.5, -2],
+  ])('roundHalfEven(%s) = %s', (x, expected) => {
+    expect(roundHalfEven(x)).toBe(expected);
   });
 });
 
 describe('development fixture', () => {
-  it('every generated row satisfies the strict schema', async () => {
+  it('every generated row satisfies the live schema and its hash verifies', async () => {
     const { buildFixture } = await import('@/services/fixtures/forecasts');
-    const rows = buildFixture(new Date('2026-09-18T12:00:00Z'));
+    const rows = buildFixture(new Date('2026-10-01T12:00:00Z'));
     expect(rows).toHaveLength(24);
     for (const r of rows) {
       const res = forecastSchema.safeParse(r);
       expect(res.success, `hourId ${r.hourId}: ${res.success ? '' : res.error.message}`).toBe(true);
+      expect(verifyForecastHash(r)).toBe(true);
     }
     expect(forecastListSchema.safeParse({ items: rows }).success).toBe(true);
   });

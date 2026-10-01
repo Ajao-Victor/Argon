@@ -9,10 +9,12 @@ const HASH = ('0x' + 'ab'.repeat(32)) as Hex;
 const OTHER = ('0x' + 'cd'.repeat(32)) as Hex;
 
 const api: Forecast = {
-  hourId: H, targetHourId: (H + 8) as HourId, submittedAt: '2026-09-16T16:00:00.000Z', horizonHours: 8,
-  ethPctChange: -2.41, ethLogReturn: -0.0244, spotUsd: 2410.12, modelId: 'eth-8h-v1', status: 'pending',
-  realizedPctChange: null, realizedSpotUsd: null, action: 'exit', gateBps: 200, warmupComplete: true,
-  txHash: null, forecastHash: HASH,
+  hourId: H, targetHourId: (H + 8) as HourId, submittedAt: '2026-09-16T16:00:00.000Z',
+  ethPct1h: -0.3, ethPct2h: -0.9, ethPct8h: -2.41, ethPct1hSource: 'persistence', ethPct2hSource: 'persistence', ethPct8hSource: 'lgbm',
+  spotUsd: 2410.12, modelId: 'eth-1-2-8h-v1', status: 'pending', realizedPctChange: null, realizedSpotUsd: null, action: 'exit',
+  gate1hBps: 100, gate2hBps: 250, gate8hBps: 200, warmupComplete: true, forecastHash: HASH, txHash: null, txHashRh: null,
+  rebalanceTx: null, rebalanceTxRh: null, poolStatusArb: 0, poolStatusRh: 0, trippedHorizons: ['8h'],
+  ethPctChange: -2.41, gateBps: 200,
 };
 
 const row = (over: Partial<RegistryRow> = {}): RegistryRow => ({

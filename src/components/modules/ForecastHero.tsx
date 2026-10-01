@@ -150,7 +150,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
         {api && (
           <div className="flex flex-col gap-1">
             <span className="label leading-5"><Term id="spot">spot</Term></span>
-            <span className="font-mono text-sm leading-5 text-text-hi">{formatUsd(api.spotUsd)}</span>
+            <span className="font-mono text-sm leading-5 text-text-hi">{api.spotUsd === null ? '—' : formatUsd(api.spotUsd)}</span>
           </div>
         )}
         <div className="flex flex-col gap-1">
