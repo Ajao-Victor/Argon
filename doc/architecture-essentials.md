@@ -4,7 +4,7 @@ Dense reference for coding sessions. Full detail in `product.md`, `architecture.
 
 ## 0. One paragraph
 
-Argon is a dual-chain LP vault. Every hour at `:00` UTC a Python model (partner's `agent/`) forecasts ETH % change 8h ahead. Gate: `|pred| >= 2%` → keeper `EXIT`s Uniswap LP to vault (`IDLE`); else `ENTER`/`HOLD` (`IN_POOL`). Hours 0–7 warmup, no trades. Forecast hash is committed to `InferenceRegistry`. The web (`argon-web`, ours) is a Next.js reader: wallet, deposit, idle-only withdraw, live forecast, pool status, hash verification. Web never writes to the agent, never calls `rebalance`/`submit`, never holds keys. v1: ETH-only, pools 1 (WETH/USDC Arbitrum) and 4 (WETH/USDG Robinhood). Pools 2, 3 are `LINK_SOON`.
+Argon is a dual-chain LP vault. Every hour at `:00` UTC a Python model (partner's `agent/`, `eth-1-2-8h-v1`) forecasts ETH % change 1 h, 2 h and 8 h ahead. Gate (DualHorizonGate): EXIT if |1h| ≥ 1.00 % or |2h| ≥ 2.50 %; HOLD if in pool; ENTER only when idle and all three are inside (8h ±2.00 %). The first 9 submits are warmup, no trades. Forecast hash is committed to `InferenceRegistry`; the keeper is in dry-run today (0 submits on chain). The web (`argon-web`, ours) is a Next.js reader: wallet, deposit, share-based withdraw, live forecast, pool status, hash verification. Web never writes to the agent, never calls `rebalance`/`submit`, never holds keys. v1: ETH-only, pools 1 (WETH/USDC Arbitrum) and 4 (WETH/USDG Robinhood). Pools 2, 3 are `LINK_SOON`.
 
 ## 1. Planes
 
@@ -37,8 +37,9 @@ Pools: 1 WETH/USDC Arb v3 (gated) · 2 LINK/WETH Arb v3 (soon) · 3 LINK/USDC Ar
 ```
 NEXT_PUBLIC_AGENT_URL  NEXT_PUBLIC_ARB_RPC  NEXT_PUBLIC_RH_RPC
 NEXT_PUBLIC_VAULT_ARB  NEXT_PUBLIC_REGISTRY_ARB  NEXT_PUBLIC_VAULT_RH  NEXT_PUBLIC_REGISTRY_RH
-NEXT_PUBLIC_WALLETCONNECT_ID  NEXT_PUBLIC_ADMIN_ADDRESS
+NEXT_PUBLIC_WALLETCONNECT_ID  NEXT_PUBLIC_ADMIN_ADDRESS  NEXT_PUBLIC_APP_URL
 ```
+Wallet: `injected` (EIP-6963 discovery) + `coinbaseWallet` (no key, mobile) + `walletConnect` only when `NEXT_PUBLIC_WALLETCONNECT_ID` is set; `NEXT_PUBLIC_APP_URL` is the origin in wallet metadata (defaults to the page origin). Polling floor 30 s applies to every feed, including /vault and /portfolio.
 Live values (2026-10-01): `AGENT_URL=https://argon-bd8888db5430.herokuapp.com` · `VAULT_ARB=VAULT_RH=0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` · `REGISTRY_ARB=REGISTRY_RH=0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` · `ADMIN=0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E` (owner + keeper). Same deployer nonce on both chains, so addresses match.
 Missing vault/registry → `undefined` binding → "contracts not deployed" state, deposit/withdraw disabled. Missing AGENT_URL → agent mode `offline`, queries disabled, "waiting for agent telemetry". `NEXT_PUBLIC_AGENT_FIXTURE=true` (non-production only) → sample rows labelled fixture. Env is inlined at build: restart dev / rebuild after editing `.env.local`.
 
@@ -54,8 +55,8 @@ Base `NEXT_PUBLIC_AGENT_URL`. No auth. CORS = web origin (`FRONTEND_ORIGIN` on H
 | /forecasts?limit=24 | `{items: Forecast[]}` newest first (max 168) | 60s | useForecastHistory |
 | /forecasts/:hourId | `Forecast` (404 unknown) | on demand; Infinity once matured | useForecast |
 | /pools | `PoolsResponse` (APR, TVL, selectOneChain) | 60s | usePools |
-| /vault | `VaultSnapshot` (global TVL, no wallet) | 10s | useVaultTelemetry |
-| /portfolio/:address | `Portfolio` (totalUsd, per-chain, forecast) | 10s, wallet only | usePortfolio |
+| /vault | `VaultSnapshot` (global TVL, no wallet) | 30s (endpoint takes 9.6–12.7 s) | useVaultTelemetry |
+| /portfolio/:address | `Portfolio` (totalUsd, per-chain, forecast) | 30s, wallet only; invalidated on every receipt | usePortfolio |
 
 ```ts
 interface Forecast {   // three horizons; ethPctChange/gateBps are the derived 8 h headline
@@ -105,13 +106,15 @@ Gate (DualHorizonGate): EXIT if |1h| ≥ 1.00 % or |2h| ≥ 2.50 %; HOLD if in p
 ```ts
 hourIdFromDate(d) = Math.floor(d.getTime()/1000/3600)
 dateFromHourId(h) = new Date(h*3600*1000)          // UTC, label "UTC"
-toBps(pct) = Math.trunc(pct*100)                   // -2.41 → -241
+toBps(pct) = roundHalfEven(pct*100)                // -2.41 → -241 ; -2.419 → -242 (Python round(), matches agent + registry)
 fromBps(bps) = bps/100                             // display 2 decimals
-GATE = 2 (percent) ; gateBps = 200
-policyAction({ethPctChange, warmupComplete, currentlyInPool}):
-  !warmupComplete → 'warmup' ; |pct| >= 2 → 'exit' ; inPool ? 'hold' : 'enter'
+GATES_PCT = { 1h: 1.0, 2h: 2.5, 8h: 2.0 } ; WARMUP_HOURS = 9
+dualHorizonAction({ethPct1h, ethPct2h, ethPct8h, warmupComplete, currentlyInPool}):
+  !warmupComplete → 'warmup' ; |1h| ≥ 1.0 || |2h| ≥ 2.5 → 'exit' ; inPool → 'hold' ; all three inside → 'enter' ; else 'exit'
+forecastHash = keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, int256 bps8h, keccak256("eth-1-2-8h-v1")))  // utils/forecastHash.ts
+isForecastStale(status) = currentHourId - (lastHourId ?? currentHourId) > 1       // utils/agentStaleness.ts
 ```
-Render API `action`; helper is fallback + tests. Never a second threshold.
+Render API `action`; gate figures come from the payload (`gate*Bps`) with these constants as fallback. Never a second threshold.
 
 ## 7. State model
 
@@ -177,9 +180,10 @@ mono JetBrains Mono (tabular-nums) · display Space Grotesk · radii 6/4 px · s
 
 ## 13. Copy
 
-- Outside gate: "Model expects |ETH| move ≥ 2% over 8h. Positions flattened."
-- Inside gate: "Model expects ETH within ±2% over 8h. Liquidity in range."
-- Warmup: "Collecting the first 8 hourly forecasts. No trades until hour 8."
+- Outside gate: "Model expects ETH to move past its gate on <tripped horizons> (1h ≥ 1%, 2h ≥ 2.5%, 8h ≥ 2%). Positions flattened."
+- Inside gate: "Model expects ETH inside every gate (1h ±1%, 2h ±2.5%, 8h ±2%). Liquidity in range."
+- Warmup: "Collecting the first 9 hourly submits. No trades until the registry opens at submit 9."
+- Stale: "last print was N h ago — the agent clock is behind; this forecast is stale"  ·  Dry-run: "keeper in dry-run: forecasts are published and hashed off-chain, on-chain submission and rebalancing are paused"
 - In-pool withdraw: "Your LP is in range. Withdraw becomes available when the model next exits (±2% gate), or use Emergency idle withdraw for any unallocated tokens."
 - Agent down: "live agent unreachable — showing last on-chain forecast"
 

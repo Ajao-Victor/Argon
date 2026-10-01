@@ -147,7 +147,7 @@ What a reviewer can check without trusting this repository, and what every chang
 | Owner / keeper | `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E` (= `NEXT_PUBLIC_ADMIN_ADDRESS`, unlocks a read-only panel only) |
 | Hash | `keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, int256 bps8h, keccak256("eth-1-2-8h-v1")))`, bps = round-half-even(pct × 100) |
 
-Polling: `/forecasts/latest` and `/status` 30 s; `/forecasts` and `/pools` 60 s; `/vault` 10 s; `/portfolio/{address}` 10 s with a wallet only (the documented exception to §0.7). Timeouts 15 s feed / 30 s chain-reading endpoints.
+Polling: `/forecasts/latest` and `/status` 30 s; `/forecasts` and `/pools` 60 s; `/vault` 30 s; `/portfolio/{address}` 30 s with a wallet only, invalidated on every receipt. The 30 s floor in §0.7 has no exceptions: `/vault` and `/portfolio` answer in 9.6–12.7 s, so anything faster only stacks requests. Timeouts 15 s feed / 30 s chain-reading endpoints. bps = round-half-even(pct × 100). Staleness: a print older than one hour is flagged on every route. Wallet: `NEXT_PUBLIC_APP_URL` is the origin in wallet metadata; `NEXT_PUBLIC_WALLETCONNECT_ID` enables the QR connector.
 
 Invariants a change must not break:
 

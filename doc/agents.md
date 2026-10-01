@@ -63,8 +63,8 @@ Base: `NEXT_PUBLIC_AGENT_URL` = `https://argon-bd8888db5430.herokuapp.com` (live
 | `GET` | `/forecasts?limit=24` | `{ items: Forecast[] }` newest first | 60 s | History table and ticker |
 | `GET` | `/forecasts/:hourId` | `Forecast` | on demand | Detail, predicted vs realized |
 | `GET` | `/pools` | `PoolsResponse` | 60 s | APR / TVL cards, chain selection |
-| `GET` | `/vault` | `VaultSnapshot` | 10 s | Global TVL before any wallet connects |
-| `GET` | `/portfolio/:address` | `Portfolio` | 10 s (wallet only) | Live user equity in USD |
+| `GET` | `/vault` | `VaultSnapshot` | 30 s | Global TVL before any wallet connects |
+| `GET` | `/portfolio/:address` | `Portfolio` | 30 s (wallet only) | Live user equity in USD |
 
 Error shape for any non-2xx:
 
@@ -299,8 +299,8 @@ forecastHash = keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, i
 | `useAgentStatus` | `/status` | 30 s | |
 | `useForecastHistory` | `/forecasts?limit=24` | 60 s | re-sorted newest-first client-side |
 | `usePools` | `/pools` | 60 s | selection lives in the UI store |
-| `useVaultTelemetry` | `/vault` | 10 s | no wallet required |
-| `usePortfolio` | `/portfolio/:address` | 10 s | enabled only with a wallet; the one exception to the 30 s floor, required by the backend handover |
+| `useVaultTelemetry` | `/vault` | 30 s | no wallet required; the endpoint answers in 9.6–12.7 s |
+| `usePortfolio` | `/portfolio/:address` | 30 s | enabled only with a wallet; invalidated on every deposit / withdraw receipt (the handover's 10 s never settled against a 9.6–12.7 s response) |
 
 Timeouts: 15 s for the feed, 30 s for `/pools`, `/vault`, `/portfolio` (measured 9–13 s: they read two chains and DefiLlama). TanStack de-duplicates in-flight requests, so a 10 s cadence over a 12 s response never stacks. After any deposit or withdraw receipt the web invalidates its chain reads and the agent's portfolio and vault snapshots.
 

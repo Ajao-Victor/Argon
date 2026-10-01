@@ -18,7 +18,7 @@
 
 ---
 
-Concentrated Uniswap liquidity earns fees only while price stays in range. A sharp move pushes the position out of range, realizes impermanent loss, and leaves the LP holding the asset that just fell. Argon deposits once, forecasts the ETH move **eight hours ahead every hour on the :00 UTC**, and applies one public rule: if the model expects a move of **2 % or more**, the keeper flattens liquidity into the vault (`EXIT`); inside ±2 % it enters or holds the range (`ENTER` / `HOLD`). Every forecast is hashed to an on-chain registry before any trade, so the number on screen can be checked against the number the vault acted on. This repository is the user's window onto that loop: wallet, deposit, idle-only withdraw, the live forecast, pool status, and the hash match. **The website never signs a rebalance and never holds a keeper key.**
+Concentrated Uniswap liquidity earns fees only while price stays in range. A sharp move pushes the position out of range, realizes impermanent loss, and leaves the LP holding the asset that just fell. Argon deposits once, forecasts the ETH move **eight hours ahead every hour on the :00 UTC**, at three horizons (1 h, 2 h, 8 h), and applies one public rule from `DualHorizonGate.sol`: if the model expects |ETH| to move **≥ 1 % in 1 h or ≥ 2.5 % in 2 h**, the keeper flattens liquidity into the vault (`EXIT`); it only enters the range when all three horizons are inside their gates (8 h ±2 %), and holds while in pool (`ENTER` / `HOLD`). Every forecast is hashed to an on-chain registry before any trade, so the number on screen can be checked against the number the vault acted on. This repository is the user's window onto that loop: wallet, deposit, share-based withdraw, the live forecast, pool status, and the hash match. **The website never signs a rebalance and never holds a keeper key.**
 
 ---
 
@@ -145,7 +145,8 @@ All configuration is public and inlined at build time. **After editing `.env.loc
 | `NEXT_PUBLIC_ARB_RPC` / `NEXT_PUBLIC_RH_RPC` | RPC endpoints, tried before the public defaults | Public RPCs |
 | `NEXT_PUBLIC_VAULT_ARB` / `NEXT_PUBLIC_VAULT_RH` | `ArgonVault` (`0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` on both chains) | "Contracts not deployed", deposit and withdraw disabled |
 | `NEXT_PUBLIC_REGISTRY_ARB` / `NEXT_PUBLIC_REGISTRY_RH` | `InferenceRegistry` (`0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` on both chains) | Hash match reads "registry not deployed" |
-| `NEXT_PUBLIC_WALLETCONNECT_ID` | WalletConnect project id | Injected wallets still work |
+| `NEXT_PUBLIC_WALLETCONNECT_ID` | WalletConnect project id; adds the QR option to the connect picker | Browser wallets (EIP-6963) and Coinbase Wallet still work |
+| `NEXT_PUBLIC_APP_URL` | Public origin used in wallet metadata | The page's own origin at runtime |
 | `NEXT_PUBLIC_ADMIN_ADDRESS` | Address that sees the read-only keeper panel | Panel hidden |
 
 Never place a keeper key, a Tiingo key, or any private value in this repository. Only `NEXT_PUBLIC_*` values are read.
@@ -193,8 +194,8 @@ Base `https://argon-bd8888db5430.herokuapp.com` (FastAPI on Heroku, Postgres, Li
 | `GET /forecasts/latest` | 30 s + a scheduled refetch at `:01` UTC | `useLatestForecast` | Hero number, horizon chips, Keeper Avatar, hash match |
 | `GET /forecasts?limit=24` | 60 s | `useForecastHistory` | Forecasts table, ticker |
 | `GET /pools` | 60 s | `usePools` | APR / TVL pool cards, chain selection |
-| `GET /vault` | 10 s | `useVaultTelemetry` | Global TVL before any wallet connects |
-| `GET /portfolio/{address}` | 10 s, only with a wallet | `usePortfolio` | Live equity in USD |
+| `GET /vault` | 30 s (the endpoint answers in 9.6–12.7 s) | `useVaultTelemetry` | Global TVL before any wallet connects |
+| `GET /portfolio/{address}` | 30 s, only with a wallet, refetched on every receipt | `usePortfolio` | Live equity in USD |
 
 Every payload is validated with zod against schemas built from verbatim captures of the live responses (`src/types/forecast.test.ts`, `src/types/agentApi.test.ts`). The browser never writes to the agent.
 
@@ -223,7 +224,7 @@ cast call 0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f "computeHash(uint64,int256,
 
 ### What a judge will see today
 
-The keeper runs with `DRY_RUN=true`, so the registry's `forecastCount` is `0` on both chains, every API row is in `warmup`, and the hash-match panel reads **pending on chain**. That is the honest state: the API publishes and the browser verifies its hashes, but nothing has been written on-chain yet. When the operator flips `DRY_RUN`, the panel turns green with no frontend change.
+The keeper runs with `DRY_RUN=true`, so the registry's `forecastCount` is `0` and `latestHourId` is `0` on both chains, every API row is in `warmup`, and the hash-match panel reads **pending · keeper dry-run** with the submit count. The telemetry strip, footer and hero also say so, and they flag the print as **stale** whenever the agent's last hour lags the current UTC hour by more than one (the live capture lagged 29 h). That is the honest state: the API publishes and the browser verifies its hashes, but nothing has been written on-chain yet. When the operator flips `DRY_RUN`, the panel turns green with no frontend change.
 
 ---
 
