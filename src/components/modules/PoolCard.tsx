@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip, DisconnectedState, HashText, Panel, RevealItem, Skeleton, Term, type ChipTone } from '@/components/ui';
+import { Button, Chip, DisconnectedState, HashText, Panel, RevealItem, Skeleton, Term, type ChipTone } from '@/components/ui';
 import { useLatestForecast, usePools, poolForChain, usePoolStatuses, useVaultBalances, useWallet } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName, txUrl } from '@/services/explorer';
@@ -79,19 +79,9 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
     <Panel
       label={`POOL ${pool.id}`}
       meta={`${chainName(pool.chainId)} · ${pool.dex === 'uniswap-v3' ? 'v3' : 'v4'}${live ? ` · ${live.feePercent}%` : ''}`}
-      className={cn(status === 'LINK_SOON' && 'opacity-60', pool.gated && 'cursor-pointer transition-[border-color] hover:border-hairline-strong', isSelected && 'ring-1 ring-argon-500/60')}
+      className={cn(status === 'LINK_SOON' && 'opacity-60', isSelected && 'ring-1 ring-argon-500/60')}
       active={status === 'IN_POOL' || isSelected}
       delay={delay}
-      role={pool.gated ? 'button' : undefined}
-      tabIndex={pool.gated ? 0 : undefined}
-      aria-pressed={pool.gated ? isSelected : undefined}
-      onClick={select}
-      onKeyDown={(e) => {
-        if (pool.gated && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          select();
-        }
-      }}
     >
       <RevealItem className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-4">
@@ -129,7 +119,7 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
               <dt className="label leading-5"><Term id="apr">apr</Term></dt>
               <dd className="font-mono text-text-hi">
                 {pools.status === 'pending' ? <Skeleton chars={8} scan={false} /> : live?.aprPct !== null && live?.aprPct !== undefined ? `${live.aprPct.toFixed(2)}%` : '—%'}
-                {live && <span className="ml-2 text-text-dim">{live.aprSource === 'defillama' ? 'defillama' : 'unavailable'}</span>}
+                {live && <span className="ml-2 text-text-dim">{live.aprSource === 'defillama' ? 'defillama' : 'APR unavailable on DefiLlama'}</span>}
               </dd>
               <dt className="label leading-5">pool tvl</dt>
               <dd className="font-mono text-text-mid">
@@ -162,11 +152,12 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
             </RevealItem>
           )}
 
-          {live && !isSelected && (
-            <RevealItem>
-              <p className="mt-3 text-[0.6875rem] leading-5 text-text-dim">{live.depositHint}</p>
-            </RevealItem>
-          )}
+          <RevealItem className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
+            <span className="text-[0.6875rem] leading-5 text-text-dim">{isSelected ? 'selected for deposit / withdraw' : (live?.depositHint ?? `Select to deposit on ${chainName(pool.chainId)}`)}</span>
+            <Button size="sm" variant={isSelected ? 'ghost' : 'primary'} onClick={select} aria-pressed={isSelected} disabled={isSelected} magnetic={!isSelected}>
+              {isSelected ? 'selected' : 'select vault'}
+            </Button>
+          </RevealItem>
         </>
       )}
     </Panel>

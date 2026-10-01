@@ -4,7 +4,7 @@ import { useIsFetching } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useCallback, useRef } from 'react';
 
-import { ActivityFeed, ForecastHero, HashMatch, KeeperPanel, PoolCard, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
+import { ActivityFeed, ForecastHero, HashMatch, KeeperPanel, PoolCard, RoadmapStrip, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
 import { KeeperAvatar, type Attractor, type FieldMode } from '@/components/simulation';
 import { Panel, useTxActivity } from '@/components/ui';
 import { agentKeys, useAgentMode, useAgentStatus, useHashMatch, useLatestForecast } from '@/hooks';
@@ -23,7 +23,8 @@ const ParticleField = dynamic(() => import('@/components/simulation/ParticleFiel
  *   xl:  ┌──────── hero 8 ────────┬─ keeper 4 ─┐
  *        │        (row-span 2)     ├─ hash 4 ───┤
  *        ├──────────── warmup 12 ──────────────┤
- *        ├ pool 3 ┬ pool 3 ┬ pool 3 ┬ pool 3 ──┤
+ *        ├──── vault 6 ────┬──── vault 6 ─────┤
+ *        ├──────────── roadmap 12 ─────────────┤
  *        ├── wallet 5 ──┬──── activity 7 ──────┤
  *        └──────────────┴──────────────────────┘
  */
@@ -104,12 +105,17 @@ export function Dashboard() {
             <WarmupBar />
           </div>
 
-          {/* Pools */}
-          {POOLS.map((p, i) => (
-            <div key={p.id} className="md:col-span-3 xl:col-span-3">
+          {/* Live vaults: the two gated pools take the stage */}
+          {POOLS.filter((p) => p.gated).map((p, i) => (
+            <div key={p.id} className="md:col-span-3 xl:col-span-6">
               <PoolCard pool={p} delay={0.38 + i * 0.06} />
             </div>
           ))}
+
+          {/* Upcoming LINK pools collapse into one strip */}
+          <div className="md:col-span-6 xl:col-span-12">
+            <RoadmapStrip delay={0.5} />
+          </div>
 
           {/* Wallet + activity */}
           <div className="md:col-span-6 xl:col-span-5">

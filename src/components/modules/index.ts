@@ -14,3 +14,4 @@ export { TxStatus, txBusy } from './TxStatus';
 export { AgentClock } from './AgentClock';
 export { TelemetryBar } from './TelemetryBar';
 export { KeeperPanel } from './KeeperPanel';
+export { RoadmapStrip } from './RoadmapStrip';
