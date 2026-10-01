@@ -294,7 +294,7 @@ argon-web/
 
 ## Authorship and credits
 
-The frontend architecture, design system, and implementation of Argon Web were **solely engineered by Victor Oluwatimilryin Ajao**.
+The frontend architecture, design system, and implementation of Argon Web were **solely engineered by Victor Oluwatimileyin Ajao**.
 
 The off-chain forecasting agent and the smart contracts are separate workstreams outside this repository.
 
