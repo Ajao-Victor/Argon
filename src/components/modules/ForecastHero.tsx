@@ -14,7 +14,19 @@ import { selectHero } from '@/utils/heroSource';
 /**
  * The number is the hero (design.md §4.2). Renders the API `action`; falls back to
  * the registry row when the agent is down; never fabricates a percent (ENGINEERING.md §0.6).
+ *
+ * Handoff 2026-10-02: GET /forecasts/latest always answers 200 with the current hour or
+ * the last stored hour (`live: false`), so a 200 never renders "no forecast". `ethPct8h`
+ * is this hour's target; `predEthUsd8h` is the 8-hour predicted price measured from the
+ * candle close `barCloseUsd`; `expectedEthUsd1h` is where the averaged 1-hour path says
+ * price should be next. `ethPct1h` / `ethPct2h` are the average remaining move from the
+ * current price across every stored 8-hour target still covering that horizon; a
+ * `residual` source means "updated remainder of earlier 8-hour prices".
  */
+const RESIDUAL_LABEL = 'updated remainder of earlier 8-hour prices';
+function sourceLabel(src: string): string {
+  return src === 'residual' ? `${src} · ${RESIDUAL_LABEL}` : src;
+}
 /** Gate percentages from the agent payload, falling back to the contract constants. */
 interface Gates {
   g1: number;
@@ -88,6 +100,11 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
       {status.data && isForecastStale(status.data) && (
         <Banner tone="warn" className="mb-3">
           last print was {forecastLagHours(status.data)} h ago (hour {status.data.lastHourId ?? '—'}, now {status.data.currentHourId}) — the agent clock is behind; this forecast is stale
+        </Banner>
+      )}
+      {api && api.live === false && (
+        <Banner tone="warn" className="mb-3">
+          showing the last stored hour {api.hourId} — the live clock has not produced hour {status.data?.currentHourId ?? '—'} yet; the percent and the predicted price below are that hour&apos;s
         </Banner>
       )}
       {status.data?.dryRun && (
@@ -171,13 +188,17 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
                   ).map(([h, v, src]) => {
                     const tripped = api.trippedHorizons.includes(h);
                     return (
-                      <Chip key={h} tone={tripped ? 'down' : 'plain'} flipKey={`${h}-${tripped}`} title={`source: ${src}`}>
+                      <Chip key={h} tone={tripped ? 'down' : 'plain'} flipKey={`${h}-${tripped}`} title={`source: ${sourceLabel(src)}`}>
                         {h} <span className={cn('normal-case tracking-normal', v < 0 ? 'text-signal-down' : v > 0 ? 'text-signal-up' : '')}>{formatPct(v)}</span>
                         <span className="text-text-dim">/ ±{h === '1h' ? gates.g1 : h === '2h' ? gates.g2 : gates.g8}%</span>
                       </Chip>
                     );
                   })}
                 </div>
+                <p className="max-w-md text-[0.6875rem] leading-4 text-text-dim">
+                  1h and 2h are the averaged remaining move from the current price across every stored 8-hour target still covering that horizon; 8h is this hour&apos;s target.
+                  {(api.ethPct1hSource === 'residual' || api.ethPct2hSource === 'residual') && <> {RESIDUAL_LABEL}.</>}
+                </p>
               </div>
             )}
           </RevealItem>
@@ -199,8 +220,20 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
         )}
         {hero.predUsd !== null && (
           <div className="flex flex-col gap-1">
-            <span className="label leading-5">8h target</span>
+            <span className="label leading-5">8h predicted price</span>
             <span className={cn('font-mono text-sm leading-5', pct !== null && pct < 0 ? 'text-signal-down' : 'text-signal-up')}>{formatUsd(hero.predUsd)}</span>
+          </div>
+        )}
+        {api?.barCloseUsd !== null && api?.barCloseUsd !== undefined && (
+          <div className="flex flex-col gap-1">
+            <span className="label leading-5">measured from</span>
+            <span className="font-mono text-sm leading-5 text-text-mid" title="the candle close this forecast was measured from">{formatUsd(api.barCloseUsd)}</span>
+          </div>
+        )}
+        {api?.expectedEthUsd1h !== null && api?.expectedEthUsd1h !== undefined && (
+          <div className="flex flex-col gap-1">
+            <span className="label leading-5">next hour path</span>
+            <span className="font-mono text-sm leading-5 text-text-mid" title="where the averaged 1-hour path says price should be next">{formatUsd(api.expectedEthUsd1h)}</span>
           </div>
         )}
         <div className="flex flex-col gap-1">
