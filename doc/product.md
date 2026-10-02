@@ -114,18 +114,18 @@ Every item below is derived from spec §4 and §5. Visual treatment is defined i
 
 | Route | Purpose | Requires wallet |
 |---|---|---|
-| `/` | Landing: one-liner, ±2% gate explainer, 8h model explainer, Launch app | No |
-| `/app` | Dashboard: forecast hero, warmup, four pool cards, hash match, wallet strip | No (read-only without wallet) |
+| `/` | Landing: "Yield on autopilot. Safety built in.", live forecast card, three-step explainer, protocol FAQ (`#faq`), Launch app | No |
+| `/app` | Dashboard: forecast hero, warmup, four pool cards, hash match, wallet strip, protocol FAQ as the last slot (`#faq`, linked from navbar and footer) | No (read-only without wallet) |
 | `/app/deposit` | Chain switcher, token amount, approve + deposit | Yes |
 | `/app/withdraw` | Idle balances, withdraw, in-pool banner | Yes |
-| `/app/forecasts` | Last 24 hours, predicted vs realized after `hourId + 8` | No |
+| `/app/forecasts` | Last 24 rows, predicted vs realized after the **Understandable hour** (`hourId + 8`, shown as `15:00 UTC (in 6h)`) | No |
 | `/app/activity` | `Deposited` / `Withdrawn` / `Rebalanced` events for this wallet | Yes for user events, no for `Rebalanced` |
 
 ### 3.2 Dashboard widgets (required)
 
 | Widget | Reads | Renders | State triggers |
 |---|---|---|---|
-| **Forecast hero** | `/forecasts/latest` | Large signed `ethPctChange`, "8h ahead", gate chip `IN` or `OUT`, next action | Re-renders on each poll; pulses on `hourId` change |
+| **Forecast hero** | `/forecasts/latest` | Large signed `ethPctChange`, "8h ahead", gate chip `IN` or `OUT`, next action, the **Understandable hour** (the UTC hour the 8-hour prediction settles, with a countdown) | Re-renders on each poll; pulses on `hourId` change |
 | **Warmup bar** | `/status` | `n / 8` hours until first decision; countdown to next `:00` UTC | Hidden once `warmupComplete === true` |
 | **Pool cards ×4** | vault `poolStatus(poolId)`, latest forecast `txHash` | Pair, chain, DEX, status chip, last rebalance tx link | `IN_POOL` / `IDLE` / `UNFUNDED` / `LINK_SOON` |
 | **Hash match** | API `forecastHash` vs registry `getForecast(hourId)` | Green "matches chain" or red "API ≠ registry"; both hashes truncated with copy | Re-evaluates when either source changes |
@@ -196,11 +196,17 @@ Every write goes through simulate → sign → wait for receipt → invalidate. 
 - Link every hash and tx to the right explorer for the chain.
 - If the agent is down, show the last on-chain registry row and the banner "live agent unreachable — showing last on-chain forecast." Never fabricate a percent.
 
-### 3.8 Visual layers with no product mechanics
+### 3.8 Landing copy, forecast terminology and the protocol FAQ (Phase 19)
+
+- Landing hero copy is fixed: headline **"Yield on autopilot. Safety built in."**, subheadline **"Argon puts your crypto to work when ETH is calm and puts it to cash when it isn't. No charts, no clicking."** A unit test pins both strings.
+- The hour at which an 8-hour forecast settles (`targetHourId = hourId + 8`) is never labelled "target" in the UI. It is the **Understandable hour**, formatted for a non-technical reader as `15:00 UTC (in 6h)`, `(this hour)` or `(settled 3h ago)` (`formatSettlementHour`), with a tooltip explaining that it is the resolution window of the prediction. It appears on the forecast hero and as a column on `/app/forecasts`.
+- The protocol FAQ (`FaqSection`) answers eight questions grounded in the README specification: what Argon solves, the hourly 8-hour forecast and remaining-move calculation, ENTER / HOLD / EXIT, the 9-hour warmup and 2-hour cooldown, chains and pools, signer gates, custody and keeper limits, and hash verification. Copy lives in `src/services/faqData.ts`; the accordion filters by category (All, How It Works, Trading Rules, Security & Custody, Chains & Pools), is keyboard-operable, and animates with transform / opacity only. It is mounted on `/` and at the bottom of `/app`; the navbar and footer link to `#faq`.
+
+### 3.9 Visual layers with no product mechanics
 
 The design direction in `design.md` adds a simulation-grade visual layer: a particle field, a ticker tape, telemetry readouts, and animated state transitions. These are presentation. They read from the same data as the widgets above and never introduce new state, new thresholds, or new user actions. The product has no points, badges, levels, or rewards. The "simulation loop" the UI animates is the real hourly loop.
 
-### 3.9 Admin surface (hidden by default)
+### 3.10 Admin surface (hidden by default)
 
 When the connected address equals `NEXT_PUBLIC_ADMIN_ADDRESS`, show a read-only keeper panel: last `submit` tx, last `rebalance` tx, agent `/status` raw JSON, registry `latestHourId`. No buttons that write. Default users never see this.
 

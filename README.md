@@ -11,7 +11,7 @@
 [![viem](https://img.shields.io/badge/viem-2-1c1b1f)](https://viem.sh)
 [![Framer Motion](https://img.shields.io/badge/Framer_Motion-13-0055ff?logo=framer&logoColor=white)](https://www.framer.com/motion/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06b6d4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-[![Tests](https://img.shields.io/badge/tests-72_passing-34d399)](#quality-gates)
+[![Tests](https://img.shields.io/badge/tests-126_passing-34d399)](#quality-gates)
 [![Lint](https://img.shields.io/badge/lint-0_warnings-a855f7)](#quality-gates)
 
 </div>
@@ -107,12 +107,16 @@ It also reacts to the software itself. While a TanStack query is in flight it sw
 
 | Route | What it shows |
 |---|---|
-| `/` | Landing with the Keeper Avatar as hero, reading the live forecast through a query-only provider (no wallet code) |
-| `/app` | Bento dashboard: forecast hero, keeper, on-chain hash match, warmup bar, four pool cards, wallet strip, activity feed |
+| `/` | Landing: "Yield on autopilot. Safety built in." with the Keeper Avatar reading the live forecast through a query-only provider (no wallet code), a three-step explainer and the protocol FAQ |
+| `/app` | Bento dashboard: forecast hero, keeper, on-chain hash match, warmup bar, four pool cards (with the wallet's signer gate), wallet strip, activity feed, protocol FAQ (`#faq`, linked from the navbar and footer) |
 | `/app/deposit` | Chain switcher, token picker, `approve → deposit` as one stepping button |
 | `/app/withdraw` | Idle-only withdraw with the in-pool banner, plus emergency idle withdraw |
-| `/app/forecasts` | Last 24 hourly rows, predicted versus realized after maturity, row click opens the hash match |
+| `/app/forecasts` | Last 24 hourly rows with the **Understandable hour** (the UTC hour each 8-hour prediction settles, e.g. `15:00 UTC (in 6h)`), predicted versus realized after maturity, row click opens the hash match |
 | `/app/activity` | `Deposited` / `Withdrawn` / `Rebalanced` events from bounded `getLogs`, no indexer |
+
+**Forecast terminology.** The hour at which an 8-hour forecast settles (`hourId + 8`) is shown as the *Understandable hour* everywhere, never as a "target": the exact UTC hour plus a plain countdown, with a tooltip explaining that it is the prediction's resolution window.
+
+**Protocol FAQ.** `FaqSection` answers eight questions from the protocol specification (what Argon solves, the hourly 8-hour forecast and remaining-move calculation, ENTER / HOLD / EXIT, the 9-hour warmup and 2-hour cooldown, chains and pools, signer gates, custody and keeper limits, hash verification) as a filterable, keyboard-accessible accordion mounted on `/` and `/app`.
 
 **Honesty rules baked into the UI.** With no agent URL the app says "waiting for agent telemetry"; it never shows a sample number. With no contract addresses, pool cards read "contracts not deployed" and deposit and withdraw stay disabled. If the agent is down but the registry is live, the hero falls back to the on-chain number under a banner. Optimistic UI is allowed for presentation only, never for balances, pool status, or the hash match.
 
