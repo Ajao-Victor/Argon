@@ -2,6 +2,7 @@ import { isAddress, type Address } from 'viem';
 import type { z } from 'zod';
 
 import { poolsResponseSchema, portfolioSchema, vaultSnapshotSchema, type Portfolio, type PoolsResponse, type VaultSnapshot } from '@/types/agentApi';
+import { gateRowSchema, type GateRequest, type GateRow } from '@/types/gates';
 import {
   agentErrorBodySchema,
   agentStatusSchema,
@@ -20,7 +21,9 @@ import {
  * Typed REST client for the live Argon agent (FastAPI on Heroku).
  *
  * Architectural intent (doc/agents.md §2): the browser reads the agent and never writes
- * to it. Every response is validated with zod at this boundary; a malformed payload is
+ * to it, with one explicit exception from the 2026-10-02 handoff: POST /gates, a
+ * wallet-signed per-user gate (EIP-191 personal_sign over an exact string the agent
+ * recovers and verifies). Every response is validated with zod at this boundary; a malformed payload is
  * surfaced as AgentError('INVALID') and the UI falls back to on-chain data rather than
  * rendering a bad number. Requests honour TanStack Query's AbortSignal so unmounts cancel
  * in-flight work, and every request has its own hard timeout.
@@ -179,6 +182,72 @@ export async function fetchForecast(hourId: number, signal?: AbortSignal): Promi
     return row;
   }
   return agentGet(`/forecasts/${hourId}`, forecastSchema, signal);
+}
+
+// ---------------------------------------------------------------------------
+// Per-user gate: GET /gates/{address}, POST /gates (the only write; wallet-signed)
+// ---------------------------------------------------------------------------
+
+/** The signer's stored gate, or null when the agent answers 404 ("no gate stored"). */
+export async function fetchGate(address: Address, signal?: AbortSignal): Promise<GateRow | null> {
+  if (!isAddress(address)) throw new AgentError('BAD_REQUEST', `invalid address ${address}`, 400);
+  if (agentMode === 'offline') offline();
+  if (agentMode === 'fixture') return null;
+  try {
+    return await agentGet(`/gates/${address}`, gateRowSchema, signal);
+  } catch (err) {
+    if (err instanceof AgentError && err.code === 'NOT_FOUND') return null;
+    throw err;
+  }
+}
+
+/**
+ * Store a signed gate. The body carries the signature the wallet produced over
+ * gateMessage(...); the agent recovers the signer, checks the preset / band match, the
+ * two-hour issuedAt window, and that issuedAt is newer than the stored gate (409).
+ */
+export async function submitGate(body: GateRequest, signal?: AbortSignal): Promise<GateRow> {
+  if (agentMode === 'offline') offline();
+  if (agentMode === 'fixture') throw new AgentError('OFFLINE', 'gates are not available in fixture mode');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
+  const onOuterAbort = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener('abort', onOuterAbort, { once: true });
+  }
+  const init: RequestInit = { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, cache: 'no-store', body: JSON.stringify(body), signal: controller.signal };
+  let res: Response;
+  try {
+    try {
+      res = await fetch(`${BASE}/gates`, init);
+    } catch (err) {
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      if (isAbort || typeof window === 'undefined') throw err;
+      res = await fetch(`${PROXY_BASE}/gates`, init);
+    }
+  } catch (err) {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onOuterAbort);
+    if (err instanceof DOMException && err.name === 'AbortError') throw new AgentError('TIMEOUT', 'gate request timed out');
+    throw new AgentError('NETWORK', describeNetworkFailure(err, '/gates'));
+  }
+  clearTimeout(timer);
+  signal?.removeEventListener('abort', onOuterAbort);
+  if (!res.ok) {
+    let message = `agent ${res.status} /gates`;
+    try {
+      const parsed = agentErrorBodySchema.safeParse(await res.json());
+      if (parsed.success) message = parsed.data.detail;
+    } catch {
+      // keep status message
+    }
+    const code: AgentErrorCode = res.status === 409 ? 'CONFLICT' : res.status === 400 || res.status === 422 ? 'BAD_REQUEST' : 'INTERNAL';
+    throw new AgentError(code, message, res.status);
+  }
+  const parsed = gateRowSchema.safeParse(await res.json());
+  if (!parsed.success) throw new AgentError('INVALID', `agent /gates response failed validation: ${parsed.error.issues[0]?.message ?? ''}`);
+  return parsed.data;
 }
 
 // ---------------------------------------------------------------------------

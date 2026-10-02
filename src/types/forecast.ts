@@ -115,9 +115,9 @@ export interface ForecastList {
   items: Forecast[];
 }
 
-export type AgentErrorCode = 'MODEL_NOT_LOADED' | 'NOT_FOUND' | 'BAD_REQUEST' | 'INTERNAL' | 'NETWORK' | 'TIMEOUT' | 'INVALID' | 'OFFLINE';
+export type AgentErrorCode = 'MODEL_NOT_LOADED' | 'NOT_FOUND' | 'BAD_REQUEST' | 'CONFLICT' | 'INTERNAL' | 'NETWORK' | 'TIMEOUT' | 'INVALID' | 'OFFLINE';
 
-/** FastAPI error envelope: `{ "detail": "unknown hourId" }`. */
+/** FastAPI error envelope: `{ "detail": "unknown hourId" }` (422 validation errors arrive as an array and are joined). */
 export interface AgentErrorBody {
   detail: string;
 }
@@ -226,7 +226,7 @@ export const forecastListSchema = z.object({
 });
 
 export const agentErrorBodySchema = z.object({
-  detail: z.string().max(500),
+  detail: z.union([z.string().max(500), z.array(z.object({ msg: z.string(), loc: z.array(z.union([z.string(), z.number()])).optional() })).transform((a) => a.map((i) => `${(i.loc ?? []).join('.')}: ${i.msg}`).join('; '))]),
 });
 
 // Compile-time guarantee that the schemas and the interfaces agree.
