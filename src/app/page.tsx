@@ -1,3 +1,4 @@
+import { FaqSection } from '@/components/modules/FaqSection';
 import { QueryProvider } from '@/components/ui/QueryProvider';
 
 import { LandingHero } from './LandingHero';
@@ -57,6 +58,9 @@ export default function LandingPage() {
           ))}
         </ol>
       </section>
+
+      {/* Protocol FAQ: answers for prospective depositors and judges before they open the app */}
+      <FaqSection className="max-w-4xl" />
 
       <footer className="absolute bottom-4 left-0 right-0 text-center label text-text-dim">
         Your funds stay in your control · Automated hourly protection · Withdraw anytime
