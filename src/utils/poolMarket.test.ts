@@ -34,7 +34,7 @@ describe('poolMarketView', () => {
   });
   it('a null APR falls back on the APR line only; TVL and ETH still render', () => {
     const v = poolMarketView({ ...robinhood, aprPct: null, aprBasePct: null, aprSource: 'unavailable' })!;
-    expect(v.apr).toBe('APR unavailable');
+    expect(v.apr).toBe('');
     expect(v.aprNote).toBe('not listed on DefiLlama');
     expect(v.tvl).toBe('$5.57M');
     expect(v.eth).toBe('$2,756.85');

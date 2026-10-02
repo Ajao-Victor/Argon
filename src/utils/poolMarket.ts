@@ -27,7 +27,8 @@ export function poolMarketView(pool: LpPool | undefined): PoolMarketView | null 
   if (!pool) return null;
   const hasApr = pool.aprPct !== null && Number.isFinite(pool.aprPct);
   return {
-    apr: hasApr ? `${(pool.aprPct as number).toFixed(2)}%` : 'APR unavailable',
+    // Handoff 2026-10-02: a null aprPct leaves the APR value empty; TVL and ETH still render.
+    apr: hasApr ? `${(pool.aprPct as number).toFixed(2)}%` : '',
     aprNote: hasApr ? pool.aprSource : pool.aprSource === 'unavailable' ? 'not listed on DefiLlama' : pool.aprSource,
     tvl: pool.poolTvlUsd === null ? null : compactUsd(pool.poolTvlUsd),
     tvlFull: pool.poolTvlUsd === null ? null : formatUsd(pool.poolTvlUsd),

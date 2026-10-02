@@ -10,6 +10,8 @@ import { cn } from '@/utils/cn';
 import { formatToken } from '@/utils/format';
 import { poolMarketView } from '@/utils/poolMarket';
 
+import { GateControl } from './GateControl';
+
 /**
  * Interactive pool card (design.md §4.4, product.md §3.3) fed by two sources:
  *   - on-chain reads (poolStatus, idleBalance, shares) remain authoritative for state
@@ -17,7 +19,9 @@ import { poolMarketView } from '@/utils/poolMarket';
  *   - GET /pools supplies the market view: live APR (DefiLlama, or "—" when the agent
  *     reports it unavailable), Uniswap pool TVL, ETH price, fee tier and a deposit hint.
  * Clicking a gated card selects that chain for deposit / withdraw (ui store) and asks a
- * connected wallet to switch. The agent requires exactly one chain per deposit.
+ * connected wallet to switch. The agent requires exactly one chain per deposit. Once a
+ * chain is picked and a wallet is connected, the card exposes that wallet's per-user gate
+ * (GateControl): presets or a custom 1 h band, signed with the wallet and stored by the agent.
  */
 const TONE: Record<PoolCardStatus, ChipTone> = { IN_POOL: 'up', IDLE: 'idle', UNFUNDED: 'idle', LINK_SOON: 'soon', NOT_DEPLOYED: 'idle' };
 const STATUS_CLASS: Record<PoolCardStatus, string> = { IN_POOL: 'text-signal-up', IDLE: 'text-text-mid', UNFUNDED: 'text-text-lo', LINK_SOON: 'text-signal-soon', NOT_DEPLOYED: 'text-text-lo' };
@@ -148,6 +152,13 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
                   {latest.data && <span className="ml-2 text-text-dim">hour {latest.data.hourId}</span>}
                 </dd>
               </dl>
+            </RevealItem>
+          )}
+
+          {/* Per-user gate: after the chain pick, for the connected wallet (handoff 2026-10-02). */}
+          {address && isSelected && (
+            <RevealItem>
+              <GateControl address={address} />
             </RevealItem>
           )}
 
