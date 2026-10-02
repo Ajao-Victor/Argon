@@ -54,7 +54,7 @@ Base `NEXT_PUBLIC_AGENT_URL`. No auth. CORS = web origin (`FRONTEND_ORIGIN` on H
 | /forecasts/latest | `Forecast` | 30s + `:01` UTC + focus | useLatestForecast |
 | /forecasts?limit=24 | `{items: Forecast[]}` newest first (max 168) | 60s | useForecastHistory |
 | /forecasts/:hourId | `Forecast` (404 unknown) | on demand; Infinity once matured | useForecast |
-| /pools | `PoolsResponse` (APR, TVL, selectOneChain) | 60s | usePools |
+| /pools | `PoolsResponse` (APR, TVL, ETH; aprSource open string; TVL/ETH nullable) | 15s (agent pollSeconds; documented exception) | usePools |
 | /vault | `VaultSnapshot` (global TVL, no wallet) | 30s (endpoint takes 9.6–12.7 s) | useVaultTelemetry |
 | /portfolio/:address | `Portfolio` (totalUsd, per-chain, forecast) | 30s, wallet only; invalidated on every receipt | usePortfolio |
 

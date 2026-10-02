@@ -9,14 +9,14 @@ const LIVE_POOLS = {
     { id: 'arbitrum', chainId: 42161, poolId: 1, pair: 'WETH/USDC', feePercent: 0.05, uniswapFee: 500,
       vault: '0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60', pool: '0xC6962004f452bE9203591991D15f6b388e09E8D0',
       weth: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', stable: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', stableSymbol: 'USDC',
-      inPool: false, poolTvlUsd: 36620363.97838525, ethUsd: 2693.57, selectable: true,
-      depositHint: 'Switch wallet to arbitrum then deposit WETH + USDC', aprPct: 24.63967, aprBasePct: 24.63967, aprSource: 'defillama',
-      llamaTvlUsd: 36588001.0, volumeUsd1d: 49398159.0213 },
+      inPool: false, poolTvlUsd: 36913610.5, ethUsd: 2756.85, selectable: true,
+      depositHint: 'Switch wallet to arbitrum then deposit WETH + USDC', aprPct: 26.65, aprBasePct: 26.65, aprSource: 'defillama',
+      llamaTvlUsd: 36893245, volumeUsd1d: 53876598.52914, uniswapTick: -197110, uniswapLiquidity: '3231835786419414602' },
     { id: 'robinhood', chainId: 4663, poolId: 4, pair: 'WETH/USDG', feePercent: 0.05, uniswapFee: 500,
       vault: '0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60', pool: '0x69BfaF19C9f377BB306a89aEd9F6B07e2c1a8d9a',
       weth: '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73', stable: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168', stableSymbol: 'USDG',
-      inPool: false, poolTvlUsd: 5309047.16922889, ethUsd: 2691.70223591, selectable: true,
-      depositHint: 'Switch wallet to robinhood then deposit WETH + USDG', aprPct: null, aprBasePct: null, aprSource: 'unavailable',
+      inPool: false, poolTvlUsd: 5569932.65, ethUsd: 2756.85, selectable: true,
+      depositHint: 'Switch wallet to robinhood then deposit WETH + USDG', aprPct: 35.51, aprBasePct: 35.51, aprSource: 'uniswap',
       llamaTvlUsd: null, volumeUsd1d: null },
   ],
 };
@@ -51,8 +51,11 @@ describe('live /pools', () => {
     expect(r.success).toBe(true);
     if (r.success) {
       expect(r.data.pools).toHaveLength(2);
-      expect(r.data.pools[1]?.aprSource).toBe('unavailable');
-      expect(r.data.pools[1]?.aprPct).toBeNull();
+      expect(r.data.pools[0]?.aprPct).toBe(26.65);
+      expect(r.data.pools[0]?.poolTvlUsd).toBe(36913610.5);
+      expect(r.data.pools[1]?.aprSource).toBe('uniswap');
+      expect(r.data.pools[1]?.aprPct).toBe(35.51);
+      expect(r.data.pools[1]?.ethUsd).toBe(2756.85);
     }
   });
   it('rejects a lowercase or malformed vault address', () => {
@@ -65,9 +68,21 @@ describe('live /pools', () => {
     expect(r.success).toBe(true);
     if (r.success) expect(r.data.vault).toBe('0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60');
   });
-  it('rejects an unknown chain key or apr source', () => {
+  it('rejects an unknown chain key but accepts any apr source label', () => {
     expect(lpPoolSchema.safeParse({ ...LIVE_POOLS.pools[0], id: 'base' }).success).toBe(false);
-    expect(lpPoolSchema.safeParse({ ...LIVE_POOLS.pools[0], aprSource: 'guess' }).success).toBe(false);
+    expect(lpPoolSchema.safeParse({ ...LIVE_POOLS.pools[0], aprSource: 'guess' }).success).toBe(true);
+  });
+  it('a null APR keeps poolTvlUsd and ethUsd on the row', () => {
+    const r = lpPoolSchema.safeParse({ ...LIVE_POOLS.pools[1], aprPct: null, aprBasePct: null, aprSource: 'unavailable' });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.aprPct).toBeNull();
+      expect(r.data.poolTvlUsd).toBe(5569932.65);
+      expect(r.data.ethUsd).toBe(2756.85);
+    }
+  });
+  it('null poolTvlUsd / ethUsd are valid, not row-invalidating', () => {
+    expect(lpPoolSchema.safeParse({ ...LIVE_POOLS.pools[1], poolTvlUsd: null, ethUsd: null }).success).toBe(true);
   });
 });
 

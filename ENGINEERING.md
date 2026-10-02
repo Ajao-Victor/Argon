@@ -10,7 +10,7 @@ Read `doc/architecture-essentials.md` first in every session. It is the compress
 4. **No secrets in this repo.** Only `NEXT_PUBLIC_*` env. No keeper key, no Tiingo key, no DIA calls from the browser. If a value would be dangerous in a browser bundle, it does not belong here.
 5. **One gate.** The deployed rule is `DualHorizonGate.sol`: EXIT if |1h| ≥ 1.00 % or |2h| ≥ 2.50 %; HOLD if in pool; ENTER only when idle and all three horizons are inside (8h gate 2.00 %). Render the API `action`. `dualHorizonAction()` mirrors the contract for the fallback path and tests; `policyAction()` is the legacy 8 h helper. Never introduce another threshold, slider, or "sensitivity". Gates come from the API (`gate1hBps/2hBps/8hBps`); the vault has no gate getter.
 6. **Never fake a number.** Agent not configured → "waiting for agent telemetry". Agent down → show the registry row with a banner. Registry down → empty state. No placeholder percent, no default gate, no sample hash, ever. The fixture exists only behind `NEXT_PUBLIC_AGENT_FIXTURE=true` in non-production builds.
-7. **Never poll under 30 s.** No `setInterval(…, 1000)`. The `:01` UTC refetch is one scheduled timeout in `useAgentClock`.
+7. **Never poll under 30 s**, with one documented exception: `GET /pools` polls every 15 s (the agent's advertised `pollSeconds`, requested for the live APR cards; TanStack de-duplicates in-flight ticks). No `setInterval(…, 1000)`. The `:01` UTC refetch is one scheduled timeout in `useAgentClock`.
 
 ## 1. Anti-overengineering manifesto
 
@@ -147,7 +147,7 @@ What a reviewer can check without trusting this repository, and what every chang
 | Owner / keeper | `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E` (= `NEXT_PUBLIC_ADMIN_ADDRESS`, unlocks a read-only panel only) |
 | Hash | `keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, int256 bps8h, keccak256("eth-1-2-8h-v1")))`, bps = round-half-even(pct × 100) |
 
-Polling: `/forecasts/latest` and `/status` 30 s; `/forecasts` and `/pools` 60 s; `/vault` 30 s; `/portfolio/{address}` 30 s with a wallet only, invalidated on every receipt. The 30 s floor in §0.7 has no exceptions: `/vault` and `/portfolio` answer in 9.6–12.7 s, so anything faster only stacks requests. Timeouts 15 s feed / 30 s chain-reading endpoints. bps = round-half-even(pct × 100). Staleness: a print older than one hour is flagged on every route. Wallet: `NEXT_PUBLIC_APP_URL` is the origin in wallet metadata; `NEXT_PUBLIC_WALLETCONNECT_ID` enables the QR connector.
+Polling: `/forecasts/latest` and `/status` 30 s; `/forecasts` 60 s; `/pools` 15 s (documented exception); `/vault` 30 s; `/portfolio/{address}` 30 s with a wallet only, invalidated on every receipt. The 30 s floor in §0.7 has no exceptions: `/vault` and `/portfolio` answer in 9.6–12.7 s, so anything faster only stacks requests. Timeouts 15 s feed / 30 s chain-reading endpoints. bps = round-half-even(pct × 100). Staleness: a print older than one hour is flagged on every route. Wallet: `NEXT_PUBLIC_APP_URL` is the origin in wallet metadata; `NEXT_PUBLIC_WALLETCONNECT_ID` enables the QR connector.
 
 Invariants a change must not break:
 

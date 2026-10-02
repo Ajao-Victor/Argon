@@ -7,7 +7,8 @@ import { chainName, txUrl } from '@/services/explorer';
 import { useUiStore } from '@/stores/ui';
 import type { PoolCardStatus, PoolDef } from '@/types/pools';
 import { cn } from '@/utils/cn';
-import { formatToken, formatUsd } from '@/utils/format';
+import { formatToken } from '@/utils/format';
+import { poolMarketView } from '@/utils/poolMarket';
 
 /**
  * Interactive pool card (design.md §4.4, product.md §3.3) fed by two sources:
@@ -33,12 +34,6 @@ function RebalanceTag({ value, chainId }: { value: string | null; chainId: 42161
   return <Chip tone="plain">{value}</Chip>;
 }
 
-function compactUsd(v: number): string {
-  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
-  if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
-  return formatUsd(v);
-}
 
 export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number }) {
   const w = useWallet();
@@ -48,6 +43,7 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
   const latest = useLatestForecast();
   const pools = usePools();
   const live = pool.gated ? poolForChain(pools.data, pool.chainId) : undefined;
+  const market = poolMarketView(live);
   const deployed = Boolean(getVault(pool.chainId));
 
   const selected = useUiStore((s) => s.selectedChainId);
@@ -101,6 +97,27 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
         </div>
       </RevealItem>
 
+      {/* Market view straight from GET /pools (15 s, no-store): renders for every visitor, no wallet, no chain read.
+          Each line degrades on its own — a null APR never hides TVL or the ETH price. */}
+      {pool.gated && (
+        <RevealItem>
+          <dl className="mt-5 grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 gap-y-2 text-[0.75rem] leading-5">
+            <dt className="label leading-5"><Term id="apr">apr</Term></dt>
+            <dd className="font-mono text-text-hi">
+              {pools.status === 'pending' && !market ? <Skeleton chars={8} scan={false} /> : market ? market.apr : pools.status === 'error' ? 'feed unavailable' : '—'}
+              {market?.aprNote && <span className="ml-2 text-text-dim">{market.aprNote}</span>}
+            </dd>
+            <dt className="label leading-5">pool tvl</dt>
+            <dd className="font-mono text-text-mid" title={market?.tvlFull ?? undefined}>
+              {pools.status === 'pending' && !market ? <Skeleton chars={10} scan={false} /> : (market?.tvl ?? '—')}
+              {market?.volume24h && <span className="ml-2 text-text-dim">· {market.volume24h} 24h vol</span>}
+            </dd>
+            <dt className="label leading-5">eth</dt>
+            <dd className="font-mono text-text-mid">{pools.status === 'pending' && !market ? <Skeleton chars={9} scan={false} /> : (market?.eth ?? '—')}</dd>
+          </dl>
+        </RevealItem>
+      )}
+
       {status === 'LINK_SOON' ? (
         <RevealItem>
           <p className="mt-5 leading-5 text-text-lo">LINK — model later</p>
@@ -113,24 +130,6 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
         </RevealItem>
       ) : (
         <>
-          {/* Market view from GET /pools: public, needs no wallet */}
-          <RevealItem>
-            <dl className="mt-5 grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 gap-y-2 text-[0.75rem] leading-5">
-              <dt className="label leading-5"><Term id="apr">apr</Term></dt>
-              <dd className="font-mono text-text-hi">
-                {pools.status === 'pending' ? <Skeleton chars={8} scan={false} /> : live?.aprPct !== null && live?.aprPct !== undefined ? `${live.aprPct.toFixed(2)}%` : '—%'}
-                {live && <span className="ml-2 text-text-dim">{live.aprSource === 'defillama' ? 'defillama' : 'APR unavailable on DefiLlama'}</span>}
-              </dd>
-              <dt className="label leading-5">pool tvl</dt>
-              <dd className="font-mono text-text-mid">
-                {pools.status === 'pending' ? <Skeleton chars={10} scan={false} /> : live ? compactUsd(live.poolTvlUsd) : '—'}
-                {live?.volumeUsd1d !== null && live?.volumeUsd1d !== undefined && <span className="ml-2 text-text-dim">· {compactUsd(live.volumeUsd1d)} 24h vol</span>}
-              </dd>
-              <dt className="label leading-5">eth</dt>
-              <dd className="font-mono text-text-mid">{live ? formatUsd(live.ethUsd) : '—'}</dd>
-            </dl>
-          </RevealItem>
-
           {/* Position view: on-chain, wallet required */}
           {!address ? (
             <RevealItem className="mt-3 flex flex-1">

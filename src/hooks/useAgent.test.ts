@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { PoolsResponse } from '@/types/agentApi';
 
 import { agentKeys } from './useAgent';
-import { poolForChain } from './usePools';
+import { POLL_POOLS_MS, poolForChain, poolsById } from './usePools';
 
 /** Query-key and selector helpers the new hooks depend on. */
 describe('agentKeys', () => {
@@ -34,5 +34,15 @@ describe('poolForChain', () => {
   });
   it('is undefined with no data', () => {
     expect(poolForChain(undefined, 42161)).toBeUndefined();
+  });
+  it('poolsById keys rows by the agent id, ignoring order and unknown ids', () => {
+    const shuffled = { ...pools, pools: [pools.pools[1]!, { id: 'base', chainId: 8453, poolId: 9 } as unknown as PoolsResponse['pools'][number], pools.pools[0]!] };
+    const m = poolsById(shuffled);
+    expect(m.arbitrum?.poolId).toBe(1);
+    expect(m.robinhood?.poolId).toBe(4);
+    expect(Object.keys(m)).toEqual(['robinhood', 'arbitrum']);
+  });
+  it('polls every 15 s as the agent advertises', () => {
+    expect(POLL_POOLS_MS).toBe(15_000);
   });
 });

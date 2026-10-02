@@ -298,7 +298,7 @@ forecastHash = keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, i
 | `useLatestForecast` | `/forecasts/latest` | 30 s + `:01` UTC | monotonic hourId guard |
 | `useAgentStatus` | `/status` | 30 s | |
 | `useForecastHistory` | `/forecasts?limit=24` | 60 s | re-sorted newest-first client-side |
-| `usePools` | `/pools` | 60 s | selection lives in the UI store |
+| `usePools` | `/pools` | 15 s | agent `pollSeconds`; `cache: no-store`; aprSource is an open string (`defillama`, `uniswap`, `unavailable` seen); `poolTvlUsd` / `ethUsd` nullable; selection lives in the UI store |
 | `useVaultTelemetry` | `/vault` | 30 s | no wallet required; the endpoint answers in 9.6–12.7 s |
 | `usePortfolio` | `/portfolio/:address` | 30 s | enabled only with a wallet; invalidated on every deposit / withdraw receipt (the handover's 10 s never settled against a 9.6–12.7 s response) |
 

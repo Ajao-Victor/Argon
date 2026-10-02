@@ -22,7 +22,8 @@ import { forecastSchema, type Forecast } from './forecast';
 // ---------------------------------------------------------------------------
 
 export type ChainKey = 'arbitrum' | 'robinhood';
-export type AprSource = 'defillama' | 'unavailable';
+/** Where the APR came from. Seen: 'defillama', 'uniswap', 'unavailable'. Open string: a new source must never invalidate the pool. */
+export type AprSource = string;
 
 export interface LpPool {
   id: ChainKey;
@@ -37,8 +38,8 @@ export interface LpPool {
   stable: Address;
   stableSymbol: string;
   inPool: boolean;
-  poolTvlUsd: number;
-  ethUsd: number;
+  poolTvlUsd: number | null;
+  ethUsd: number | null;
   selectable: boolean;
   depositHint: string;
   aprPct: number | null;
@@ -46,6 +47,9 @@ export interface LpPool {
   aprSource: AprSource;
   llamaTvlUsd: number | null;
   volumeUsd1d: number | null;
+  uniswapTick?: number | null | undefined;
+  /** uint128 as a decimal string. */
+  uniswapLiquidity?: string | null | undefined;
   error?: string | undefined;
 }
 
@@ -134,15 +138,17 @@ export const lpPoolSchema = z.object({
   stable: addressSchema,
   stableSymbol: z.string().min(1).max(16),
   inPool: z.boolean(),
-  poolTvlUsd: usd,
-  ethUsd: z.number().finite().positive(),
+  poolTvlUsd: usd.nullable(),
+  ethUsd: z.number().finite().positive().nullable(),
   selectable: z.boolean(),
   depositHint: z.string().max(200),
   aprPct: z.number().finite().nullable(),
   aprBasePct: z.number().finite().nullable(),
-  aprSource: z.enum(['defillama', 'unavailable']),
+  aprSource: z.string().min(1).max(32),
   llamaTvlUsd: usd.nullable(),
   volumeUsd1d: usd.nullable(),
+  uniswapTick: z.number().int().nullable().optional(),
+  uniswapLiquidity: z.string().regex(/^\d+$/).nullable().optional(),
   error: z.string().max(500).optional(),
 });
 
