@@ -59,3 +59,15 @@ export function msUntilNextHour(now: Date = new Date()): number {
   );
   return next - now.getTime();
 }
+
+/**
+ * "Understandable hour": the UTC hour at which an 8-hour forecast settles, written for a
+ * non-technical reader — "18:00 UTC (in 6h)", "(this hour)", or "(settled 3h ago)".
+ * `nowHourId` defaults to the current clock hour; pass it explicitly in tests and in
+ * components that already hold a clock so every row shares one "now".
+ */
+export function formatSettlementHour(targetHourId: HourId | number, nowHourId: number = hourIdFromDate()): string {
+  const delta = targetHourId - nowHourId;
+  const when = delta > 0 ? `in ${delta}h` : delta === 0 ? 'this hour' : `settled ${-delta}h ago`;
+  return `${formatHourUtc(targetHourId)} (${when})`;
+}

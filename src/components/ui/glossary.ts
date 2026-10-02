@@ -9,7 +9,7 @@ export const GLOSSARY = {
   registryHash: 'The same hash, read from the InferenceRegistry contract on-chain. Green means the API and the chain agree.',
   bps: 'Basis points for each horizon, as the registry stores them: percent × 100, rounded half-to-even. −241 is −2.41%.',
   hourId: 'Hours since 1970 UTC. Every forecast, hash, and rebalance is keyed on this number.',
-  targetHour: 'The hour eight ahead, when this forecast can be compared against the real price.',
+  targetHour: 'The understandable hour: the UTC hour, eight ahead of the forecast, when the 8-hour prediction settles and is compared against the real ETH price. Until then the forecast is pending.',
   gate: `The one rule, per horizon: liquidity leaves the pool if the model expects |ETH| to move ≥ ${GATES_PCT['1h']}% in 1h or ≥ ${GATES_PCT['2h']}% in 2h; it only enters when 1h, 2h and 8h (±${GATES_PCT['8h']}%) are all inside.`,
   spot: 'The ETH price the model saw when it ran, from the DIA oracle.',
   model: 'The version of the forecasting model. It changes only when the training policy changes.',

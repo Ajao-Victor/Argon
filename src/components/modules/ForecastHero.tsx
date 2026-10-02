@@ -6,7 +6,7 @@ import type { SupportedChainId } from '@/services/chains';
 import type { PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
 import { formatPct, formatUsd } from '@/utils/format';
-import { formatHourUtc } from '@/utils/hourId';
+import { formatHourUtc, formatSettlementHour } from '@/utils/hourId';
 import { GATES_PCT, WARMUP_HOURS, gateChip } from '@/utils/policy';
 import { forecastLagHours, isForecastStale } from '@/utils/agentStaleness';
 import { selectHero } from '@/utils/heroSource';
@@ -246,8 +246,8 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
         </div>
         {api && (
           <div className="flex flex-col gap-1">
-            <span className="label leading-5"><Term id="targetHour">target</Term></span>
-            <span className="font-mono text-sm leading-5 text-text-hi">hour {api.targetHourId}</span>
+            <span className="label leading-5"><Term id="targetHour">understandable hour</Term></span>
+            <span className="font-mono text-sm leading-5 text-text-hi" title={`hour ${api.targetHourId}`}>{formatSettlementHour(api.targetHourId)}</span>
           </div>
         )}
         <div className="flex flex-col gap-1">

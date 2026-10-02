@@ -2,14 +2,14 @@
 
 import { useCallback, useMemo, useState } from 'react';
 
-import { Chip, DataTable, HashText, Panel, SkeletonLines, type ChipTone, type Column } from '@/components/ui';
+import { Chip, DataTable, HashText, Panel, SkeletonLines, Term, type ChipTone, type Column } from '@/components/ui';
 import { useAgentMode, useForecastHistory } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { txUrl } from '@/services/explorer';
 import type { Forecast, PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
 import { formatPct } from '@/utils/format';
-import { formatDateHourUtc } from '@/utils/hourId';
+import { formatDateHourUtc, formatSettlementHour, hourIdFromDate } from '@/utils/hourId';
 
 import { HashMatch } from './HashMatch';
 
@@ -27,16 +27,23 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
   const [selected, setSelected] = useState<Forecast | undefined>(undefined);
   const rows = history.data?.items ?? [];
 
+  // One "now" per data refresh so every row's countdown agrees: the fetch timestamp is pure, re-read on each 60 s tick.
+  const nowHourId = history.dataUpdatedAt ? hourIdFromDate(new Date(history.dataUpdatedAt)) : 0;
   const columns: readonly Column<Forecast>[] = useMemo(() => [
     { key: 'hour', header: 'hour', render: (r) => <span className="text-text-hi">{r.hourId}</span> },
     { key: 'utc', header: 'utc', render: (r) => <span className="text-text-lo">{formatDateHourUtc(r.hourId)}</span> },
+    {
+      key: 'settles',
+      header: <Term id="targetHour">understandable hour</Term>,
+      render: (r) => <span className={cn(r.targetHourId > nowHourId ? 'text-text-mid' : 'text-text-dim')} title={`hour ${r.targetHourId}`}>{formatSettlementHour(r.targetHourId, nowHourId)}</span>,
+    },
     { key: 'pred', header: 'pred %', align: 'right', render: (r) => <span className={pctClass(r.ethPctChange)}>{formatPct(r.ethPctChange)}</span> },
     { key: 'real', header: 'real %', align: 'right', render: (r) => <span className={pctClass(r.realizedPctChange)}>{r.realizedPctChange === null ? '—' : formatPct(r.realizedPctChange)}</span> },
     { key: 'status', header: 'status', render: (r) => <span className={cn(r.status === 'matured' ? 'text-text-mid' : 'text-text-dim')}>{r.status}</span> },
     { key: 'action', header: 'action', render: (r) => <Chip tone={ACTION_TONE[r.action]}>{r.action}</Chip> },
     { key: 'hash', header: 'hash', render: (r) => <HashText value={r.forecastHash} /> },
     { key: 'tx', header: 'tx', render: (r) => <HashText value={r.txHash} href={r.txHash ? txUrl(chainId, r.txHash) : undefined} /> },
-  ], [chainId]);
+  ], [chainId, nowHourId]);
   const rowKey = useCallback((r: Forecast) => r.hourId, []);
   const onRowClick = useCallback((r: Forecast) => setSelected((s) => (s?.hourId === r.hourId ? undefined : r)), []);
 
