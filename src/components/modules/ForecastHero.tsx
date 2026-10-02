@@ -7,8 +7,9 @@ import type { PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
 import { formatPct, formatUsd } from '@/utils/format';
 import { formatHourUtc } from '@/utils/hourId';
-import { GATES_PCT, WARMUP_HOURS, gateChip, policyAction } from '@/utils/policy';
+import { GATES_PCT, WARMUP_HOURS, gateChip } from '@/utils/policy';
 import { forecastLagHours, isForecastStale } from '@/utils/agentStaleness';
+import { selectHero } from '@/utils/heroSource';
 
 /**
  * The number is the hero (design.md §4.2). Renders the API `action`; falls back to
@@ -60,12 +61,13 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
   const gateBps = api?.gateBps ?? status.data?.gateBps;
 
   // Source of the number: API, else registry, else nothing.
-  const pct = api ? api.ethPctChange : match.chainPct;
-  const hourId = api?.hourId ?? match.registryLatestHourId;
-  const warmupComplete = api?.warmupComplete ?? status.data?.warmupComplete ?? false;
+  // One rule, tested in utils/heroSource.test.ts: the agent row always wins; the chain is
+  // consulted only when there is no agent row and the registry holds a committed forecast.
   const inPool = Object.values(pools.data ?? {}).some((s) => s === 1);
-  const action: PolicyAction | undefined =
-    api?.action ?? (pct !== null && pct !== undefined ? policyAction({ ethPctChange: pct, warmupComplete, currentlyInPool: inPool }) : undefined);
+  const hero = selectHero({ api, match, statusWarmupComplete: status.data?.warmupComplete, inPool });
+  const pct = hero.pct;
+  const hourId = hero.hourId;
+  const action: PolicyAction | undefined = hero.action;
 
   const gate = pct !== null && pct !== undefined ? gateChip(pct) : undefined;
   const gates = gatesFrom(api ?? status.data);
@@ -193,6 +195,12 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
           <div className="flex flex-col gap-1">
             <span className="label leading-5"><Term id="spot">spot</Term></span>
             <span className="font-mono text-sm leading-5 text-text-hi">{api.spotUsd === null ? '—' : formatUsd(api.spotUsd)}</span>
+          </div>
+        )}
+        {hero.predUsd !== null && (
+          <div className="flex flex-col gap-1">
+            <span className="label leading-5">8h target</span>
+            <span className={cn('font-mono text-sm leading-5', pct !== null && pct < 0 ? 'text-signal-down' : 'text-signal-up')}>{formatUsd(hero.predUsd)}</span>
           </div>
         )}
         <div className="flex flex-col gap-1">

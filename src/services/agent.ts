@@ -76,6 +76,9 @@ function describeNetworkFailure(err: unknown, path: string): string {
   return base;
 }
 
+/** Same-origin proxy (src/app/api/agent/[...path]/route.ts): server-to-server, so browser CORS does not apply. */
+export const PROXY_BASE = '/api/agent';
+
 async function agentGet<S extends z.ZodType>(path: string, schema: S, signal?: AbortSignal, timeoutMs = AGENT_TIMEOUT_MS): Promise<z.output<S>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -84,15 +87,20 @@ async function agentGet<S extends z.ZodType>(path: string, schema: S, signal?: A
     if (signal.aborted) controller.abort();
     else signal.addEventListener('abort', onOuterAbort, { once: true });
   }
+  const init: RequestInit = { method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal };
 
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-      signal: controller.signal,
-    });
+    try {
+      res = await fetch(`${BASE}${path}`, init);
+    } catch (err) {
+      // A bare TypeError here is a browser network / CORS failure (Heroku's FRONTEND_ORIGIN
+      // not matching this page). Retry once through the same-origin proxy, which forwards
+      // server-to-server. Aborts and server-side calls are not retried.
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      if (isAbort || typeof window === 'undefined') throw err;
+      res = await fetch(`${PROXY_BASE}${path}`, init);
+    }
   } catch (err) {
     clearTimeout(timer);
     signal?.removeEventListener('abort', onOuterAbort);

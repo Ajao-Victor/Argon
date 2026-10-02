@@ -66,3 +66,21 @@ describe('no-api fallback (agent down, registry up)', () => {
     expect(r.apiHashVerified).toBe(false);
   });
 });
+
+describe('empty registry under keeper dry-run (live 2026-10-02)', () => {
+  const liveApi: Forecast = {
+    ...api,
+    hourId: 497478 as HourId, targetHourId: 497486 as HourId, action: 'warmup', warmupComplete: false, txHash: null, txHashRh: null,
+    ethPct1h: -0.7195966124446285, ethPct2h: 0.07506381106900939, ethPct8h: -0.1747245103928985, ethPctChange: -0.1747245103928985,
+    modelId: 'eth-1-2-8h-v1', forecastHash: '0x0ef143e4d2207e7dd7dd513e1b3f8de43f7b254658dba513dabcda28dda1b90f',
+    predEthUsd8h: 2714.7483669398653,
+  };
+  it('reports pending on chain with the browser-side hash verified, and leaves the API numbers untouched', () => {
+    const r = reconcileForecast({ api: liveApi, deployed: true, queryStatus: 'success', registryLatestHourId: 0 as HourId, registryRow: undefined });
+    expect(r.kind).toBe('pending-chain');
+    expect(r.apiHashVerified).toBe(true);
+    expect(r.chainPct).toBeNull();
+    expect(r.apiHash).toBe(liveApi.forecastHash);
+    expect(r.apiBps).toEqual({ h1: -72n, h2: 8n, h8: -17n });
+  });
+});

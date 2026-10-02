@@ -26,7 +26,12 @@ export type Hex = `0x${string}`;
 export type PolicyAction = 'warmup' | 'exit' | 'enter' | 'hold';
 export type ForecastStatus = 'pending' | 'matured';
 export type Horizon = '1h' | '2h' | '8h';
-export type HorizonSource = 'lgbm' | 'persistence';
+/**
+ * Where a horizon's number came from. Known values today: 'lgbm' (the model),
+ * 'persistence' (carry-forward baseline), 'catchup' (clock catching up after a stall).
+ * Typed as string on purpose: a new source label must never invalidate a live row.
+ */
+export type HorizonSource = string;
 /** On-chain pool status as the agent last read it: 0 idle, 1 in pool, null unknown. */
 export type ApiPoolStatus = 0 | 1 | null;
 
@@ -61,6 +66,16 @@ export interface Forecast {
   poolStatusArb: ApiPoolStatus;
   poolStatusRh: ApiPoolStatus;
   trippedHorizons: Horizon[];
+  /** Predicted ETH/USD at the 8 h target hour (added by the agent 2026-10-02). */
+  predEthUsd8h?: number | null | undefined;
+  /** Predicted ETH/USD one hour ahead. */
+  expectedEthUsd1h?: number | null | undefined;
+  /** Close of the hourly bar the model consumed. */
+  barCloseUsd?: number | null | undefined;
+  barTime?: string | null | undefined;
+  barHourId?: HourId | null | undefined;
+  /** True when the row was produced by the live clock (not a backfill). */
+  live?: boolean | undefined;
   /** Derived: the 8 h headline horizon (= ethPct8h). */
   ethPctChange: number;
   /** Derived: the 8 h gate in bps (= gate8hBps). */
@@ -81,6 +96,10 @@ export interface AgentStatus {
   /** Heroku DRY_RUN flag as the agent reports it (string or boolean). True = keeper is not sending txs. */
   dryRun: boolean;
   database?: string | undefined;
+  liveForecast?: boolean | undefined;
+  /** Rows the registry holds vs rows Postgres holds; the gap is what dry-run withholds from chain. */
+  onchainForecastCount?: number | undefined;
+  dbForecastCount?: number | undefined;
   /** Derived: the 8 h gate in bps (= gate8hBps). */
   gateBps: number;
 }
@@ -126,7 +145,7 @@ const bpsGateSchema = z.number().int().nonnegative().max(10_000);
 export const policyActionSchema = z.enum(['warmup', 'exit', 'enter', 'hold']);
 export const forecastStatusSchema = z.enum(['pending', 'matured']);
 export const horizonSchema = z.enum(['1h', '2h', '8h']);
-export const horizonSourceSchema = z.enum(['lgbm', 'persistence']);
+export const horizonSourceSchema = z.string().min(1).max(32);
 const apiPoolStatusSchema = z.union([z.literal(0), z.literal(1)]).nullable();
 
 export const forecastSchema = z
@@ -158,6 +177,12 @@ export const forecastSchema = z
     poolStatusArb: apiPoolStatusSchema,
     poolStatusRh: apiPoolStatusSchema,
     trippedHorizons: z.array(horizonSchema).max(3),
+    predEthUsd8h: z.number().finite().positive().nullable().optional(),
+    expectedEthUsd1h: z.number().finite().positive().nullable().optional(),
+    barCloseUsd: z.number().finite().positive().nullable().optional(),
+    barTime: z.string().datetime({ offset: true }).nullable().optional(),
+    barHourId: hourIdSchema.nullable().optional(),
+    live: z.boolean().optional(),
   })
   .refine((f) => f.targetHourId === f.hourId + 8, { message: 'targetHourId must equal hourId + 8', path: ['targetHourId'] })
   .refine((f) => f.warmupComplete || f.action === 'warmup', { message: 'action must be warmup while warmupComplete is false', path: ['action'] })
@@ -183,6 +208,9 @@ export const agentStatusSchema = z
     modelLoaded: z.boolean(),
     dryRun: dryRunSchema,
     database: z.string().max(64).optional(),
+    liveForecast: z.boolean().optional(),
+    onchainForecastCount: z.number().int().nonnegative().optional(),
+    dbForecastCount: z.number().int().nonnegative().optional(),
   })
   .transform((s) => ({ ...s, gateBps: s.gate8hBps }));
 

@@ -66,7 +66,6 @@ describe('forecastSchema rejects malformed rows', () => {
     ['NaN percent', { ethPct1h: Number.NaN }],
     ['impossible percent', { ethPct2h: -150 }],
     ['unknown action', { action: 'yolo' }],
-    ['unknown source', { ethPct8hSource: 'oracle' }],
     ['unknown horizon', { trippedHorizons: ['4h'] }],
     ['pool status out of range', { poolStatusArb: 2 }],
     ['target hour mismatch', { targetHourId: 497441 }],
@@ -114,5 +113,43 @@ describe('development fixture', () => {
       expect(verifyForecastHash(r)).toBe(true);
     }
     expect(forecastListSchema.safeParse({ items: rows }).success).toBe(true);
+  });
+});
+
+describe('live row captured 2026-10-02 (new agent fields, catchup sources, empty registry)', () => {
+  const ROW = {
+    hourId: 497478, targetHourId: 497486, submittedAt: '2026-10-02T06:00:28.109665+00:00',
+    predEthUsd8h: 2714.7483669398653, barCloseUsd: 2719.5, expectedEthUsd1h: 2739.2112715175417,
+    ethPct1h: -0.7195966124446285, ethPct2h: 0.07506381106900939, ethPct8h: -0.1747245103928985,
+    ethPct1hSource: 'catchup', ethPct2hSource: 'catchup', ethPct8hSource: 'lgbm',
+    spotUsd: 2717.565566787006, modelId: 'eth-1-2-8h-v1', status: 'pending', realizedPctChange: null, realizedSpotUsd: null,
+    action: 'warmup', gate1hBps: 100, gate2hBps: 250, gate8hBps: 200, warmupComplete: false,
+    forecastHash: '0x0ef143e4d2207e7dd7dd513e1b3f8de43f7b254658dba513dabcda28dda1b90f', txHash: null, txHashRh: null,
+    rebalanceTx: 'warmup-skip', rebalanceTxRh: 'warmup-skip', poolStatusArb: 0, poolStatusRh: 0,
+    barTime: '2026-10-02T05:00:00+00:00', barHourId: 497477, live: true, trippedHorizons: [],
+  };
+  const STATUS = {
+    ok: true, warmupComplete: false, hoursUntilFirstDecision: 9, gate1hBps: 100, gate2hBps: 250, gate8hBps: 200,
+    lastHourId: 497478, currentHourId: 497478, liveForecast: true, modelId: 'eth-1-2-8h-v1', modelLoaded: true, dryRun: 'true',
+    database: 'postgres', onchainForecastCount: 0, dbForecastCount: 15,
+  };
+  it('validates with txHash null, a new source label, and the new price fields', () => {
+    const r = forecastSchema.safeParse(ROW);
+    expect(r.success, r.success ? '' : r.error.message).toBe(true);
+    if (r.success) {
+      expect(r.data.predEthUsd8h).toBe(ROW.predEthUsd8h);
+      expect(r.data.ethPctChange).toBe(ROW.ethPct8h);
+    }
+  });
+  it('validates the status row with the new counters', () => {
+    const r = agentStatusSchema.safeParse(STATUS);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.onchainForecastCount).toBe(0);
+  });
+  it('the published hash still recomputes from its numbers', () => {
+    expect(computeForecastHash(ROW)).toBe(ROW.forecastHash);
+  });
+  it('a future unknown source label still validates', () => {
+    expect(forecastSchema.safeParse({ ...ROW, ethPct8hSource: 'ensemble-v2' }).success).toBe(true);
   });
 });
