@@ -51,16 +51,15 @@ export function LandingHero() {
       <Reveal delay={0.18} className="flex w-full flex-col items-center gap-5 text-center">
         <RevealItem>
           <h1 className="font-display text-4xl font-medium leading-tight tracking-tight text-text-hi sm:text-6xl">
-            Earn liquidity yields when ETH is calm.
-            <br />
-            <span className="text-argon-400 glow-text">Automatically move to safety before big price swings.</span>
+            Yield on autopilot.{' '}
+            <br className="hidden sm:block" />
+            <span className="text-argon-400 glow-text">Safety built in.</span>
           </h1>
         </RevealItem>
 
         <RevealItem>
           <p className="mx-auto max-w-2xl text-[0.9375rem] leading-6 text-text-mid sm:text-base">
-            Most liquidity providers lose money when ETH makes a sudden violent move. Argon checks an AI price forecast every hour, keeping your funds
-            earning trading fees during calm markets and pulling them into cash before predicted volatility hits.
+            Argon puts your crypto to work when ETH is calm and puts it to cash when it isn&apos;t. No charts, no clicking.
           </p>
         </RevealItem>
 
