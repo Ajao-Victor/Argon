@@ -107,7 +107,7 @@ export function Footer() {
       </div>
       <div className="border-t border-hairline">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6">
-          <span className="label leading-5 text-text-dim">custody on-chain · judgment off-chain · the website is not the keeper</span>
+          <span className="label leading-5 text-text-dim">Your funds stay in your control · Automated hourly protection · Withdraw anytime</span>
           <span className="label leading-5 text-text-dim">{explorerName(chainId)}</span>
         </div>
       </div>
