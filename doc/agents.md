@@ -11,13 +11,13 @@ Sources: spec §3 (Web ↔ agent), §7 (time), §8 (sequence); partner's `agent/
 | | argon-web | agent |
 |---|---|---|
 | Owns | Wallet UI, deposit/withdraw, rendering forecasts, verifying hashes | Model, hourly inference, forecast store, ±2% policy, keeper |
-| May call | `GET` on the agent REST API. Read contracts. Sign deposit/withdraw. | Tiingo, DIA, Postgres, `Registry.submit`, `Vault.rebalance` |
-| May never call | Any `POST`/`PUT` to the agent. `rebalance`. `submit`. Uniswap managers. | Nothing on the web. The agent never pushes to the browser in v1. |
+| May call | `GET` on the agent REST API, plus the wallet-signed `POST /gates` (2026-10-02). Read contracts. Sign deposit/withdraw. | Tiingo, DIA, Postgres, `Registry.submit`, `Vault.rebalance` |
+| May never call | Any other `POST`/`PUT` to the agent. `rebalance`. `submit`. Uniswap managers. | Nothing on the web. The agent never pushes to the browser in v1. |
 | Holds secrets | None beyond the user's wallet session | Tiingo key, keeper private keys, Postgres URL |
 | Source of the number | Reads `ethPctChange` | Produces `ethPctChange` |
 | Source of the action | Renders `action` from the API | Computes `action` from the ±2% gate |
 
-**Direction of data is one way: agent → web, by polling.** There are no execution triggers, kill switches, or parameter-tuning messages from the web to the agent. The spec forbids them and the design does not need them. The only "execution triggers" a user can fire are on-chain `deposit` and `withdraw` against the vault, which the agent observes from chain, not from the web.
+**Direction of data is one way: agent → web, by polling, with one signed exception.** There are no execution triggers, kill switches, or model-parameter messages from the web to the agent. The single write is the per-user gate (`POST /gates`, §9.6): the wallet signs the exact gate string, the agent recovers the signer, and nothing unsigned is ever sent. The only "execution triggers" a user can fire are on-chain `deposit` and `withdraw` against the vault, which the agent observes from chain, not from the web.
 
 ---
 
@@ -65,6 +65,8 @@ Base: `NEXT_PUBLIC_AGENT_URL` = `https://argon-bd8888db5430.herokuapp.com` (live
 | `GET` | `/pools` | `PoolsResponse` | 60 s | APR / TVL cards, chain selection |
 | `GET` | `/vault` | `VaultSnapshot` | 30 s | Global TVL before any wallet connects |
 | `GET` | `/portfolio/:address` | `Portfolio` | 30 s (wallet only) | Live user equity in USD |
+| `GET` | `/gates/:address` | `GateRow` (404 = none chosen) | 30 s (wallet only) | The wallet's gate, `lastAction`, `inPosition` on the selected pool card |
+| `POST` | `/gates` | `GateRow` | on 'sign & save' | Store a wallet-signed gate (presets or custom 1 h band) |
 
 Error shape for any non-2xx:
 
@@ -316,5 +318,15 @@ The agent answers `Access-Control-Allow-Origin: *` to tooling, and allowlists br
 | InferenceRegistry | `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` | [Arbiscan](https://arbiscan.io/address/0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f) | [Blockscout](https://robinhoodchain.blockscout.com/address/0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f) |
 | ChainlinkEthOracle | `0xfC22F2C49Ce6Fa46c5081f900fD691b127Bd1bc5` | read by the vault | read by the vault |
 | UniswapV3Adapter | `0xECCc4B8946D0DB206f977d3021544D0cD5Dc69D4` | pool 1 WETH/USDC 0.05 % | pool 4 WETH/USDG 0.05 % |
+
+### 9.6 Per-user gate (handoff 2026-10-02)
+
+The model still publishes one 8-hour ETH price. The user's gate decides whether their capital is allowed into the Uniswap position that hour. `GET /gates/{address}` returns `{address, preset, top1hBps, bottom1hBps, top2hBps, bottom2hBps, top8hBps, bottom8hBps, inPosition, lastAction (warmup|enter|hold|exit|null), lastHourId|null, issuedAt}`; 404 means no gate chosen (default policy). `lastAction` is that wallet's own decision; the forecast's `action` remains the shared vault action.
+
+Presets (top bps, bottom = −top): Safe 60 / 120 / 100, Balanced 100 / 250 / 200, Aggressive 200 / 400 / 350; Custom takes the user's 1 h top (`0 < top ≤ 2000`) and bottom (`−2000 ≤ bottom < 0`) and keeps 2 h / 8 h at Balanced. `src/types/gates.ts` mirrors the agent's `policy.resolve_gate` and `gate_message`, with tests.
+
+Flow (`useSetGate`): resolve the bands → `issuedAt = now (unix s)` → wallet `personal_sign` of `argon-gate:{address.lower()}:{preset}:{topBps}:{bottomBps}:{issuedAt}` (EIP-191, matches `encode_defunct`) → `POST /gates {address, preset, topBps, bottomBps, issuedAt, signature}` → the agent recovers the signer and stores the gate → the web re-reads `/gates/{address}`. Agent errors: 400 preset / band mismatch, 400 signature outside the 2 h window, 400 bad signature, 409 a newer gate is already stored, 422 missing fields (array detail joined by the web). The same-origin proxy forwards `POST /gates` only; every other method or path stays GET-allowlisted.
+
+Hero semantics from the same handoff: `/forecasts/latest` always answers 200 (the current hour, or the last stored hour with `live:false`, shown with a stale banner and its numbers intact). `ethPct8h` is this hour's target and `predEthUsd8h` its 8-hour price measured from `barCloseUsd`; `expectedEthUsd1h` is the averaged 1-hour path's next price; `ethPct1h` / `ethPct2h` are the average remaining move from the current price across every stored 8-hour target still covering that horizon (`…Source: residual` = "updated remainder of earlier 8-hour prices"). Warmup: filled = 9 − `hoursUntilFirstDecision`; countdown = `hoursUntilFirstDecision`; on-chain submits = `onchainForecastCount` (never the bar's source); stored = `dbForecastCount`.
 
 Owner and keeper: `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E`. Deployed-contract semantics the web honours: `withdraw(shares)` flattens every LP position first and pays pro-rata WETH + stable (there is no per-token idle withdraw); `emergencyWithdraw()` burns all shares; `warmupComplete()` is `registry.forecastCount() >= 9`; there is no `gateBps()` getter (gates come from the API).

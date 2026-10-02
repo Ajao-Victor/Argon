@@ -45,7 +45,7 @@ Missing vault/registry → `undefined` binding → "contracts not deployed" stat
 
 ## 4. Agent REST (live FastAPI on Heroku, model `eth-1-2-8h-v1`)
 
-Base `NEXT_PUBLIC_AGENT_URL`. No auth. CORS = web origin (`FRONTEND_ORIGIN` on Heroku; `*.vercel.app` previews allowed). GET only. Timeouts: 15 s feed, 30 s chain-reading endpoints (measured 9–13 s). Errors: FastAPI `{ detail }`.
+Base `NEXT_PUBLIC_AGENT_URL`. No auth. CORS = web origin (`FRONTEND_ORIGIN` on Heroku; `*.vercel.app` previews allowed). GET only, except the wallet-signed `POST /gates`. Timeouts: 15 s feed, 30 s chain-reading endpoints (measured 9–13 s). Errors: FastAPI `{ detail }` (422 validation errors arrive as an array and are joined).
 
 | Path | Returns | Poll | Hook |
 |---|---|---|---|
@@ -57,6 +57,8 @@ Base `NEXT_PUBLIC_AGENT_URL`. No auth. CORS = web origin (`FRONTEND_ORIGIN` on H
 | /pools | `PoolsResponse` (APR, TVL, ETH; aprSource open string; TVL/ETH nullable) | 15s (agent pollSeconds; documented exception) | usePools |
 | /vault | `VaultSnapshot` (global TVL, no wallet) | 30s (endpoint takes 9.6–12.7 s) | useVaultTelemetry |
 | /portfolio/:address | `Portfolio` (totalUsd, per-chain, forecast) | 30s, wallet only; invalidated on every receipt | usePortfolio |
+| /gates/:address | `GateRow` (six bands, inPosition, lastAction, lastHourId); 404 = none chosen | 30s, wallet only | useGate |
+| POST /gates | body `{address, preset, topBps, bottomBps, issuedAt, signature}` → `GateRow`; 400 preset mismatch / bad or stale signature (2 h window), 409 newer gate stored | on 'sign & save' only | useSetGate |
 
 ```ts
 interface Forecast {   // three horizons; ethPctChange/gateBps are the derived 8 h headline
@@ -71,7 +73,11 @@ interface LpPool { id: 'arbitrum'|'robinhood'; chainId; poolId; pair; feePercent
 interface ChainPortfolio { name; chainId; vault; poolId; pair; inPool; ethUsd; totalShares (uint string); tvlUsd; shares (uint string); shareUsd; idleWeth; idleStable; idle*Formatted; wallet*; stableSymbol; stableDecimals }
 VaultSnapshot = { address: null; updatedAt; pollSeconds; totalUsd; chains: { arbitrum?; robinhood? } }
 Portfolio     = VaultSnapshot & { address; forecast: Forecast|null }
+interface GateRow { address; preset: 'safe'|'balanced'|'aggressive'|'custom'; top1hBps; bottom1hBps; top2hBps; bottom2hBps; top8hBps; bottom8hBps; inPosition; lastAction: 'warmup'|'enter'|'hold'|'exit'|null; lastHourId|null; issuedAt }
+// presets (top bps; bottom = −top): safe 60/120/100 · balanced 100/250/200 · aggressive 200/400/350 · custom = user 1h (0 < top ≤ 2000, −2000 ≤ bottom < 0), 2h/8h balanced
+// signed string: argon-gate:{address.lower()}:{preset}:{topBps}:{bottomBps}:{issuedAt}   (personal_sign; issuedAt unix s, within 2 h, newer than stored)
 ```
+Handoff 2026-10-02 forecast semantics: `/forecasts/latest` always answers 200 (current hour, or the last stored hour with `live:false` → stale banner, numbers still rendered). `ethPct8h` is this hour's target and `predEthUsd8h` its price, measured from `barCloseUsd`; `expectedEthUsd1h` is the averaged 1-hour path's next price; `ethPct1h`/`ethPct2h` are the average remaining move from the current price across every stored 8-hour target still covering that horizon (`…Source: 'residual'` = "updated remainder of earlier 8-hour prices"). Warmup bar: filled = 9 − `hoursUntilFirstDecision`, countdown = `hoursUntilFirstDecision`, on-chain submits = `onchainForecastCount` (never the bar's source), stored = `dbForecastCount`. `txHash: null` and `onchainForecastCount: 0` mean dry-run only.
 Validate with zod (`src/types/forecast.ts`, `src/types/agentApi.ts`); addresses → EIP-55 at the boundary. Bad row = agent error.
 
 ## 5. Contracts (deployed; same address on 42161 and 4663)
@@ -201,7 +207,7 @@ Deposit USDC on Arb, idle updates · hero shows 8h % same sign 2 decimals · |pr
 
 ## 17. Hard bans
 
-No POST to agent · no `rebalance`/`submit` · no Uniswap manager calls · no keeper key, Tiingo key, DIA call in browser · no second gate threshold · no polling < 30s · no second cache · no touching `agent/`.
+No write to the agent except the wallet-signed `POST /gates` · no `rebalance`/`submit` · no Uniswap manager calls · no keeper key, Tiingo key, DIA call in browser · no gate threshold invented by the web (per-user bands are the agent's presets) · no polling < 30s except `/pools` 15 s · no second cache · no touching `agent/`.
 
 ## 18. Live state (2026-10-01)
 
