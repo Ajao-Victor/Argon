@@ -3,3 +3,4 @@ export * from './forecast';
 export * from './pools';
 export * from './abi';
 export * from './agentApi';
+export * from './gates';
