@@ -7,6 +7,7 @@ export * from './useActivity';
 export * from './usePools';
 export * from './usePortfolio';
 export * from './useVaultTelemetry';
+export * from './useGate';
 export * from './useSimulationLoop';
 export * from './usePerfReadout';
 export * from './useUtcClock';

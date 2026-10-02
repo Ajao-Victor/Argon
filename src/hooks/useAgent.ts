@@ -22,6 +22,7 @@ export const agentKeys = {
   pools: () => ['agent', 'pools'] as const,
   vault: () => ['agent', 'vault'] as const,
   portfolio: (address: string | null) => ['agent', 'portfolio', address?.toLowerCase() ?? null] as const,
+  gate: (address: string | null) => ['agent', 'gate', address?.toLowerCase() ?? null] as const,
 };
 
 const AGENT_ENABLED = agent.agentMode !== 'offline';
