@@ -4,7 +4,7 @@ import { useIsFetching } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useCallback, useRef } from 'react';
 
-import { ActivityFeed, ForecastHero, HashMatch, KeeperPanel, PoolCard, RoadmapStrip, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
+import { ActivityFeed, FaqSection, ForecastHero, HashMatch, KeeperPanel, PoolCard, RoadmapStrip, TelemetryBar, WalletStrip, WarmupBar } from '@/components/modules';
 import { KeeperAvatar, type Attractor, type FieldMode } from '@/components/simulation';
 import { Panel, useTxActivity } from '@/components/ui';
 import { agentKeys, useAgentMode, useAgentStatus, useHashMatch, useLatestForecast } from '@/hooks';
@@ -128,6 +128,11 @@ export function Dashboard() {
           {/* Admin-only diagnostics (NEXT_PUBLIC_ADMIN_ADDRESS); renders nothing otherwise */}
           <div className="md:col-span-6 xl:col-span-12 empty:hidden">
             <KeeperPanel delay={0.8} />
+          </div>
+
+          {/* Protocol FAQ, reachable from the navbar and footer "faq" links (#faq) */}
+          <div className="md:col-span-6 xl:col-span-12">
+            <FaqSection title="How the vault decides" />
           </div>
         </div>
 

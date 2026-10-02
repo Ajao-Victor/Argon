@@ -27,6 +27,7 @@ const LINKS = [
   { href: '/app', label: 'dashboard' },
   { href: '/app/forecasts', label: 'forecasts' },
   { href: '/app/activity', label: 'activity' },
+  { href: '/app#faq', label: 'faq' },
 ] as const;
 
 function NavLink({ href, label, active, onClick, block = false }: { href: string; label: string; active: boolean; onClick?: () => void; block?: boolean }) {

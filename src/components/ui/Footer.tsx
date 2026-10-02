@@ -1,6 +1,7 @@
 'use client';
 
 import { ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 import { useAgentHealth, useAgentMode, useAgentStatus, useUtcClock, useWallet } from '@/hooks';
 import { getRegistry, getVault } from '@/services/contracts';
@@ -108,7 +109,12 @@ export function Footer() {
       <div className="border-t border-hairline">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6">
           <span className="label leading-5 text-text-dim">Your funds stay in your control · Automated hourly protection · Withdraw anytime</span>
-          <span className="label leading-5 text-text-dim">{explorerName(chainId)}</span>
+          <span className="flex items-center gap-3">
+            <Link href="/app#faq" className="label leading-5 text-text-lo hover:text-argon-300">
+              protocol faq
+            </Link>
+            <span className="label leading-5 text-text-dim">{explorerName(chainId)}</span>
+          </span>
         </div>
       </div>
     </footer>
