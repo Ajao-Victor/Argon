@@ -15,3 +15,5 @@ export { AgentClock } from './AgentClock';
 export { TelemetryBar } from './TelemetryBar';
 export { KeeperPanel } from './KeeperPanel';
 export { RoadmapStrip } from './RoadmapStrip';
+export { FaqSection } from './FaqSection';
+export type { FaqSectionProps } from './FaqSection';
