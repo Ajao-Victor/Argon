@@ -153,3 +153,42 @@ describe('live row captured 2026-10-02 (new agent fields, catchup sources, empty
     expect(forecastSchema.safeParse({ ...ROW, ethPct8hSource: 'ensemble-v2' }).success).toBe(true);
   });
 });
+
+describe('handoff 2026-10-02: last stored hour (live:false), residual sources, status counters', () => {
+  const STORED_ROW = {
+    hourId: 497479, targetHourId: 497487, submittedAt: '2026-10-02T07:00:30.000000+00:00',
+    predEthUsd8h: 2701.12, barCloseUsd: 2705.0, expectedEthUsd1h: 2698.4,
+    ethPct1h: -0.22, ethPct2h: 0.05, ethPct8h: -0.1434,
+    ethPct1hSource: 'residual', ethPct2hSource: 'residual', ethPct8hSource: 'lgbm',
+    spotUsd: 2703.1, modelId: 'eth-1-2-8h-v1', status: 'pending', realizedPctChange: null, realizedSpotUsd: null,
+    action: 'warmup', gate1hBps: 100, gate2hBps: 250, gate8hBps: 200, warmupComplete: false,
+    forecastHash: null, txHash: null, txHashRh: null, rebalanceTx: 'warmup-skip', rebalanceTxRh: 'warmup-skip',
+    poolStatusArb: 0, poolStatusRh: 0, barTime: '2026-10-02T06:00:00+00:00', barHourId: 497478, live: false, trippedHorizons: [],
+  };
+  it('a 200 with live:false is a valid row — the hero renders it with a stale banner, never "no forecast"', () => {
+    const r = forecastSchema.safeParse(STORED_ROW);
+    expect(r.success, r.success ? '' : r.error.message).toBe(true);
+    if (r.success) {
+      expect(r.data.live).toBe(false);
+      expect(r.data.predEthUsd8h).toBe(2701.12);
+      expect(r.data.barCloseUsd).toBe(2705.0);
+      expect(r.data.expectedEthUsd1h).toBe(2698.4);
+      expect(r.data.ethPct1hSource).toBe('residual');
+    }
+  });
+  it('txHash null and onchainForecastCount 0 only mean dry-run; the numbers stay valid', () => {
+    const status = agentStatusSchema.safeParse({
+      ok: true, warmupComplete: false, hoursUntilFirstDecision: 0, gate1hBps: 100, gate2hBps: 250, gate8hBps: 200,
+      lastHourId: 497479, currentHourId: 497479, liveForecast: true, modelId: 'eth-1-2-8h-v1', modelLoaded: true, dryRun: 'true',
+      database: 'postgres', onchainForecastCount: 0, dbForecastCount: 19,
+    });
+    expect(status.success).toBe(true);
+    if (status.success) {
+      // Warmup bar inputs (handoff): filled = 9 − hoursUntilFirstDecision; countdown = hoursUntilFirstDecision; submits = onchainForecastCount.
+      expect(9 - status.data.hoursUntilFirstDecision).toBe(9);
+      expect(status.data.onchainForecastCount).toBe(0);
+      expect(status.data.dbForecastCount).toBe(19);
+      expect(status.data.dryRun).toBe(true);
+    }
+  });
+});
