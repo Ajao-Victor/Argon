@@ -185,7 +185,7 @@ Prefer the API `action` field. The local helper exists for the fallback banner a
 | Deposit ERC-20 | `deposit(token, amount)` | Allowance ≥ amount | `idleBalance`, `shareBalance` invalidated; activity refetch |
 | Deposit native ETH | `depositETH()` payable, amount as `value` | Wallet on vault chain, amount > 0, amount ≤ native balance. **No approval step**: the vault wraps the ETH itself | Same as above; the native balance (`useBalance`) is invalidated with the ERC-20 reads |
 | Withdraw idle | `withdraw(token, amount)` | amount ≤ `idleBalance` | Same as above |
-| Emergency idle withdraw | `emergencyWithdraw()` | Always available | Same as above |
+| Emergency withdraw | `emergencyWithdraw(bool acceptLoss)` | Always available; `acceptLoss=false` reverts if the LP exit fails, `true` takes the idle share only (explicit checkbox) | Same as above |
 
 Every write goes through simulate → sign → wait for receipt → invalidate. No optimistic balance mutation before the receipt.
 

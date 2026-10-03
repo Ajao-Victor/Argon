@@ -312,21 +312,13 @@ The agent answers `Access-Control-Allow-Origin: *` to tooling, and allowlists br
 
 ### 9.5 Deployed contracts
 
-| Contract | Address (both chains) | Arbitrum One 42161 | Robinhood Chain 4663 |
-|---|---|---|---|
-| ArgonVault | `0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` | [Arbiscan](https://arbiscan.io/address/0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60) | [Blockscout](https://robinhoodchain.blockscout.com/address/0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60) |
-| InferenceRegistry | `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` | [Arbiscan](https://arbiscan.io/address/0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f) | [Blockscout](https://robinhoodchain.blockscout.com/address/0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f) |
-| ChainlinkEthOracle | `0xfC22F2C49Ce6Fa46c5081f900fD691b127Bd1bc5` | read by the vault | read by the vault |
-| UniswapV3Adapter | `0xECCc4B8946D0DB206f977d3021544D0cD5Dc69D4` | pool 1 WETH/USDC 0.05 % | pool 4 WETH/USDG 0.05 % |
+| Contract | Arbitrum One (42161) | Robinhood Chain (4663) |
+|---|---|---|
+| `ArgonVault` | [`0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61`](https://arbiscan.io/address/0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61) · deploy block 511142126 | [`0x89403CA4AdB3A89A0173B7494903B4247881966f`](https://robinhoodchain.blockscout.com/address/0x89403CA4AdB3A89A0173B7494903B4247881966f) · deploy block 78649595 |
+| `InferenceRegistry` | [`0x8F288a7a6E28a5d44980De19502522C376965afe`](https://arbiscan.io/address/0x8F288a7a6E28a5d44980De19502522C376965afe) | [`0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508`](https://robinhoodchain.blockscout.com/address/0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508) |
+| `ChainlinkEthOracle` | [`0x89403CA4AdB3A89A0173B7494903B4247881966f`](https://arbiscan.io/address/0x89403CA4AdB3A89A0173B7494903B4247881966f) | [`0x8F288a7a6E28a5d44980De19502522C376965afe`](https://robinhoodchain.blockscout.com/address/0x8F288a7a6E28a5d44980De19502522C376965afe) |
+| `UniswapV3Adapter` | [`0x05734481536644bc20e671Db28f5b4c05B7D64D4`](https://arbiscan.io/address/0x05734481536644bc20e671Db28f5b4c05B7D64D4) · pool 1 · WETH/USDC 0.05 % | [`0xEDa50F3F5530E9BFFD427c1DB0E0a8f3D05cCC9D`](https://robinhoodchain.blockscout.com/address/0xEDa50F3F5530E9BFFD427c1DB0E0a8f3D05cCC9D) · pool 4 · WETH/USDG 0.05 % |
 
-### 9.6 Per-user gate (handoff 2026-10-02)
+Retired with zero shares at the redeploy: `0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` / `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` on both chains. The agent publishes the managed vault per chain in `GET /pools` (`vault`); the web compares it with its env binding and refuses deposits on a mismatch.
 
-The model still publishes one 8-hour ETH price. The user's gate decides whether their capital is allowed into the Uniswap position that hour. `GET /gates/{address}` returns `{address, preset, top1hBps, bottom1hBps, top2hBps, bottom2hBps, top8hBps, bottom8hBps, inPosition, lastAction (warmup|enter|hold|exit|null), lastHourId|null, issuedAt}`; 404 means no gate chosen (default policy). `lastAction` is that wallet's own decision; the forecast's `action` remains the shared vault action.
-
-Presets (top bps, bottom = −top): Safe 60 / 120 / 100, Balanced 100 / 250 / 200, Aggressive 200 / 400 / 350; Custom takes the user's 1 h top (`0 < top ≤ 2000`) and bottom (`−2000 ≤ bottom < 0`) and keeps 2 h / 8 h at Balanced. `src/types/gates.ts` mirrors the agent's `policy.resolve_gate` and `gate_message`, with tests.
-
-Flow (`useSetGate`): resolve the bands → `issuedAt = now (unix s)` → wallet `personal_sign` of `argon-gate:{address.lower()}:{preset}:{topBps}:{bottomBps}:{issuedAt}` (EIP-191, matches `encode_defunct`) → `POST /gates {address, preset, topBps, bottomBps, issuedAt, signature}` → the agent recovers the signer and stores the gate → the web re-reads `/gates/{address}`. Agent errors: 400 preset / band mismatch, 400 signature outside the 2 h window, 400 bad signature, 409 a newer gate is already stored, 422 missing fields (array detail joined by the web). The same-origin proxy forwards `POST /gates` only; every other method or path stays GET-allowlisted.
-
-Hero semantics from the same handoff: `/forecasts/latest` always answers 200 (the current hour, or the last stored hour with `live:false`, shown with a stale banner and its numbers intact). `ethPct8h` is this hour's target and `predEthUsd8h` its 8-hour price measured from `barCloseUsd`; `expectedEthUsd1h` is the averaged 1-hour path's next price; `ethPct1h` / `ethPct2h` are the average remaining move from the current price across every stored 8-hour target still covering that horizon (`…Source: residual` = "updated remainder of earlier 8-hour prices"). Warmup: filled = 9 − `hoursUntilFirstDecision`; countdown = `hoursUntilFirstDecision`; on-chain submits = `onchainForecastCount` (never the bar's source); stored = `dbForecastCount`.
-
-Owner and keeper: `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E`. Deployed-contract semantics the web honours: `withdraw(shares)` flattens every LP position first and pays pro-rata WETH + stable (there is no per-token idle withdraw); `emergencyWithdraw()` burns all shares; `warmupComplete()` is `registry.forecastCount() >= 9`; there is no `gateBps()` getter (gates come from the API).
+Owner and keeper: `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E`. Deployed-contract semantics the web honours: `withdraw(shares)` flattens every LP position first and pays pro-rata WETH + stable (there is no per-token idle withdraw); `emergencyWithdraw(bool acceptLoss)` burns all shares (false = a failed LP exit reverts, true = idle share only); `depositFeeBps()` (10 Arbitrum / 60 Robinhood) is taken from the USD value of every deposit; `newsPaused(hourId)` is the keeper's scheduled pause around high-impact US releases during which `rebalance` accepts EXIT only (`/status.newsPause`, `GET /news`); `warmupComplete()` is `registry.forecastCount() >= 9`; there is no `gateBps()` getter (gates come from the API).

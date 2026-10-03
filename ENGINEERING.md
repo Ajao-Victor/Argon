@@ -142,8 +142,8 @@ What a reviewer can check without trusting this repository, and what every chang
 | Item | Value |
 |---|---|
 | Agent | `https://argon-bd8888db5430.herokuapp.com` (FastAPI, Heroku), model `eth-1-2-8h-v1` |
-| ArgonVault | `0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` on Arbitrum One 42161 and Robinhood Chain 4663 |
-| InferenceRegistry | `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` on both chains |
+| ArgonVault | `0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61` on Arbitrum One 42161 · `0x89403CA4AdB3A89A0173B7494903B4247881966f` on Robinhood Chain 4663 (2026-10-02 redeploy; `0x9F84…1C60` retired) |
+| InferenceRegistry | `0x8F288a7a6E28a5d44980De19502522C376965afe` on Arbitrum One · `0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508` on Robinhood Chain (`0xbAf0…1e8f` retired) |
 | Owner / keeper | `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E` (= `NEXT_PUBLIC_ADMIN_ADDRESS`, unlocks a read-only panel only) |
 | Hash | `keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, int256 bps8h, keccak256("eth-1-2-8h-v1")))`, bps = round-half-even(pct × 100) |
 

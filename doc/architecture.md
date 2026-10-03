@@ -184,7 +184,7 @@ Functions bound:
 
 | Contract | Reads | Writes | Events |
 |---|---|---|---|
-| `ArgonVault` | `idleBalance`, `shareBalance`, `totalShares`, `poolStatus`, `warmupComplete`, `weth`, `stable`, `stableDecimals`, `keeper` | `deposit`, `depositETH`, `withdraw(shares)`, `emergencyWithdraw` | `Deposited`, `Withdrawn` (user, token, amount, shares), `Rebalanced` (action HOLD 0 / ENTER 1 / EXIT 2) |
+| `ArgonVault` | `idleBalance`, `shareBalance`, `totalShares`, `poolStatus`, `warmupComplete`, `weth`, `stable`, `stableDecimals`, `keeper`, `depositFeeBps`, `newsPaused` | `deposit`, `depositETH`, `withdraw(shares)`, `emergencyWithdraw(acceptLoss)` | `Deposited`, `Withdrawn` (user, token, amount, shares), `Rebalanced` (action HOLD 0 / ENTER 1 / EXIT 2) |
 | `InferenceRegistry` | `latestHourId`, `forecastCount`, `warmupComplete`, `modelId`, `getForecast` (six-field struct), `computeHash` | none | `ForecastSubmitted` (five fields) |
 | ERC-20 | `allowance`, `balanceOf`, `decimals` | `approve` | none |
 
@@ -282,10 +282,10 @@ From spec §6. All public. Anything else does not belong in this app.
 NEXT_PUBLIC_AGENT_URL        https://argon-bd8888db5430.herokuapp.com
 NEXT_PUBLIC_ARB_RPC
 NEXT_PUBLIC_RH_RPC
-NEXT_PUBLIC_VAULT_ARB        0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60
-NEXT_PUBLIC_REGISTRY_ARB     0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f
-NEXT_PUBLIC_VAULT_RH         0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60
-NEXT_PUBLIC_REGISTRY_RH      0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f
+NEXT_PUBLIC_VAULT_ARB        0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61
+NEXT_PUBLIC_REGISTRY_ARB     0x8F288a7a6E28a5d44980De19502522C376965afe
+NEXT_PUBLIC_VAULT_RH         0x89403CA4AdB3A89A0173B7494903B4247881966f
+NEXT_PUBLIC_REGISTRY_RH      0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508
 NEXT_PUBLIC_WALLETCONNECT_ID
 NEXT_PUBLIC_ADMIN_ADDRESS
 ```

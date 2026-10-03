@@ -40,7 +40,7 @@ NEXT_PUBLIC_VAULT_ARB  NEXT_PUBLIC_REGISTRY_ARB  NEXT_PUBLIC_VAULT_RH  NEXT_PUBL
 NEXT_PUBLIC_WALLETCONNECT_ID  NEXT_PUBLIC_ADMIN_ADDRESS  NEXT_PUBLIC_APP_URL
 ```
 Wallet: `injected` (EIP-6963 discovery) + `coinbaseWallet` (no key, mobile) + `walletConnect` only when `NEXT_PUBLIC_WALLETCONNECT_ID` is set; `NEXT_PUBLIC_APP_URL` is the origin in wallet metadata (defaults to the page origin). Polling floor 30 s applies to every feed, including /vault and /portfolio.
-Live values (2026-10-01): `AGENT_URL=https://argon-bd8888db5430.herokuapp.com` · `VAULT_ARB=VAULT_RH=0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` · `REGISTRY_ARB=REGISTRY_RH=0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` · `ADMIN=0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E` (owner + keeper). Same deployer nonce on both chains, so addresses match.
+Live values (2026-10-02 redeploy): `AGENT_URL=https://argon-bd8888db5430.herokuapp.com` · `VAULT_ARB=0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61` · `REGISTRY_ARB=0x8F288a7a6E28a5d44980De19502522C376965afe` · `VAULT_RH=0x89403CA4AdB3A89A0173B7494903B4247881966f` · `REGISTRY_RH=0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508` · `ADMIN=0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E` (owner + keeper). Addresses differ per chain; `0x9F84…1C60` / `0xbAf0…1e8f` are retired with zero shares.
 Missing vault/registry → `undefined` binding → "contracts not deployed" state, deposit/withdraw disabled. Missing AGENT_URL → agent mode `offline`, queries disabled, "waiting for agent telemetry". `NEXT_PUBLIC_AGENT_FIXTURE=true` (non-production only) → sample rows labelled fixture. Env is inlined at build: restart dev / rebuild after editing `.env.local`.
 
 ## 4. Agent REST (live FastAPI on Heroku, model `eth-1-2-8h-v1`)
@@ -80,9 +80,9 @@ interface GateRow { address; preset: 'safe'|'balanced'|'aggressive'|'custom'; to
 Handoff 2026-10-02 forecast semantics: `/forecasts/latest` always answers 200 (current hour, or the last stored hour with `live:false` → stale banner, numbers still rendered). `ethPct8h` is this hour's target and `predEthUsd8h` its price, measured from `barCloseUsd`; `expectedEthUsd1h` is the averaged 1-hour path's next price; `ethPct1h`/`ethPct2h` are the average remaining move from the current price across every stored 8-hour target still covering that horizon (`…Source: 'residual'` = "updated remainder of earlier 8-hour prices"). Warmup bar: filled = 9 − `hoursUntilFirstDecision`, countdown = `hoursUntilFirstDecision`, on-chain submits = `onchainForecastCount` (never the bar's source), stored = `dbForecastCount`. `txHash: null` and `onchainForecastCount: 0` mean dry-run only.
 Validate with zod (`src/types/forecast.ts`, `src/types/agentApi.ts`); addresses → EIP-55 at the boundary. Bad row = agent error.
 
-## 5. Contracts (deployed; same address on 42161 and 4663)
+## 5. Contracts (redeployed 2026-10-02; addresses differ per chain)
 
-Vault `0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` · Registry `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` · Oracle `0xfC22F2C49Ce6Fa46c5081f900fD691b127Bd1bc5` · Adapter `0xECCc4B8946D0DB206f977d3021544D0cD5Dc69D4`. Gated pools: Arb **1** (WETH/USDC 0.05 %), RH **4** (WETH/USDG 0.05 %).
+Arbitrum 42161: Vault `0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61` · Registry `0x8F288a7a6E28a5d44980De19502522C376965afe` · Oracle `0x89403CA4AdB3A89A0173B7494903B4247881966f` · Adapter `0x05734481536644bc20e671Db28f5b4c05B7D64D4` · deploy block 511142126 · deposit fee 10 bps. Robinhood 4663: Vault `0x89403CA4AdB3A89A0173B7494903B4247881966f` · Registry `0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508` · Oracle `0x8F288a7a6E28a5d44980De19502522C376965afe` · Adapter `0xEDa50F3F5530E9BFFD427c1DB0E0a8f3D05cCC9D` · deploy block 78649595 · deposit fee 60 bps. Gated pools: Arb **1** (WETH/USDC 0.05 %), RH **4** (WETH/USDG 0.05 %). Retired (0 shares): `0x9F84…1C60` / `0xbAf0…1e8f`. The agent's `GET /pools` `vault` field names the managed vault; the web refuses deposits if its binding differs.
 
 ```solidity
 // InferenceRegistry (reads we bind)
@@ -94,7 +94,9 @@ event ForecastSubmitted(uint64 indexed hourId, int256 pct1hBps, int256 pct2hBps,
 // ArgonVault (user-facing)
 function deposit(address token, uint256 amount);   function depositETH() payable;
 function withdraw(uint256 shares);                 // flattens LP first, pays pro-rata WETH + stable
-function emergencyWithdraw();                      // burns ALL caller shares; allowed while paused
+function emergencyWithdraw(bool acceptLoss);       // burns ALL caller shares; false = failed LP exit reverts, true = idle share only
+function depositFeeBps() view returns (uint16);     // 10 Arb / 60 RH, taken from the USD value of each deposit
+function newsPaused(uint64 hourId) view returns (bool); // keeper's scheduled pause: rebalance accepts EXIT only
 function idleBalance(address user, address token) view returns (uint256); // pro-rata claim on vault token balance
 function shareBalance(address) view returns (uint256);  function totalShares() view returns (uint256);
 function poolStatus(uint8 poolId) view returns (uint8); // adapter.inPosition() ? 1 : 0
@@ -209,6 +211,6 @@ Deposit USDC on Arb, idle updates · hero shows 8h % same sign 2 decimals · |pr
 
 No write to the agent except the wallet-signed `POST /gates` · no `rebalance`/`submit` · no Uniswap manager calls · no keeper key, Tiingo key, DIA call in browser · no gate threshold invented by the web (per-user bands are the agent's presets) · no polling < 30s except `/pools` 15 s · no second cache · no touching `agent/`.
 
-## 18. Live state (2026-10-01)
+## 18. Live state (2026-10-03)
 
-Agent live on Heroku (FastAPI, Postgres, LightGBM 8 h pickle; 1 h and 2 h via persistence), `DRY_RUN=true` so the keeper is not sending txs yet: registry `forecastCount = 0`, `latestHourId = 0` on both chains, every API row shows `action: warmup`, hash match reads "pending on chain". Contracts deployed and verified by decoding with our ABIs; `registry.computeHash(live row) == API forecastHash == browser recomputation`. Web ships offline-honest: no sample data unless the fixture flag is set in development.
+Contracts redeployed 2026-10-02 (per-chain addresses in §5; the web and Vercel env were rebound on 2026-10-03). Agent live on Heroku (FastAPI, Postgres, LightGBM 8 h pickle; 1 h and 2 h via persistence), `DRY_RUN=true` so the keeper is not sending txs yet: registry `forecastCount = 0`, `latestHourId = 0` on both chains, every API row shows `action: warmup`, hash match reads "pending on chain". Contracts deployed and verified by decoding with our ABIs; `registry.computeHash(live row) == API forecastHash == browser recomputation`. Web ships offline-honest: no sample data unless the fixture flag is set in development.

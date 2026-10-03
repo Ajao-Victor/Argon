@@ -149,8 +149,8 @@ All configuration is public and inlined at build time. **After editing `.env.loc
 | `NEXT_PUBLIC_AGENT_URL` | Base URL of the agent REST API (`https://argon-bd8888db5430.herokuapp.com`) | UI shows "waiting for agent telemetry" |
 | `NEXT_PUBLIC_AGENT_FIXTURE` | `true` serves local sample rows (development builds only) | Ignored in production |
 | `NEXT_PUBLIC_ARB_RPC` / `NEXT_PUBLIC_RH_RPC` | RPC endpoints, tried before the public defaults | Public RPCs |
-| `NEXT_PUBLIC_VAULT_ARB` / `NEXT_PUBLIC_VAULT_RH` | `ArgonVault` (`0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` on both chains) | "Contracts not deployed", deposit and withdraw disabled |
-| `NEXT_PUBLIC_REGISTRY_ARB` / `NEXT_PUBLIC_REGISTRY_RH` | `InferenceRegistry` (`0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` on both chains) | Hash match reads "registry not deployed" |
+| `NEXT_PUBLIC_VAULT_ARB` / `NEXT_PUBLIC_VAULT_RH` | `ArgonVault` (`0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61` on Arbitrum One, `0x89403CA4AdB3A89A0173B7494903B4247881966f` on Robinhood Chain) | "Contracts not deployed", deposit and withdraw disabled |
+| `NEXT_PUBLIC_REGISTRY_ARB` / `NEXT_PUBLIC_REGISTRY_RH` | `InferenceRegistry` (`0x8F288a7a6E28a5d44980De19502522C376965afe` on Arbitrum One, `0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508` on Robinhood Chain) | Hash match reads "registry not deployed" |
 | `NEXT_PUBLIC_WALLETCONNECT_ID` | WalletConnect project id; adds the QR option to the connect picker | Browser wallets (EIP-6963) and Coinbase Wallet still work |
 | `NEXT_PUBLIC_APP_URL` | Public origin used in wallet metadata | The page's own origin at runtime |
 | `NEXT_PUBLIC_ADMIN_ADDRESS` | Address that sees the read-only keeper panel | Panel hidden |
@@ -178,14 +178,14 @@ Everything below can be checked without trusting this repository.
 
 ### Live contracts
 
-The same deployer nonce was used on both chains, so the addresses match. Owner and keeper: `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E`.
+Redeployed on 2026-10-02 with the scheduled-news pause; the deployer nonces differ, so addresses differ per chain. Owner and keeper on every contract: `0x9642b6D1Db5D1A3B0A61a831099568bbCbC04D4E`. Deposit fee read from the vault: 10 bps on Arbitrum, 60 bps on Robinhood. The agent publishes the vault it manages in `GET /pools`, and the web refuses deposits when its bound vault differs. Retired with zero shares: `ArgonVault` / `InferenceRegistry` at `0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` / `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` on both chains.
 
-| Contract | Address | Arbitrum One (42161) | Robinhood Chain (4663) |
-|---|---|---|---|
-| `ArgonVault` | `0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60` | [Arbiscan](https://arbiscan.io/address/0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60) | [Blockscout](https://robinhoodchain.blockscout.com/address/0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60) |
-| `InferenceRegistry` | `0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f` | [Arbiscan](https://arbiscan.io/address/0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f) | [Blockscout](https://robinhoodchain.blockscout.com/address/0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f) |
-| `ChainlinkEthOracle` | `0xfC22F2C49Ce6Fa46c5081f900fD691b127Bd1bc5` | [Arbiscan](https://arbiscan.io/address/0xfC22F2C49Ce6Fa46c5081f900fD691b127Bd1bc5) | [Blockscout](https://robinhoodchain.blockscout.com/address/0xfC22F2C49Ce6Fa46c5081f900fD691b127Bd1bc5) |
-| `UniswapV3Adapter` | `0xECCc4B8946D0DB206f977d3021544D0cD5Dc69D4` | pool 1 · WETH/USDC 0.05 % | pool 4 · WETH/USDG 0.05 % |
+| Contract | Arbitrum One (42161) | Robinhood Chain (4663) |
+|---|---|---|
+| `ArgonVault` | [`0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61`](https://arbiscan.io/address/0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61) · deploy block 511142126 | [`0x89403CA4AdB3A89A0173B7494903B4247881966f`](https://robinhoodchain.blockscout.com/address/0x89403CA4AdB3A89A0173B7494903B4247881966f) · deploy block 78649595 |
+| `InferenceRegistry` | [`0x8F288a7a6E28a5d44980De19502522C376965afe`](https://arbiscan.io/address/0x8F288a7a6E28a5d44980De19502522C376965afe) | [`0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508`](https://robinhoodchain.blockscout.com/address/0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508) |
+| `ChainlinkEthOracle` | [`0x89403CA4AdB3A89A0173B7494903B4247881966f`](https://arbiscan.io/address/0x89403CA4AdB3A89A0173B7494903B4247881966f) | [`0x8F288a7a6E28a5d44980De19502522C376965afe`](https://robinhoodchain.blockscout.com/address/0x8F288a7a6E28a5d44980De19502522C376965afe) |
+| `UniswapV3Adapter` | [`0x05734481536644bc20e671Db28f5b4c05B7D64D4`](https://arbiscan.io/address/0x05734481536644bc20e671Db28f5b4c05B7D64D4) · pool 1 · WETH/USDC 0.05 % | [`0xEDa50F3F5530E9BFFD427c1DB0E0a8f3D05cCC9D`](https://robinhoodchain.blockscout.com/address/0xEDa50F3F5530E9BFFD427c1DB0E0a8f3D05cCC9D) · pool 4 · WETH/USDG 0.05 % |
 
 Escrowed tokens (EIP-55): Arbitrum WETH `0x82aF49447D8a07e3bd95BD0d56f35241523fBab1`, USDC `0xaf88d065e77c8cC2239327C5EDb3A432268e5831`; Robinhood WETH `0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73`, USDG `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`.
 
@@ -218,14 +218,16 @@ forecastHash = keccak256(abi.encode(uint64 hourId, int256 bps1h, int256 bps2h, i
 Three independent checks, all shown on the dashboard's **ON-CHAIN MATCH** panel:
 
 1. **Browser recomputation.** `src/utils/forecastHash.ts` recomputes the hash from the API's own numbers. The unit test reproduces the live hash `0x1db0b9d6064bfcba03285dfb5430e357f10f61097ae726986e00319a6f04451e` for hour `497434` from `(-1, -13, -39)` bps and fails on a tampered number.
-2. **The registry's own function.** Call `InferenceRegistry.computeHash(497434, -1, -13, -39)` on either chain and you get the same bytes (verified during integration).
+2. **The registry's own function.** Call `InferenceRegistry.computeHash(hourId, bps1h, bps2h, bps8h)` on either chain's registry and you get the API's bytes (re-verified on 2026-10-03 against both redeployed registries for hour `497508`).
 3. **Stored row.** Once the keeper submits, `getForecast(hourId)` returns the bps triple and hash the vault acted on; the panel compares both against the API row and turns green only when all four values agree.
 
 Run it locally in a few seconds:
 
 ```bash
 curl -s https://argon-bd8888db5430.herokuapp.com/forecasts/latest | jq '{hourId, ethPct1h, ethPct2h, ethPct8h, forecastHash}'
-cast call 0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f "computeHash(uint64,int256,int256,int256)(bytes32)" 497434 -- -1 -13 -39 --rpc-url https://arb1.arbitrum.io/rpc
+# bps = round-half-even(pct × 100); hour 497508 on 2026-10-03 was (-21, -26, -36) → 0x82c6e22c…5ac5 on both chains
+cast call 0x8F288a7a6E28a5d44980De19502522C376965afe "computeHash(uint64,int256,int256,int256)(bytes32)" 497508 -- -21 -26 -36 --rpc-url https://arb1.arbitrum.io/rpc
+cast call 0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508 "computeHash(uint64,int256,int256,int256)(bytes32)" 497508 -- -21 -26 -36 --rpc-url https://rpc.mainnet.chain.robinhood.com
 ```
 
 ### What a judge will see today
