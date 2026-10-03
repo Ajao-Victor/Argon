@@ -32,6 +32,7 @@ export function WithdrawForm() {
   const emergency = useEmergencyWithdraw(chainId);
   const deployed = Boolean(getVault(chainId));
   const [pct, setPct] = useState<number>(100);
+  const [acceptLoss, setAcceptLoss] = useState(false);
 
   const shares = balances.data?.shares ?? 0n;
   const totalShares = balances.data?.totalShares ?? 0n;
@@ -118,10 +119,14 @@ export function WithdrawForm() {
         <TxStatus state={withdraw.state} chainId={chainId} />
 
         <div className="border-t border-hairline pt-3">
+          <label className="mb-3 flex items-start gap-2 text-label tracking-normal text-text-mid">
+            <input type="checkbox" checked={acceptLoss} onChange={(e) => setAcceptLoss(e.target.checked)} disabled={busy} className="mt-0.5 accent-argon-500" />
+            <span>accept loss: if the LP exit fails, take my idle share only and forfeit the rest. Unchecked, a failed exit reverts and nothing is burned.</span>
+          </label>
           <Button
             variant="danger"
             size="sm"
-            onClick={() => void emergency.write()}
+            onClick={() => void emergency.write(acceptLoss)}
             disabled={!w.isConnected || !deployed || wrongChain || busy || shares === 0n}
             pending={txBusy(emergency.state)}
           >

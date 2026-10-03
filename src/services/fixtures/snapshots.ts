@@ -10,7 +10,7 @@ import { fixtureLatest } from './forecasts';
  * non-production builds, so none of this reaches a production bundle.
  */
 
-const FIXTURE_VAULT = '0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60' as const;
+const FIXTURE_VAULT = '0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61' as const;
 
 function fixtureChain(name: 'arbitrum' | 'robinhood'): ChainPortfolio {
   const arb = name === 'arbitrum';

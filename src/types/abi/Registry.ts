@@ -1,7 +1,7 @@
 /**
  * InferenceRegistry — read surface only, transcribed from the deployed
- * contracts/src/InferenceRegistry.sol (0xbAf00c0aCa440337d43495c7de661A0AC2E01e8f on
- * Arbitrum One 42161 and Robinhood Chain 4663).
+ * contracts/src/InferenceRegistry.sol (2026-10-02 redeploy: 0x8F288a7a6E28a5d44980De19502522C376965afe on
+ * Arbitrum One 42161, 0x256A61b459BFdb48B4C04DE5Ba13E0dFBC326508 on Robinhood Chain 4663).
  *
  * `submit` is keeper-only and is intentionally absent (ENGINEERING.md §0.3).
  * `getForecast` reverts with UnknownHour for an unsubmitted hour; callers read it with

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { parseUnits } from 'viem';
 
 import { Banner, Button, Panel, TokenInput } from '@/components/ui';
-import { useDeposit, useDepositEth, useNativeBalance, useTokenAllowance, useWallet } from '@/hooks';
+import { useDeposit, useDepositEth, useNativeBalance, useTokenAllowance, useVaultParams, useWallet } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName } from '@/services/explorer';
 import { depositAssets, isNativeEth, type DepositAsset } from '@/services/tokens';
@@ -56,6 +56,8 @@ export function DepositForm() {
   const depositEth = useDepositEth(chainId);
   const tx = native ? depositEth : deposit;
   const deployed = Boolean(getVault(chainId));
+  const params = useVaultParams(chainId);
+  const feeBps = params.data?.depositFeeBps;
 
   const amount = parseAmount(value, asset?.decimals);
 
@@ -175,6 +177,7 @@ export function DepositForm() {
           {native
             ? 'Native ETH goes straight into the vault through depositETH — no token approval. The vault wraps it to WETH itself.'
             : 'Funds sit idle until the first in-gate ENTER after hour 8. Deposits are allowed during warmup.'}
+          {feeBps !== undefined && feeBps > 0 && <span className="text-text-dim"> · deposit fee {(feeBps / 100).toFixed(2)}% of USD value, read from the vault</span>}
         </Banner>
       </div>
     </Panel>

@@ -1,11 +1,13 @@
 /**
  * ArgonVault — user-facing surface, transcribed from the deployed
- * contracts/src/ArgonVault.sol (0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60 on
- * Arbitrum One 42161 and Robinhood Chain 4663).
+ * contracts/src/ArgonVault.sol (2026-10-02 redeploy: 0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61 on
+ * Arbitrum One 42161, 0x89403CA4AdB3A89A0173B7494903B4247881966f on Robinhood Chain 4663).
  *
- * Accounting model: deposits mint USD-denominated shares (oracle-priced); `withdraw(shares)`
- * flattens every LP position first, then pays the burner pro-rata WETH + stable;
- * `emergencyWithdraw()` burns the caller's whole balance. `idleBalance(user, token)` is the
+ * Accounting model: deposits mint USD-denominated shares (oracle-priced) net of `depositFeeBps`;
+ * `withdraw(shares)` flattens every LP position first, then pays the burner pro-rata WETH + stable;
+ * `emergencyWithdraw(acceptLoss)` burns the caller's whole balance (acceptLoss=false reverts if the
+ * LP exit fails, true takes the idle share only). `newsPaused(hourId)` is the keeper's scheduled
+ * pause around high-impact releases, during which rebalance accepts EXIT only. `idleBalance(user, token)` is the
  * user's pro-rata claim on the vault's current token balance. `poolStatus(poolId)` asks the
  * adapter whether a position is open (1) or not (0). `warmupComplete()` is
  * `registry.forecastCount() >= 9`.
@@ -27,7 +29,7 @@ export const vaultAbi = [
   },
   { type: 'function', name: 'depositETH', stateMutability: 'payable', inputs: [], outputs: [] },
   { type: 'function', name: 'withdraw', stateMutability: 'nonpayable', inputs: [{ name: 'shares', type: 'uint256' }], outputs: [] },
-  { type: 'function', name: 'emergencyWithdraw', stateMutability: 'nonpayable', inputs: [], outputs: [] },
+  { type: 'function', name: 'emergencyWithdraw', stateMutability: 'nonpayable', inputs: [{ name: 'acceptLoss', type: 'bool' }], outputs: [] },
   // reads
   {
     type: 'function',
@@ -48,6 +50,8 @@ export const vaultAbi = [
   { type: 'function', name: 'stableDecimals', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
   { type: 'function', name: 'oracle', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
   { type: 'function', name: 'keeper', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  { type: 'function', name: 'depositFeeBps', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint16' }] },
+  { type: 'function', name: 'newsPaused', stateMutability: 'view', inputs: [{ name: 'hourId', type: 'uint64' }], outputs: [{ name: '', type: 'bool' }] },
   // events (activity feed)
   {
     type: 'event',

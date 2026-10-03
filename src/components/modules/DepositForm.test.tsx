@@ -14,11 +14,12 @@ vi.mock('@/hooks', () => ({
     token ? { status: 'success', data: { balance: parseUnits('2', 18), allowance: 0n } } : { status: 'pending', data: undefined },
   // Native: exactly 1 ETH.
   useNativeBalance: (_c: number, user: string | undefined) => (user ? { status: 'success', data: parseEther('1') } : { status: 'pending', data: undefined }),
+  useVaultParams: () => ({ status: 'success', data: { depositFeeBps: 10 } }),
   useDeposit: () => ({ state: idle, write: depositWrite, reset: () => undefined }),
   useDepositEth: () => ({ state: idle, write: depositEthWrite, reset: () => undefined }),
 }));
 vi.mock('@/stores/ui', () => ({ useUiStore: (sel: (s: { selectedChainId: number }) => unknown) => sel({ selectedChainId: 42161 }) }));
-vi.mock('@/services/contracts', () => ({ getVault: () => ({ address: '0x9F844b4D1b28Be7413067f9d4fC08Bc276fd1C60', abi: [] }) }));
+vi.mock('@/services/contracts', () => ({ getVault: () => ({ address: '0xe0eb546A1F8dcEc7B124cF8fE253de34d54A6c61', abi: [] }) }));
 vi.mock('./ChainSwitcher', () => ({ ChainSwitcher: () => null }));
 vi.mock('./TxStatus', () => ({ TxStatus: () => null, txBusy: () => false }));
 

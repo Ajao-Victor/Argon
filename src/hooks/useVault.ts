@@ -34,8 +34,9 @@ import { toast } from '@/components/ui/Toasts';
  * invalidate. No optimistic balances.
  *
  * Deployed accounting: shares are USD-denominated; `withdraw(shares)` flattens any LP
- * position first and pays pro-rata WETH + stable; `emergencyWithdraw()` burns the whole
- * balance. There is no per-token withdraw on this contract.
+ * position first and pays pro-rata WETH + stable; `emergencyWithdraw(acceptLoss)` burns the
+ * whole balance (acceptLoss=true forfeits the LP share if the exit fails and takes idle only).
+ * There is no per-token withdraw on this contract.
  */
 export const VAULT_READ_STALE_MS = 15_000;
 
@@ -59,6 +60,7 @@ export function useVaultParams(chainId: SupportedChainId) {
           { ...vault, functionName: 'totalShares' },
           { ...vault, functionName: 'weth' },
           { ...vault, functionName: 'stable' },
+          { ...vault, functionName: 'depositFeeBps' },
         ]
       : [],
     allowFailure: true,
@@ -70,6 +72,8 @@ export function useVaultParams(chainId: SupportedChainId) {
         totalShares: rows[1]?.status === 'success' ? asBigInt(rows[1].result) : undefined,
         weth: rows[2]?.status === 'success' ? (rows[2].result as Address) : undefined,
         stable: rows[3]?.status === 'success' ? (rows[3].result as Address) : undefined,
+        /** Fee taken from the USD value of every deposit, in bps (10 on Arbitrum, 60 on Robinhood at deploy). */
+        depositFeeBps: rows[4]?.status === 'success' ? Number(rows[4].result) : undefined,
       }),
     },
   });
@@ -442,7 +446,10 @@ export function useWithdraw(chainId: SupportedChainId) {
   return { state, write, reset } as const;
 }
 
-/** emergencyWithdraw() — burns the caller's entire share balance; allowed while the keeper is paused. */
+/**
+ * emergencyWithdraw(acceptLoss) — burns the caller's entire share balance; allowed while the keeper
+ * is paused. acceptLoss=false (default) reverts if the LP exit fails; true pays the idle share only.
+ */
 export function useEmergencyWithdraw(chainId: SupportedChainId) {
   const config = useConfig();
   const { address: user } = useAccount();
@@ -450,14 +457,14 @@ export function useEmergencyWithdraw(chainId: SupportedChainId) {
   const { state, setState, run, reset } = useGuardedWrite('emergencyWithdraw');
 
   const write = useCallback(
-    () =>
+    (acceptLoss = false) =>
       run(async () => {
         const vault = getVault(chainId);
         if (!vault || !user) {
           setState({ status: 'failed', step: 'emergencyWithdraw', error: vault ? 'wallet not connected' : 'vault not deployed' });
           return;
         }
-        await runWrite(config, 'emergencyWithdraw', { ...vault, functionName: 'emergencyWithdraw', account: user }, setState);
+        await runWrite(config, 'emergencyWithdraw', { ...vault, functionName: 'emergencyWithdraw', args: [acceptLoss], account: user }, setState);
         await invalidate();
       }),
     [chainId, config, user, invalidate, run, setState],
