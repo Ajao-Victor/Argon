@@ -88,7 +88,7 @@ export function LandingHero() {
                     <span className={`font-mono text-lg ${gateChip(pct) === 'IN' ? 'text-argon-300' : 'text-signal-warn'}`}>
                       {gateChip(pct) === 'IN' ? `Within ±${gatePct.toFixed(2)}%` : `Outside ±${gatePct.toFixed(2)}%`}
                     </span>
-                    <p className={`mt-1 text-[0.8125rem] leading-5 ${state.tone}`}>{state.text}</p>
+                    <p className={`mt-1 text-data ${state.tone}`}>{state.text}</p>
                   </dd>
                 </div>
               </dl>

@@ -53,7 +53,7 @@ export default function LandingPage() {
                 <span className="font-mono text-plasma-500">{s.n}</span>
                 <span className="font-display text-lg text-text-hi">{s.title}</span>
               </div>
-              <p className="mt-2 text-[0.8125rem] leading-5 text-text-mid">{s.body}</p>
+              <p className="mt-2 text-data text-text-mid">{s.body}</p>
             </li>
           ))}
         </ol>

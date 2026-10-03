@@ -80,8 +80,8 @@ export function GateControl({ address }: { address: Address }) {
           <Chip tone="idle">no gate chosen · default policy</Chip>
         )}
       </div>
-      {stored && <p className="font-mono text-[0.6875rem] leading-4 text-text-dim">{bandsLine(stored.top1hBps, stored.top2hBps, stored.top8hBps)}</p>}
-      <p className="text-[0.6875rem] leading-4 text-text-dim">{GATE_COPY}</p>
+      {stored && <p className="font-mono text-label tracking-normal text-text-dim">{bandsLine(stored.top1hBps, stored.top2hBps, stored.top8hBps)}</p>}
+      <p className="text-label tracking-normal text-text-dim">{GATE_COPY}</p>
 
       <div
         className="flex flex-wrap gap-1.5"
@@ -103,7 +103,7 @@ export function GateControl({ address }: { address: Address }) {
             tabIndex={activePreset === p ? 0 : -1}
             onClick={() => setPreset(p)}
             className={cn(
-              'rounded-chip border px-2.5 py-1 text-[0.6875rem] uppercase tracking-wider transition-colors',
+              'inline-flex min-h-10 items-center rounded-chip border px-2.5 py-1 text-label uppercase transition-colors',
               activePreset === p ? 'border-argon-500/70 bg-argon-500/10 text-argon-300' : 'border-hairline text-text-mid hover:border-text-dim hover:text-text-hi',
             )}
           >
@@ -115,34 +115,34 @@ export function GateControl({ address }: { address: Address }) {
 
       {activePreset === 'custom' && (
         <div className="grid grid-cols-2 gap-2">
-          <label className="flex flex-col gap-1 text-[0.6875rem] text-text-dim">
+          <label className="flex flex-col gap-1 text-label tracking-normal text-text-dim">
             1h top (+ bps, ≤ {CUSTOM_BPS_LIMIT})
             <input
               inputMode="numeric"
               value={topText}
               placeholder={String(topBps)}
               onChange={(e) => setTopText(e.target.value.trim())}
-              className="h-9 rounded-chip border border-hairline bg-surface-0/60 px-2 font-mono text-sm text-text-hi outline-none focus:border-argon-500/70"
+              className="h-10 rounded-chip border border-hairline bg-surface-0/60 px-2 font-mono text-sm text-text-hi outline-none focus:border-argon-500/70"
             />
           </label>
-          <label className="flex flex-col gap-1 text-[0.6875rem] text-text-dim">
+          <label className="flex flex-col gap-1 text-label tracking-normal text-text-dim">
             1h bottom (− bps, ≥ −{CUSTOM_BPS_LIMIT})
             <input
               inputMode="numeric"
               value={bottomText}
               placeholder={String(bottomBps)}
               onChange={(e) => setBottomText(e.target.value.trim())}
-              className="h-9 rounded-chip border border-hairline bg-surface-0/60 px-2 font-mono text-sm text-text-hi outline-none focus:border-argon-500/70"
+              className="h-10 rounded-chip border border-hairline bg-surface-0/60 px-2 font-mono text-sm text-text-hi outline-none focus:border-argon-500/70"
             />
           </label>
-          <p className={cn('col-span-2 text-[0.6875rem] leading-4', customError ? 'text-signal-down' : 'text-text-dim')}>
+          <p className={cn('col-span-2 text-label tracking-normal', customError ? 'text-signal-down' : 'text-text-dim')}>
             {customError ?? '2h and 8h stay at Balanced (±250 / ±200 bps).'}
           </p>
         </div>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-mono text-[0.6875rem] leading-4 text-text-dim">{preview ? bandsLine(preview.top1hBps, preview.top2hBps, preview.top8hBps) : '—'}</span>
+        <span className="font-mono text-label tracking-normal text-text-dim">{preview ? bandsLine(preview.top1hBps, preview.top2hBps, preview.top8hBps) : '—'}</span>
         <Button
           size="sm"
           variant="primary"

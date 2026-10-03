@@ -84,11 +84,11 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
       delay={delay}
     >
       <RevealItem className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <span className="label-lg">
             {pool.pair[0]} / {pool.pair[1]}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isSelected && <Chip tone="argon">selected</Chip>}
             {exitPending ? <Chip tone="warn">exit pending</Chip> : <Chip tone={TONE[status]} dot flipKey={status}>{status === 'NOT_DEPLOYED' ? 'contracts not deployed' : status.replace('_', ' ').toLowerCase()}</Chip>}
           </div>
@@ -163,7 +163,7 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
           )}
 
           <RevealItem className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
-            <span className="text-[0.6875rem] leading-5 text-text-dim">{isSelected ? 'selected for deposit / withdraw' : (live?.depositHint ?? `Select to deposit on ${chainName(pool.chainId)}`)}</span>
+            <span className="text-label tracking-normal text-text-dim">{isSelected ? 'selected for deposit / withdraw' : (live?.depositHint ?? `Select to deposit on ${chainName(pool.chainId)}`)}</span>
             <Button size="sm" variant={isSelected ? 'ghost' : 'primary'} onClick={select} aria-pressed={isSelected} disabled={isSelected} magnetic={!isSelected}>
               {isSelected ? 'selected' : 'select vault'}
             </Button>

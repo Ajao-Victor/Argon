@@ -195,7 +195,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
                     );
                   })}
                 </div>
-                <p className="max-w-md text-[0.6875rem] leading-4 text-text-dim">
+                <p className="max-w-md text-label tracking-normal text-text-dim">
                   1h and 2h are the averaged remaining move from the current price across every stored 8-hour target still covering that horizon; 8h is this hour&apos;s target.
                   {(api.ethPct1hSource === 'residual' || api.ethPct2hSource === 'residual') && <> {RESIDUAL_LABEL}.</>}
                 </p>

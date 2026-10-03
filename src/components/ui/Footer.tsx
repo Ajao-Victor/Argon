@@ -110,7 +110,7 @@ export function Footer() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6">
           <span className="label leading-5 text-text-dim">Your funds stay in your control · Automated hourly protection · Withdraw anytime</span>
           <span className="flex items-center gap-3">
-            <Link href="/app#faq" className="label leading-5 text-text-lo hover:text-argon-300">
+            <Link href="/app#faq" className="label inline-flex min-h-10 items-center leading-5 text-text-lo hover:text-argon-300">
               protocol faq
             </Link>
             <span className="label leading-5 text-text-dim">{explorerName(chainId)}</span>

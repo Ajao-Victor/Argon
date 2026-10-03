@@ -147,7 +147,7 @@ export function FaqSection({ title = 'Answers before you deposit', initialFilter
                 setOpenId(null);
               }}
               className={cn(
-                'rounded-chip border px-3 py-1.5 text-label uppercase tracking-[0.12em] transition-colors',
+                'inline-flex min-h-10 items-center rounded-chip border px-3 py-1.5 text-label uppercase tracking-[0.12em] transition-colors',
                 active ? 'border-argon-500/70 bg-argon-500/10 text-argon-300 shadow-glow-sm' : 'border-hairline text-text-lo hover:border-hairline-strong hover:text-text-hi',
               )}
             >
