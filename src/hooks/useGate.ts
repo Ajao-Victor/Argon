@@ -1,3 +1,11 @@
+/**
+ * @file useGate — the signer's per-user gate (handoff 2026-10-02).
+ *
+ * `useGate` polls `GET /gates/{address}`; `useSetGate` resolves the preset bands with the
+ * agent's own rules, asks the wallet to personal_sign the exact gate string, and submits
+ * the signature with `POST /gates`. The signature is the only authorisation; the web never
+ * holds a key and never writes anything the wallet did not sign.
+ */
 'use client';
 
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';

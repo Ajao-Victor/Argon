@@ -1,3 +1,11 @@
+/**
+ * @file Navbar — global sticky glass header.
+ *
+ * Brand, primary links (dashboard, forecasts, activity, faq), the network dropdown that
+ * sets the vault chain in the UI store and asks the wallet to switch, and the wallet
+ * controls (deposit / withdraw navigation, connect). Fully keyboard-operable: the menu
+ * closes on Escape and on focus-out, and every action is a single focusable control.
+ */
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';

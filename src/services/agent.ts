@@ -1,3 +1,11 @@
+/**
+ * @file agent — the single HTTP boundary between the browser and the Argon agent.
+ *
+ * Every fetcher validates its response with zod before it reaches a hook, honours
+ * TanStack's AbortSignal, carries a per-endpoint timeout, sends `cache: 'no-store'`, and
+ * retries once through the same-origin `/api/agent` proxy on a browser CORS failure. Reads
+ * only, except the wallet-signed `POST /gates`. No secrets: the base URL is public.
+ */
 import { isAddress, type Address } from 'viem';
 import type { z } from 'zod';
 

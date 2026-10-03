@@ -1,3 +1,10 @@
+/**
+ * @file Footer — tactical status bar at the bottom of every /app route.
+ *
+ * Agent health and staleness from `/health` and `/status`, the selected network with
+ * explorer links for the deployed vault and registry, a live UTC clock aligned to the
+ * agent's :00 schedule, the trust line, and the protocol FAQ link.
+ */
 'use client';
 
 import { ExternalLink } from 'lucide-react';

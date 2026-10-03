@@ -1,3 +1,11 @@
+/**
+ * @file useVault — reads and writes against the deployed ArgonVault.
+ *
+ * Reads (pool status, idle balances, shares, params) key on the pool's chain id, never the
+ * wallet's. Writes follow one path: simulate → sign → wait for receipt → invalidate the
+ * chain reads and the agent's portfolio and vault snapshots. Transaction state is a local
+ * discriminated union mirrored into toasts; balances are never optimistic.
+ */
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';

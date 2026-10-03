@@ -1,3 +1,12 @@
+/**
+ * @file Dashboard — the /app route's client bento grid.
+ *
+ * Composes every domain module (forecast hero, keeper avatar, hash match, warmup, pool
+ * cards, roadmap, wallet strip, activity feed, admin panel, protocol FAQ) over shared
+ * hook state. Owns no data: every number comes from TanStack queries in `@/hooks`, and the
+ * only local state is the avatar's viewport anchor for the particle field. The simulation
+ * layer is loaded dynamically and never on the server.
+ */
 'use client';
 
 import { useIsFetching } from '@tanstack/react-query';
