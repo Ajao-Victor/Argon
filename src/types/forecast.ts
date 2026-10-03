@@ -100,6 +100,8 @@ export interface AgentStatus {
   /** Rows the registry holds vs rows Postgres holds; the gap is what dry-run withholds from chain. */
   onchainForecastCount?: number | undefined;
   dbForecastCount?: number | undefined;
+  /** Keeper's scheduled pause around high-impact US releases (added 2026-10-03): rebalance accepts EXIT only while active. */
+  newsPause?: NewsPause | undefined;
   /** Derived: the 8 h gate in bps (= gate8hBps). */
   gateBps: number;
 }
@@ -194,6 +196,35 @@ const dryRunSchema = z
   .optional()
   .transform((v) => (typeof v === 'boolean' ? v : v === undefined ? true : v.trim().toLowerCase() === 'true'));
 
+/** One scheduled window: exit at `exitAt` (one hour before the release), no entries until `resumesAt`. */
+export interface NewsPauseWindow {
+  fromHourId: HourId;
+  untilHourId: HourId;
+  exitAt: string;
+  resumesAt: string;
+  events: { title: string; at: string; source?: string | undefined }[];
+}
+export interface NewsPause {
+  active: boolean;
+  current: NewsPauseWindow | null;
+  next: NewsPauseWindow | null;
+  rule: string;
+}
+
+const newsPauseWindowSchema = z.object({
+  fromHourId: hourIdSchema,
+  untilHourId: hourIdSchema,
+  exitAt: z.string().min(1),
+  resumesAt: z.string().min(1),
+  events: z.array(z.object({ title: z.string().min(1).max(120), at: z.string().min(1), source: z.string().max(64).optional() })),
+});
+export const newsPauseSchema = z.object({
+  active: z.boolean(),
+  current: newsPauseWindowSchema.nullable(),
+  next: newsPauseWindowSchema.nullable(),
+  rule: z.string().max(200),
+});
+
 export const agentStatusSchema = z
   .object({
     ok: z.boolean(),
@@ -211,6 +242,8 @@ export const agentStatusSchema = z
     liveForecast: z.boolean().optional(),
     onchainForecastCount: z.number().int().nonnegative().optional(),
     dbForecastCount: z.number().int().nonnegative().optional(),
+    // A malformed pause object must never invalidate /status: fall back to "not reported".
+    newsPause: newsPauseSchema.optional().catch(undefined),
   })
   .transform((s) => ({ ...s, gateBps: s.gate8hBps }));
 

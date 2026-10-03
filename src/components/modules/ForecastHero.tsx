@@ -107,6 +107,12 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
           showing the last stored hour {api.hourId} — the live clock has not produced hour {status.data?.currentHourId ?? '—'} yet; the percent and the predicted price below are that hour&apos;s
         </Banner>
       )}
+      {status.data?.newsPause?.active && status.data.newsPause.current && (
+        <Banner tone="warn" className="mb-3">
+          news pause · {status.data.newsPause.current.events.map((e) => e.title).join(', ') || 'high-impact release'} — the keeper only exits until{' '}
+          {status.data.newsPause.current.resumesAt.slice(11, 16)} UTC (hour {status.data.newsPause.current.untilHourId}); no new entries
+        </Banner>
+      )}
       {status.data?.dryRun && (
         <Banner tone="idle" className="mb-3">
           keeper in dry-run: forecasts are published and hashed off-chain, on-chain submission and rebalancing are paused

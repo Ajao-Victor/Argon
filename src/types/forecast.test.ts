@@ -192,3 +192,32 @@ describe('handoff 2026-10-02: last stored hour (live:false), residual sources, s
     }
   });
 });
+
+describe('/status.newsPause (added by the agent on 2026-10-03)', () => {
+  const BASE = {
+    ok: true, warmupComplete: false, hoursUntilFirstDecision: 0, gate1hBps: 100, gate2hBps: 250, gate8hBps: 200,
+    lastHourId: 497508, currentHourId: 497508, liveForecast: true, modelId: 'eth-1-2-8h-v1', modelLoaded: true, dryRun: 'true',
+    database: 'postgres', onchainForecastCount: 0, dbForecastCount: 45,
+  };
+  const WINDOW = { fromHourId: 497771, untilHourId: 497776, exitAt: '2026-10-14T11:00:00+00:00', resumesAt: '2026-10-14T16:00:00+00:00', events: [{ title: 'CPI', at: '2026-10-14T12:30:00+00:00', source: 'official' }] };
+  it('parses the live object with a scheduled next window', () => {
+    const r = agentStatusSchema.safeParse({ ...BASE, newsPause: { active: false, current: null, next: WINDOW, rule: 'exit 1h before the release hour; no entries until 4h after it' } });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.newsPause?.active).toBe(false);
+      expect(r.data.newsPause?.next?.events[0]?.title).toBe('CPI');
+    }
+  });
+  it('parses an active window', () => {
+    const r = agentStatusSchema.safeParse({ ...BASE, newsPause: { active: true, current: WINDOW, next: null, rule: 'x' } });
+    expect(r.success && r.data.newsPause?.active).toBe(true);
+  });
+  it('a malformed pause object never invalidates /status', () => {
+    const r = agentStatusSchema.safeParse({ ...BASE, newsPause: { active: 'yes' } });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.newsPause).toBeUndefined();
+  });
+  it('status without the field still parses', () => {
+    expect(agentStatusSchema.safeParse(BASE).success).toBe(true);
+  });
+});

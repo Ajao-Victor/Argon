@@ -32,6 +32,12 @@ export function TelemetryBar() {
     { key: 'hour', label: 'last hour', value: latest.data?.hourId ?? '—' },
     { key: 'print', label: 'last print', value: lag === undefined ? '—' : lag === 0 ? 'this hour' : `${lag}h ago`, tone: stale ? 'warn' : 'up' },
     ...(status.data ? [{ key: 'keeper', label: 'keeper', value: status.data.dryRun ? 'dry-run · no on-chain submits' : 'live', tone: status.data.dryRun ? 'warn' : 'up' } as TelemetryItem] : []),
+    // Scheduled news pause: shown while active (exit-only), and as the next window when one is scheduled.
+    ...(status.data?.newsPause?.active && status.data.newsPause.current
+      ? [{ key: 'news', label: 'news pause', value: `${status.data.newsPause.current.events.map((e) => e.title).join(', ') || 'release'} · exit-only until ${status.data.newsPause.current.resumesAt.slice(11, 16)} UTC`, tone: 'warn' } as TelemetryItem]
+      : status.data?.newsPause?.next
+        ? [{ key: 'news', label: 'next news pause', value: `${status.data.newsPause.next.events.map((e) => e.title).join(', ') || 'release'} · ${status.data.newsPause.next.exitAt.slice(5, 16).replace('T', ' ')} UTC`, tone: 'idle' } as TelemetryItem]
+        : []),
     { key: 'arb', label: 'arb', value: getVault(arbitrum.id) ? arbitrum.id : 'no vault', tone: getVault(arbitrum.id) ? 'argon' : 'idle' },
     { key: 'rh', label: 'rh', value: getVault(robinhood.id) ? robinhood.id : 'no vault', tone: getVault(robinhood.id) ? 'argon' : 'idle' },
     { key: 'wallet', label: 'wallet', value: w.isConnected ? `${w.walletChainId ?? '?'}` : 'off', tone: w.isConnected ? 'up' : 'idle' },
