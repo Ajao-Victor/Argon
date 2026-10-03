@@ -214,7 +214,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
       <RevealItem className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-hairline pt-5 sm:grid-cols-4">
         {api && (
           <div className="flex flex-col gap-1">
-            <span className="label leading-5"><Term id="spot">spot</Term></span>
+            <span className="label leading-5"><Term id="spot" placement="top">spot</Term></span>
             <span className="font-mono text-sm leading-5 text-text-hi">{api.spotUsd === null ? '—' : formatUsd(api.spotUsd)}</span>
           </div>
         )}
@@ -237,16 +237,16 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
           </div>
         )}
         <div className="flex flex-col gap-1">
-          <span className="label leading-5"><Term id="model">model</Term></span>
+          <span className="label leading-5"><Term id="model" placement="top">model</Term></span>
           <span className="font-mono text-sm leading-5 text-text-hi">{api?.modelId ?? status.data?.modelId ?? '—'}</span>
         </div>
         <div className="flex flex-col gap-1">
-          <span className="label leading-5"><Term id="gate">gate</Term></span>
+          <span className="label leading-5"><Term id="gate" placement="top">gate</Term></span>
           <span className="font-mono text-sm leading-5 text-text-hi">{gateBps === undefined ? '—' : `±${(gateBps / 100).toFixed(2)}%`}</span>
         </div>
         {api && (
           <div className="flex flex-col gap-1">
-            <span className="label leading-5"><Term id="targetHour">understandable hour</Term></span>
+            <span className="label leading-5"><Term id="targetHour" placement="top">understandable hour</Term></span>
             <span className="font-mono text-sm leading-5 text-text-hi" title={`hour ${api.targetHourId}`}>{formatSettlementHour(api.targetHourId)}</span>
           </div>
         )}

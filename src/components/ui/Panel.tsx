@@ -35,8 +35,15 @@ export function Panel({ label, meta, active = false, padded = true, glitch = fal
   const inner = (
     <>
       <header className="flex h-11 items-center justify-between gap-4 border-b border-hairline px-5 sm:px-6">
-        <span className="label truncate leading-5">{label}</span>
-        {meta !== undefined && <span className="label truncate leading-5 text-text-dim">{meta}</span>}
+        {/* Only the text truncates: overflow-hidden on the flex container would clip <Term> tooltips. */}
+        <span className="label flex min-w-0 items-center leading-5">
+          <span className="truncate">{label}</span>
+        </span>
+        {meta !== undefined && (
+          <span className="label flex min-w-0 items-center leading-5 text-text-dim">
+            <span className="truncate">{meta}</span>
+          </span>
+        )}
       </header>
       <div className={cn('flex min-h-0 flex-1 flex-col', padded && 'p-5 sm:p-6')}>{children}</div>
     </>

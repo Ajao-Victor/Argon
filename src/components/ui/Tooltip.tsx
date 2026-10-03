@@ -12,7 +12,9 @@ import { GLOSSARY, type TermId } from './glossary';
  * inline transform, so horizontal centering is `x: '-50%'` in every variant rather than a
  * Tailwind translate class that the motion transform would overwrite.
  */
-export function Tooltip({ content, children, className }: { content: ReactNode; children: ReactNode; className?: string | undefined }) {
+export type TooltipPlacement = 'top' | 'bottom';
+
+export function Tooltip({ content, children, className, placement = 'bottom' }: { content: ReactNode; children: ReactNode; className?: string | undefined; placement?: TooltipPlacement | undefined }) {
   const [open, setOpen] = useState(false);
   const reduced = useReducedMotion();
   const id = useId();
@@ -32,8 +34,11 @@ export function Tooltip({ content, children, className }: { content: ReactNode; 
           <motion.span
             id={id}
             role="tooltip"
-            className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-64 rounded-panel border border-hairline-strong bg-surface-1/95 px-3 py-2 text-left text-[0.75rem] normal-case leading-5 tracking-normal text-text-mid shadow-glow-sm backdrop-blur-glass"
-            initial={reduced ? { x: '-50%', opacity: 0 } : { x: '-50%', opacity: 0, y: 4, scale: 0.98 }}
+            className={cn(
+              'pointer-events-none absolute left-1/2 z-30 w-64 rounded-panel border border-hairline-strong bg-surface-1/95 px-3 py-2 text-left text-[0.75rem] normal-case leading-5 tracking-normal text-text-mid shadow-glow-sm backdrop-blur-glass',
+              placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2',
+            )}
+            initial={reduced ? { x: '-50%', opacity: 0 } : { x: '-50%', opacity: 0, y: placement === 'top' ? -4 : 4, scale: 0.98 }}
             animate={reduced ? { x: '-50%', opacity: 1 } : { x: '-50%', opacity: 1, y: 0, scale: 1 }}
             exit={{ x: '-50%', opacity: 0, transition: { duration: 0.12 } }}
             transition={{ type: 'spring', stiffness: 400, damping: 26 }}
@@ -47,9 +52,9 @@ export function Tooltip({ content, children, className }: { content: ReactNode; 
 }
 
 /** A glossary term: dotted underline + tooltip from GLOSSARY. */
-export function Term({ id, children, className }: { id: TermId; children: ReactNode; className?: string | undefined }) {
+export function Term({ id, children, className, placement }: { id: TermId; children: ReactNode; className?: string | undefined; placement?: TooltipPlacement | undefined }) {
   return (
-    <Tooltip content={GLOSSARY[id]} className={className}>
+    <Tooltip content={GLOSSARY[id]} className={className} placement={placement}>
       <span className="cursor-help underline decoration-dotted decoration-text-dim underline-offset-4 hover:decoration-argon-400">{children}</span>
     </Tooltip>
   );
