@@ -1,6 +1,6 @@
 # Argon — Architecture Essentials (LLM cheat sheet)
 
-Dense reference for coding sessions. Full detail in `product.md`, `architecture.md`, `agents.md`, `design.md`. Spec of record: `doc/Argon .txt`.
+Dense reference for coding sessions. Full detail in `product.md`, `architecture.md`, `agents.md`, `design.md`. Specs of record: `doc/product.md`, `doc/architecture.md`, `doc/agents.md`.
 
 ## 0. One paragraph
 

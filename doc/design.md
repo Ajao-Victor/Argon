@@ -1,6 +1,6 @@
 # Argon — Design System
 
-Aesthetic brief: a simulation-grade tactical terminal. Black canvas, ultraviolet argon plasma, monospace telemetry, dense data. The reference image in `doc/1000628611.jpg` is a glass tube of ionized argon glowing violet-magenta against black. That is the brand: a sealed vessel, a charged gas, a visible reaction. The vault is the tube. The hourly forecast is the current running through it.
+Aesthetic brief: a simulation-grade tactical terminal. Black canvas, ultraviolet argon plasma, monospace telemetry, dense data. The brand reference is a sealed glass tube of ionized argon: a cold violet core bleeding into magenta at the electrodes, glowing against pure black with a soft halo on the glass. That is the brand: a sealed vessel, a charged gas, a visible reaction. The vault is the tube. The hourly forecast is the current running through it.
 
 Inspiration set: high-octane trading terminals, sci-fi tactical HUDs, gamified on-chain dashboards (HashPet, WTF), Bloomberg density with Tron light. What we take from them: density, motion that means something, monospace everywhere data lives. What we leave: novelty for its own sake, motion that hides latency, any element that competes with a wallet prompt.
 

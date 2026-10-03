@@ -1,6 +1,6 @@
 # ENGINEERING.md — argon-web operating guardrails
 
-Read `doc/architecture-essentials.md` first in every session. It is the compressed truth. Go to `doc/product.md`, `doc/architecture.md`, `doc/agents.md`, `doc/design.md` only when the essentials do not answer the question. `doc/Argon .txt` is the original spec of record.
+Read `doc/architecture-essentials.md` first in every session. It is the compressed truth. Go to `doc/product.md`, `doc/architecture.md`, `doc/agents.md`, `doc/design.md` only when the essentials do not answer the question. `doc/product.md`, `doc/architecture.md` and `doc/agents.md` are the specs of record.
 
 ## 0. Absolute rules
 

@@ -1,7 +1,7 @@
 # Argon — Product Specification (web track)
 
 Status: v1 locked. ETH-only, 8-hour horizon, ±2% gate, pools 1 and 4.
-Source of truth: `doc/Argon .txt` (web spec), `doc/argon-web-architecture.pdf` (canvas), partner's `agent/README.md` and `agent/eth_model.ipynb` (agent code).
+Source of truth: this document (web product spec), `doc/architecture.md` (system canvas), `doc/agents.md` (web ↔ agent protocol), and the partner's `agent/README.md` and `agent/eth_model.ipynb` (agent code).
 Owner of this document: web track (argon-web). The agent track is read-only for us.
 
 ---
