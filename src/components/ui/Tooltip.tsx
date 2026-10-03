@@ -7,7 +7,11 @@ import { cn } from '@/utils/cn';
 
 import { GLOSSARY, type TermId } from './glossary';
 
-/** Hover / focus tooltip. Spring in, fades out. Transform + opacity only. */
+/**
+ * Hover / focus tooltip. Spring in, fades out. Transform + opacity only. Framer Motion owns the
+ * inline transform, so horizontal centering is `x: '-50%'` in every variant rather than a
+ * Tailwind translate class that the motion transform would overwrite.
+ */
 export function Tooltip({ content, children, className }: { content: ReactNode; children: ReactNode; className?: string | undefined }) {
   const [open, setOpen] = useState(false);
   const reduced = useReducedMotion();
@@ -20,7 +24,7 @@ export function Tooltip({ content, children, className }: { content: ReactNode; 
       onFocus={() => setOpen(true)}
       onBlur={() => setOpen(false)}
     >
-      <span aria-describedby={open ? id : undefined} tabIndex={0} className="outline-none">
+      <span aria-describedby={open ? id : undefined} tabIndex={0} className="rounded-sm focus-visible:outline focus-visible:outline-1 focus-visible:outline-argon-500">
         {children}
       </span>
       <AnimatePresence>
@@ -28,10 +32,10 @@ export function Tooltip({ content, children, className }: { content: ReactNode; 
           <motion.span
             id={id}
             role="tooltip"
-            className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-64 -translate-x-1/2 rounded-panel border border-hairline-strong bg-surface-1/95 px-3 py-2 text-left text-[0.75rem] normal-case leading-5 tracking-normal text-text-mid shadow-glow-sm backdrop-blur-glass"
-            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 4, scale: 0.98 }}
-            animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.12 } }}
+            className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-64 rounded-panel border border-hairline-strong bg-surface-1/95 px-3 py-2 text-left text-[0.75rem] normal-case leading-5 tracking-normal text-text-mid shadow-glow-sm backdrop-blur-glass"
+            initial={reduced ? { x: '-50%', opacity: 0 } : { x: '-50%', opacity: 0, y: 4, scale: 0.98 }}
+            animate={reduced ? { x: '-50%', opacity: 1 } : { x: '-50%', opacity: 1, y: 0, scale: 1 }}
+            exit={{ x: '-50%', opacity: 0, transition: { duration: 0.12 } }}
             transition={{ type: 'spring', stiffness: 400, damping: 26 }}
           >
             {content}
