@@ -33,3 +33,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# internal notes
+doc/forecast-calculations-audit.md
+doc/1000628611.jpg
+doc/Argon_handoff.pdf
+doc/argon-web-architecture.pdf
+doc/Argon .txt
