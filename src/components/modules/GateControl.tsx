@@ -7,6 +7,7 @@ import { Button, Chip, Skeleton, type ChipTone } from '@/components/ui';
 import { useGate, useSetGate } from '@/hooks';
 import { CUSTOM_BPS_LIMIT, PRESET_BANDS, resolveGate, type GatePreset, type GatePresetNamed, type GateRow } from '@/types/gates';
 import { cn } from '@/utils/cn';
+import { rovingRadioKeyDown } from '@/utils/rovingRadio';
 
 /**
  * Per-user gate on the selected pool card (handoff 2026-10-02).
@@ -82,13 +83,24 @@ export function GateControl({ address }: { address: Address }) {
       {stored && <p className="font-mono text-[0.6875rem] leading-4 text-text-dim">{bandsLine(stored.top1hBps, stored.top2hBps, stored.top8hBps)}</p>}
       <p className="text-[0.6875rem] leading-4 text-text-dim">{GATE_COPY}</p>
 
-      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="gate preset">
+      <div
+        className="flex flex-wrap gap-1.5"
+        role="radiogroup"
+        aria-label="gate preset"
+        onKeyDown={(e) =>
+          rovingRadioKeyDown(e, (i) => {
+            const next = PRESETS[i];
+            if (next) setPreset(next);
+          })
+        }
+      >
         {PRESETS.map((p) => (
           <button
             key={p}
             type="button"
             role="radio"
             aria-checked={activePreset === p}
+            tabIndex={activePreset === p ? 0 : -1}
             onClick={() => setPreset(p)}
             className={cn(
               'rounded-chip border px-2.5 py-1 text-[0.6875rem] uppercase tracking-wider transition-colors',

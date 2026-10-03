@@ -8,6 +8,7 @@ import { SPRING } from '@/components/ui/motion';
 import { FAQ_ENTRIES, filterFaq } from '@/services/faqData';
 import { FAQ_CATEGORIES, type FaqCategory, type FaqEntry } from '@/types/faq';
 import { cn } from '@/utils/cn';
+import { rovingRadioKeyDown } from '@/utils/rovingRadio';
 
 /**
  * Protocol FAQ (Phase 19): glass panels on hairline borders, category chips, one
@@ -40,13 +41,13 @@ function Inline({ text }: { text: string }) {
 function FaqItem({ entry, open, onToggle, headingId, panelId }: { entry: FaqEntry; open: boolean; onToggle: () => void; headingId: string; panelId: string }) {
   const reduced = useReducedMotion();
   return (
-    <li id={`faq-${entry.id}`} className={cn('panel transition-[border-color,box-shadow]', open && 'panel-active border-hairline-strong')}>
+    <li id={`faq-${entry.id}`} className={cn('panel scroll-mt-20 transition-[border-color,box-shadow]', open && 'panel-active border-hairline-strong')}>
       <h3 id={headingId} className="m-0">
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={open}
-          aria-controls={panelId}
+          aria-controls={open ? panelId : undefined}
           className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left font-display text-base text-text-hi transition-colors hover:text-argon-300 sm:text-lg"
         >
           <span>{entry.question}</span>
@@ -119,7 +120,19 @@ export function FaqSection({ title = 'Answers before you deposit', initialFilter
         </h2>
       </div>
 
-      <div role="radiogroup" aria-label="faq category" className="mb-5 flex flex-wrap justify-center gap-1.5">
+      <div
+        role="radiogroup"
+        aria-label="faq category"
+        className="mb-5 flex flex-wrap justify-center gap-1.5"
+        onKeyDown={(e) =>
+          rovingRadioKeyDown(e, (i) => {
+            const next = FILTERS[i];
+            if (!next) return;
+            setFilter(next.id);
+            setOpenId(null);
+          })
+        }
+      >
         {FILTERS.map((f) => {
           const active = filter === f.id;
           return (
@@ -128,6 +141,7 @@ export function FaqSection({ title = 'Answers before you deposit', initialFilter
               type="button"
               role="radio"
               aria-checked={active}
+              tabIndex={active ? 0 : -1}
               onClick={() => {
                 setFilter(f.id);
                 setOpenId(null);
@@ -143,7 +157,7 @@ export function FaqSection({ title = 'Answers before you deposit', initialFilter
         })}
       </div>
 
-      <ul className="flex flex-col gap-3" aria-live="polite">
+      <ul className="flex flex-col gap-3">
         {entries.map((e) => (
           <FaqItem
             key={e.id}
