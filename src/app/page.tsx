@@ -17,7 +17,7 @@ const STEPS = [
     n: '2',
     title: 'Hourly AI market check',
     body:
-      "Every hour, Argon forecasts ETH's 1-hour, 2-hour, and 8-hour price movement. If ETH looks stable (within ±2%), your money works in the pool earning trading fees. If a sharp swing is predicted, Argon exits to cash to protect you from choppy losses.",
+      "Every hour, Argon forecasts ETH's 1-hour, 2-hour, and 8-hour price movement. If ETH looks stable across the 1h, 2h, and 8h windows, your money works in the pool earning trading fees. If a sharp swing is predicted, Argon exits to cash to protect you from choppy losses.",
   },
   {
     n: '3',

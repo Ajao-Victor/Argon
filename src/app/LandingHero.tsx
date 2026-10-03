@@ -50,7 +50,7 @@ export function LandingHero() {
 
       <Reveal delay={0.18} className="flex w-full flex-col items-center gap-5 text-center">
         <RevealItem>
-          <h1 className="font-display text-4xl font-medium leading-tight tracking-tight text-text-hi sm:text-6xl">
+          <h1 className="font-display text-4xl font-medium leading-tight tracking-tight text-balance text-text-hi sm:text-6xl">
             Yield on autopilot.{' '}
             <br className="hidden sm:block" />
             <span className="text-argon-400 glow-text">Safety built in.</span>
@@ -58,7 +58,7 @@ export function LandingHero() {
         </RevealItem>
 
         <RevealItem>
-          <p className="mx-auto max-w-2xl text-[0.9375rem] leading-6 text-text-mid sm:text-base">
+          <p className="mx-auto max-w-2xl text-[0.9375rem] leading-6 text-pretty text-text-mid sm:text-base">
             Argon puts your crypto to work when ETH is calm and puts it to cash when it isn&apos;t. No charts, no clicking.
           </p>
         </RevealItem>
