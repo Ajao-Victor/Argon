@@ -33,6 +33,25 @@ export const DEPOSIT_TOKENS: Record<SupportedChainId, readonly TokenSymbol[]> = 
   4663: ['WETH', 'USDG'],
 };
 
+/**
+ * Native ETH is a deposit asset without an ERC-20 contract: the vault takes it through the
+ * payable `depositETH()` and wraps it itself, so there is no allowance step. Both chains
+ * use ETH as the gas token.
+ */
+export interface NativeEthDef {
+  symbol: 'ETH';
+  decimals: 18;
+  native: true;
+}
+export const NATIVE_ETH: NativeEthDef = { symbol: 'ETH', decimals: 18, native: true };
+
+/** What the deposit form can take on a chain: native ETH, then the vault's escrowed ERC-20s. */
+export type DepositAsset = NativeEthDef | TokenDef;
+
+export function isNativeEth(asset: DepositAsset): asset is NativeEthDef {
+  return 'native' in asset && asset.native === true;
+}
+
 export function tokenBySymbol(chainId: SupportedChainId, symbol: TokenSymbol): TokenDef {
   const t = TOKENS[chainId].find((x) => x.symbol === symbol);
   if (!t) throw new Error(`token ${symbol} not on chain ${chainId}`);
@@ -46,4 +65,9 @@ export function tokenByAddress(chainId: SupportedChainId, address: Address): Tok
 
 export function depositTokens(chainId: SupportedChainId): readonly TokenDef[] {
   return DEPOSIT_TOKENS[chainId].map((s) => tokenBySymbol(chainId, s));
+}
+
+/** Native ETH first, then the ERC-20 legs: the order the deposit form shows. */
+export function depositAssets(chainId: SupportedChainId): readonly DepositAsset[] {
+  return [NATIVE_ETH, ...depositTokens(chainId)];
 }

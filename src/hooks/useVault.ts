@@ -11,7 +11,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef, useState } from 'react';
 import { BaseError, UserRejectedRequestError, erc20Abi, type Address, type Hash, type TransactionReceipt } from 'viem';
-import { useAccount, useConfig, useReadContracts } from 'wagmi';
+import { useAccount, useBalance, useConfig, useReadContracts } from 'wagmi';
 import {
   readContract,
   simulateContract,
@@ -135,6 +135,33 @@ export function useVaultBalances(chainId: SupportedChainId, user: Address | unde
         const funded = shares > 0n || idle.some((b) => b.idle > 0n);
         return { idle, shares, totalShares, funded };
       },
+    },
+  });
+}
+
+/**
+ * Native ETH balance of the connected wallet on the vault's chain (not the wallet's current
+ * chain). wagmi keys this under ['balance', …], which useInvalidateChainReads already clears
+ * after every deposit or withdraw receipt, so it refreshes with the ERC-20 reads.
+ */
+export function useNativeBalance(chainId: SupportedChainId, user: Address | undefined) {
+  return useBalance({
+    address: user,
+    chainId,
+    query: { enabled: Boolean(user), staleTime: VAULT_READ_STALE_MS, select: (b) => b.value },
+  });
+}
+
+/** Wallet ERC-20 balances for every deposit token on one chain (the withdraw page's wallet readout). */
+export function useWalletTokenBalances(chainId: SupportedChainId, user: Address | undefined) {
+  const tokens = depositTokens(chainId);
+  return useReadContracts({
+    contracts: user ? tokens.map((t) => ({ address: t.address, abi: erc20Abi, chainId, functionName: 'balanceOf' as const, args: [user] as const })) : [],
+    allowFailure: true,
+    query: {
+      enabled: Boolean(user),
+      staleTime: VAULT_READ_STALE_MS,
+      select: (rows) => tokens.map((token, i) => ({ token, balance: rows[i]?.status === 'success' ? asBigInt(rows[i]?.result) : 0n })),
     },
   });
 }
@@ -349,7 +376,7 @@ export function useDeposit(chainId: SupportedChainId) {
   return { state, write, reset } as const;
 }
 
-/** depositETH() with value. Spec §4.5 optional; not wired into a form until the vault exposes it. */
+/** depositETH() with `value`: the vault wraps the ETH itself, so there is no approve step. Wired into DepositForm. */
 export function useDepositEth(chainId: SupportedChainId) {
   const config = useConfig();
   const { address: user } = useAccount();
