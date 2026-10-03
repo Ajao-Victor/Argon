@@ -44,7 +44,7 @@ export function WarmupBar() {
         </dd>
         <dt className="label leading-5">first decision in</dt>
         <dd className="font-mono text-text-hi">
-          {remaining} h{minsToHour !== null && <span className="text-text-dim"> · next print in ~{minsToHour} min UTC</span>}
+          {remaining}h{minsToHour !== null && <span className="text-text-dim"> · next print in ~{minsToHour} min UTC</span>}
         </dd>
         {s.onchainForecastCount !== undefined && (
           <>

@@ -37,7 +37,7 @@ export function KeeperPanel({ delay = 0 }: { delay?: number }) {
         <dl className="grid grid-cols-[8rem_1fr] items-baseline gap-x-4 gap-y-2">
           <Row k="dry run" v={s ? (s.dryRun ? <span className="text-signal-warn">true · keeper sends no txs</span> : <span className="text-signal-up">false · live</span>) : '—'} />
           <Row k="model" v={s?.modelId ?? '—'} />
-          <Row k="clock" v={s ? `last ${s.lastHourId ?? '—'} · now ${s.currentHourId} · ${s.currentHourId - (s.lastHourId ?? s.currentHourId)} h behind` : '—'} />
+          <Row k="clock" v={s ? `last ${s.lastHourId ?? '—'} · now ${s.currentHourId} · ${s.currentHourId - (s.lastHourId ?? s.currentHourId)}h behind` : '—'} />
           <Row k="warmup" v={s ? (s.warmupComplete ? 'complete' : `${s.hoursUntilFirstDecision} submits to go`) : '—'} />
           <Row k="database" v={s?.database ?? '—'} />
           <Row k="registry · arb" v={`${regArb.data?.forecastCount ?? '—'} submits · latest hour ${regArb.data?.latestHourId ?? '—'}`} />

@@ -5,7 +5,7 @@ import { useAgentMode, useHashMatch, useLatestForecast, useAgentStatus, usePoolS
 import type { SupportedChainId } from '@/services/chains';
 import type { PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
-import { formatPct, formatUsd } from '@/utils/format';
+import { formatGatePct, formatPct, formatUsd } from '@/utils/format';
 import { formatHourUtc, formatSettlementHour } from '@/utils/hourId';
 import { GATES_PCT, WARMUP_HOURS, gateChip } from '@/utils/policy';
 import { forecastLagHours, isForecastStale } from '@/utils/agentStaleness';
@@ -41,10 +41,10 @@ function actionCopy(action: PolicyAction, g: Gates, tripped: readonly string[]):
   const which = tripped.length ? tripped.join(' + ') : 'a short horizon';
   switch (action) {
     case 'exit':
-      return `Model expects ETH to move past its gate on ${which} (1h ≥ ${g.g1}%, 2h ≥ ${g.g2}%, 8h ≥ ${g.g8}%). Positions flattened.`;
+      return `Model expects ETH to move past its gate on ${which} (1h ≥ ${formatGatePct(g.g1)}, 2h ≥ ${formatGatePct(g.g2)}, 8h ≥ ${formatGatePct(g.g8)}). Positions flattened.`;
     case 'enter':
     case 'hold':
-      return `Model expects ETH inside every gate (1h ±${g.g1}%, 2h ±${g.g2}%, 8h ±${g.g8}%). Liquidity in range.`;
+      return `Model expects ETH inside every gate (1h ±${formatGatePct(g.g1)}, 2h ±${formatGatePct(g.g2)}, 8h ±${formatGatePct(g.g8)}). Liquidity in range.`;
     case 'warmup':
       return `Collecting the first ${WARMUP_HOURS} hourly submits. No trades until the registry opens at submit ${WARMUP_HOURS}.`;
   }
@@ -99,7 +99,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
     >
       {status.data && isForecastStale(status.data) && (
         <Banner tone="warn" className="mb-3">
-          last print was {forecastLagHours(status.data)} h ago (hour {status.data.lastHourId ?? '—'}, now {status.data.currentHourId}) — the agent clock is behind; this forecast is stale
+          last print was {forecastLagHours(status.data)}h ago (hour {status.data.lastHourId ?? '—'}, now {status.data.currentHourId}) — the agent clock is behind; this forecast is stale
         </Banner>
       )}
       {api && api.live === false && (
@@ -171,7 +171,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
               <div className="flex flex-col gap-2 pb-1">
                 <div className="label-lg">gate</div>
                 <Chip tone={gate === 'IN' ? 'argon' : 'warn'} dot flipKey={gate} className="w-fit">
-                  {gate === 'IN' ? `inside ±${gates.g8}%` : `outside ±${gates.g8}%`}
+                  {gate === 'IN' ? `inside ±${formatGatePct(gates.g8)}` : `outside ±${formatGatePct(gates.g8)}`}
                 </Chip>
               </div>
             )}
@@ -190,7 +190,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
                     return (
                       <Chip key={h} tone={tripped ? 'down' : 'plain'} flipKey={`${h}-${tripped}`} title={`source: ${sourceLabel(src)}`}>
                         {h} <span className={cn('normal-case tracking-normal', v < 0 ? 'text-signal-down' : v > 0 ? 'text-signal-up' : '')}>{formatPct(v)}</span>
-                        <span className="text-text-dim">/ ±{h === '1h' ? gates.g1 : h === '2h' ? gates.g2 : gates.g8}%</span>
+                        <span className="text-text-dim">/ ±{formatGatePct(h === '1h' ? gates.g1 : h === '2h' ? gates.g2 : gates.g8)}</span>
                       </Chip>
                     );
                   })}
@@ -242,7 +242,7 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
         </div>
         <div className="flex flex-col gap-1">
           <span className="label leading-5"><Term id="gate" placement="top">gate</Term></span>
-          <span className="font-mono text-sm leading-5 text-text-hi">{gateBps === undefined ? '—' : `±${(gateBps / 100).toFixed(2)}%`}</span>
+          <span className="font-mono text-sm leading-5 text-text-hi">{gateBps === undefined ? '—' : `±${formatGatePct(gateBps / 100)}`}</span>
         </div>
         {api && (
           <div className="flex flex-col gap-1">

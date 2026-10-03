@@ -1,7 +1,7 @@
 import type { FaqCategory, FaqEntry } from '@/types/faq';
 
 /**
- * The eight protocol questions, trader-friendly, grounded 100 % in the Argon README
+ * The eight protocol questions, trader-friendly, grounded 100% in the Argon README
  * specification (hourly 8 h forecast, DualHorizonGate, 9-hour warmup, 2-hour cooldown,
  * two chains, signer gates, on-chain custody, InferenceRegistry hashes).
  */
@@ -70,7 +70,7 @@ export const FAQ_ENTRIES: readonly FaqEntry[] = [
     category: 'security-custody',
     question: 'Are my funds safe? Can the AI or Keeper steal my crypto?',
     answer: [
-      'Custody is 100 % on-chain; only the judgment is off-chain. The agent never holds user keys and the web app never sends a transaction on your behalf.',
+      'Custody is 100% on-chain; only the judgment is off-chain. The agent never holds user keys and the web app never sends a transaction on your behalf.',
       'The keeper hot wallet can only call `rebalance()` within contract-enforced slippage and tick bounds. It can never send tokens to an arbitrary address.',
       'You can withdraw your pro-rata WETH and stablecoin shares at any time, in pool or idle. A Chainlink oracle check and an L2 sequencer-uptime guard block rebalances during stale price feeds or L2 downtime.',
     ],

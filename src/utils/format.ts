@@ -36,6 +36,11 @@ export function truncateAddress(addr: string): string {
   return truncateHex(addr, 6, 4);
 }
 
+/** Gate percentages read with one decimal everywhere: 1 → "1.0%", 2.5 → "2.5%". */
+export function formatGatePct(pct: number): string {
+  return `${pct.toFixed(1)}%`;
+}
+
 /** "23:41" from milliseconds. */
 export function formatCountdown(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));

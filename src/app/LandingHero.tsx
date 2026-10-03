@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { KeeperAvatar } from '@/components/simulation/KeeperAvatar';
 import { Reveal, RevealItem, StaggerText } from '@/components/ui/motion';
 import { agentKeys, useAgentMode, useAgentStatus, useLatestForecast } from '@/hooks/useAgent';
-import { formatPct, formatUsd } from '@/utils/format';
+import { formatGatePct, formatPct, formatUsd } from '@/utils/format';
 import { WARMUP_HOURS, gateChip } from '@/utils/policy';
 
 /**
@@ -20,7 +20,7 @@ function stateLine(action: string | undefined, warmupComplete: boolean, gatePct:
     return { text: `Warming up — the AI observes the first ${WARMUP_HOURS} hours before it trades`, tone: 'text-text-mid' };
   }
   if (action === 'exit') return { text: 'High volatility predicted — vault steps aside into cash', tone: 'text-signal-warn' };
-  if (action === 'hold' || action === 'enter') return { text: `Market looks calm (within ±${gatePct}%) — vault stays active to earn fees`, tone: 'text-signal-up' };
+  if (action === 'hold' || action === 'enter') return { text: `Market looks calm (within ±${formatGatePct(gatePct)}) — vault stays active to earn fees`, tone: 'text-signal-up' };
   return { text: 'Reading the market…', tone: 'text-text-lo' };
 }
 
@@ -86,7 +86,7 @@ export function LandingHero() {
                   <dt className="label-lg">safe trading range (gate)</dt>
                   <dd className="mt-1">
                     <span className={`font-mono text-lg ${gateChip(pct) === 'IN' ? 'text-argon-300' : 'text-signal-warn'}`}>
-                      {gateChip(pct) === 'IN' ? `Within ±${gatePct.toFixed(2)}%` : `Outside ±${gatePct.toFixed(2)}%`}
+                      {gateChip(pct) === 'IN' ? `Within ±${formatGatePct(gatePct)}` : `Outside ±${formatGatePct(gatePct)}`}
                     </span>
                     <p className={`mt-1 text-data ${state.tone}`}>{state.text}</p>
                   </dd>

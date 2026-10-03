@@ -60,7 +60,7 @@ export function Footer() {
           ? 'Agent API: fixture'
           : agentUp
             ? stale
-              ? `Agent API: Connected · stale ${lag} h`
+              ? `Agent API: Connected · stale ${lag}h`
               : 'Agent API: Connected'
             : 'Agent API: Unreachable';
 
@@ -101,7 +101,7 @@ export function Footer() {
             {clock?.hhmmss ?? '--:--:--'}
           </span>
           <span className={cn('tabular-nums', stale ? 'text-signal-warn' : 'text-text-dim')} suppressHydrationWarning>
-            {stale && status.data ? `· last print #${status.data.lastHourId ?? '—'} · ${lag} h ago` : `· next print ${mm}:${ss}`}
+            {stale && status.data ? `· last print #${status.data.lastHourId ?? '—'} · ${lag}h ago` : `· next print ${mm}:${ss}`}
           </span>
           {clock && <span className="hidden text-text-dim xl:inline">· hour {clock.hourId}</span>}
         </Cell>

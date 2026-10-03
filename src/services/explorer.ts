@@ -19,5 +19,5 @@ export function addressUrl(chainId: SupportedChainId, address: string): string {
 }
 
 export function chainName(chainId: SupportedChainId): string {
-  return chainId === arbitrum.id ? 'Arbitrum' : 'Robinhood';
+  return chainId === arbitrum.id ? 'Arbitrum' : 'Robinhood Chain';
 }
