@@ -132,15 +132,33 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
             </span>
           </div>
         ) : latest.status === 'pending' ? (
-          <div className="flex flex-col gap-6">
+          /* Mirrors the loaded layout block for block (headline, action + gate + horizon strip,
+             action copy) at the same type sizes, so the arriving row causes no layout shift. */
+          <div className="flex flex-col gap-6" aria-busy="true">
             <div>
               <div className="label-lg mb-3">predicted eth move · next 8 hours</div>
               <Skeleton chars={7} slow className="data-hero text-6xl sm:text-8xl lg:text-[8.5rem]" />
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="label-lg">next action</div>
-              <Skeleton chars={5} slow className="data-hero text-5xl sm:text-6xl lg:text-7xl" />
+            <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+              <div className="flex flex-col gap-2">
+                <div className="label-lg">next action</div>
+                <Skeleton chars={5} slow className="data-hero text-5xl sm:text-6xl lg:text-7xl" />
+              </div>
+              <div className="flex flex-col gap-2 pb-1">
+                <div className="label-lg">gate</div>
+                <Skeleton chars={14} scan={false} className="h-6 text-label leading-6" />
+              </div>
+              <div className="flex flex-col gap-2 pb-1">
+                <div className="label-lg">horizons · gate</div>
+                <div className="flex flex-wrap gap-2">
+                  {(['1h', '2h', '8h'] as const).map((h) => (
+                    <Skeleton key={h} chars={16} scan={false} className="h-6 text-label leading-6" />
+                  ))}
+                </div>
+                <Skeleton chars={72} scan={false} className="max-w-md text-label" />
+              </div>
             </div>
+            <Skeleton chars={96} scan={false} className="max-w-xl leading-6" />
           </div>
         ) : (
           <div className="flex flex-col gap-2 py-6">

@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 
-import { Chip, DataTable, HashText, Panel, SkeletonLines, Term, type ChipTone, type Column } from '@/components/ui';
+import { Chip, DataTable, HashText, Panel, Skeleton, Term, type ChipTone, type Column } from '@/components/ui';
 import { useAgentMode, useForecastHistory } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { txUrl } from '@/services/explorer';
@@ -56,9 +56,16 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
             <span className="leading-5 text-text-lo">Set NEXT_PUBLIC_AGENT_URL and rebuild. History fills from the first hourly print.</span>
           </div>
         ) : history.status === 'pending' ? (
-          <div className="flex flex-col gap-3">
+          /* Header line plus eight 32 px rows: the shape of the loaded table, not a short stub. */
+          <div className="flex flex-col gap-3" aria-busy="true">
             <span className="label leading-5">computing history</span>
-            <SkeletonLines lines={6} chars={48} />
+            <div className="flex flex-col divide-y divide-hairline">
+              {Array.from({ length: 8 }, (_, i) => (
+                <div key={i} className="flex h-8 items-center">
+                  <Skeleton chars={72} scan={i === 0} className="max-w-full" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
         <DataTable
