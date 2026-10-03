@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, Menu, X } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { ConnectButton } from '@/components/modules/ConnectButton';
@@ -94,11 +94,25 @@ function NetworkMenu({ block = false, onPick }: { block?: boolean; onPick?: () =
   }
 
   return (
-    <div className="relative" onPointerLeave={() => setOpen(false)}>
+    <div
+      className="relative"
+      onPointerLeave={() => setOpen(false)}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && open) {
+          e.preventDefault();
+          setOpen(false);
+        }
+      }}
+      onBlur={(e) => {
+        // Close when keyboard focus leaves the dropdown container entirely.
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-haspopup="menu"
         className={cn(
           'flex min-h-10 items-center gap-1.5 rounded-chip px-3 text-label uppercase tracking-[0.12em] transition-colors',
           open ? 'text-text-hi' : 'text-text-lo hover:text-text-hi',
@@ -136,19 +150,23 @@ function NetworkMenu({ block = false, onPick }: { block?: boolean; onPick?: () =
 function WalletControls({ block = false, onNavigate }: { block?: boolean; onNavigate?: () => void }) {
   const selected = useUiStore((s) => s.selectedChainId);
   const deployed = Boolean(getVault(selected));
+  const router = useRouter();
+  // One focusable control per action: a Button that navigates, not a Button nested in a Link.
+  const go = (href: '/app/deposit' | '/app/withdraw') => () => {
+    onNavigate?.();
+    router.push(href);
+  };
   return (
     <div className={cn('flex items-center gap-3', block && 'flex-col items-stretch gap-3 px-4 py-4')}>
       <div className={cn('gap-2', block ? 'flex w-full [&>*]:flex-1' : 'hidden lg:flex')}>
         {deployed ? (
           <>
-            <Link href="/app/deposit" className="contents" {...(onNavigate ? { onClick: onNavigate } : {})}>
-              <Button size="sm">deposit</Button>
-            </Link>
-            <Link href="/app/withdraw" className="contents" {...(onNavigate ? { onClick: onNavigate } : {})}>
-              <Button size="sm" variant="ghost">
-                withdraw
-              </Button>
-            </Link>
+            <Button size="sm" onClick={go('/app/deposit')}>
+              deposit
+            </Button>
+            <Button size="sm" variant="ghost" onClick={go('/app/withdraw')}>
+              withdraw
+            </Button>
           </>
         ) : (
           <>
