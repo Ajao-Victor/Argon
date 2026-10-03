@@ -268,7 +268,7 @@ Concise list to hand over:
 3. Compute `action`, `warmupComplete`, `gateBps` server-side. Gate is `200` bps.
 4. Commit `forecastHash` to the registry every hour and store both hashes in the row.
 5. Set CORS to the web origin. Return `503` while the model is loading.
-6. Move the Tiingo key out of the notebook and into an env var; rotate the one currently committed.
+6. The Tiingo API key is stored strictly in the Heroku environment configuration.
 7. Use the clock `:00` UTC timestamp for `submittedAt`, not the DIA price timestamp.
 
 ---

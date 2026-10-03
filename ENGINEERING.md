@@ -1,6 +1,6 @@
 # ENGINEERING.md — argon-web operating guardrails
 
-Read `doc/architecture-essentials.md` first in every session. It is the compressed truth. Go to `doc/product.md`, `doc/architecture.md`, `doc/agents.md`, `doc/design.md` only when the essentials do not answer the question. `doc/product.md`, `doc/architecture.md` and `doc/agents.md` are the specs of record.
+Start with `doc/architecture-essentials.md`. It is the compressed truth. Go to `doc/product.md`, `doc/architecture.md`, `doc/agents.md`, `doc/design.md` only when the essentials do not answer the question. `doc/product.md`, `doc/architecture.md` and `doc/agents.md` are the specs of record.
 
 ## 0. Absolute rules
 
@@ -127,10 +127,10 @@ Web3 frontends rot in predictable ways. These are the ones we refuse.
 - Never `git add` anything outside `argon-web/`. The `agent/` folder is a separate repository owned by someone else; it is not ours to stage, commit, or push.
 - `git push` only when asked.
 
-## 5. Session start checklist
+## 5. Before starting work
 
-1. Read `doc/architecture-essentials.md`.
-2. `git status` to see where the last session stopped.
+1. Start with `doc/architecture-essentials.md`.
+2. Check `git status` before starting work.
 3. Confirm which build-order step (`essentials` §15) is in progress.
 4. If the task touches the agent contract, re-read `doc/agents.md` §4 before writing a type.
 5. If the task touches visuals, re-read `doc/design.md` §2 tokens and §3 budgets.
