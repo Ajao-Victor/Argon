@@ -53,7 +53,26 @@ function DataTableImpl<T>({ columns, rows, rowKey, onRowClick, empty = 'no rows'
             </tr>
           )}
           {rows.map((r) => (
-            <tr key={rowKey(r)} onClick={onRowClick ? () => onRowClick(r) : undefined} className={cn('h-8 transition-colors hover:bg-surface-2', onRowClick && 'h-11 cursor-pointer md:h-8')}>
+            <tr
+              key={rowKey(r)}
+              onClick={onRowClick ? () => onRowClick(r) : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (e) => {
+                      if (e.key !== 'Enter' && e.key !== ' ') return;
+                      // A nested copy button or explorer link handles its own keys.
+                      if (e.target !== e.currentTarget && (e.target as HTMLElement).closest('button, a')) return;
+                      e.preventDefault();
+                      onRowClick(r);
+                    }
+                  : undefined
+              }
+              className={cn(
+                'h-8 transition-colors hover:bg-surface-2',
+                onRowClick && 'h-11 cursor-pointer focus-visible:bg-surface-2 focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-argon-500 md:h-8',
+              )}
+            >
               {columns.map((c) => (
                 <td key={c.key} className={cn('whitespace-nowrap px-2', c.align === 'right' && 'text-right', c.className)}>
                   {c.render(r)}
