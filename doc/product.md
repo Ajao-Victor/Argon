@@ -183,11 +183,13 @@ Prefer the API `action` field. The local helper exists for the fallback banner a
 |---|---|---|---|
 | Approve | ERC-20 `approve(vault, amount)` | Wallet on vault chain, amount > 0, allowance < amount | Allowance read invalidated |
 | Deposit ERC-20 | `deposit(token, amount)` | Allowance ≥ amount | `idleBalance`, `shareBalance` invalidated; activity refetch |
-| Deposit ETH | `depositETH()` with `value` | Vault exposes it (feature-detect from ABI) | Same as above |
+| Deposit native ETH | `depositETH()` payable, amount as `value` | Wallet on vault chain, amount > 0, amount ≤ native balance. **No approval step**: the vault wraps the ETH itself | Same as above; the native balance (`useBalance`) is invalidated with the ERC-20 reads |
 | Withdraw idle | `withdraw(token, amount)` | amount ≤ `idleBalance` | Same as above |
 | Emergency idle withdraw | `emergencyWithdraw()` | Always available | Same as above |
 
 Every write goes through simulate → sign → wait for receipt → invalidate. No optimistic balance mutation before the receipt.
+
+The deposit form offers three assets per chain: native **ETH**, **WETH**, and the chain stable (**USDC** on Arbitrum One, **USDG** on Robinhood Chain). Picking ETH hides the approve step and the primary button reads "deposit ETH". **MAX on ETH is gas-safe**: it fills `balance − 0.0005 ETH` (`maxNativeEthDeposit`) and says "max leaves 0.0005 ETH for gas", so the deposit can never fail with insufficient funds for gas. MAX on an ERC-20 still takes the full token balance. The withdraw page shows the wallet's native ETH beside its WETH and stable balances; redemption itself is unchanged and always pays pro-rata WETH + stable.
 
 ### 3.7 Verification features
 
