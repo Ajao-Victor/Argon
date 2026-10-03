@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { Banner, Button, Panel, Term } from '@/components/ui';
-import { useEmergencyWithdraw, usePoolStatuses, useVaultBalances, useWallet, useWithdraw } from '@/hooks';
+import { useEmergencyWithdraw, useNativeBalance, usePoolStatuses, useVaultBalances, useWallet, useWalletTokenBalances, useWithdraw } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName } from '@/services/explorer';
 import { useUiStore } from '@/stores/ui';
@@ -26,6 +26,8 @@ export function WithdrawForm() {
   const w = useWallet();
   const balances = useVaultBalances(chainId, w.address);
   const pools = usePoolStatuses(chainId);
+  const nativeBalance = useNativeBalance(chainId, w.address);
+  const walletTokens = useWalletTokenBalances(chainId, w.address);
   const withdraw = useWithdraw(chainId);
   const emergency = useEmergencyWithdraw(chainId);
   const deployed = Boolean(getVault(chainId));
@@ -69,6 +71,16 @@ export function WithdrawForm() {
           <dt className="label leading-5"><Term id="idle">idle claim</Term></dt>
           <dd className="font-mono text-text-mid">
             {balances.data ? balances.data.idle.map((b) => `${formatToken(b.idle, b.token.decimals)} ${b.token.symbol}`).join(' · ') : '—'}
+          </dd>
+          {/* What the wallet itself holds on this chain: native ETH beside the two legs the vault pays out in. */}
+          <dt className="label leading-5">wallet</dt>
+          <dd className="font-mono text-text-mid">
+            {!w.isConnected
+              ? '—'
+              : [
+                  nativeBalance.status === 'success' ? `${formatToken(nativeBalance.data, 18)} ETH` : 'ETH …',
+                  ...(walletTokens.data ?? []).map((b) => `${formatToken(b.balance, b.token.decimals)} ${b.token.symbol}`),
+                ].join(' · ')}
           </dd>
         </dl>
 
