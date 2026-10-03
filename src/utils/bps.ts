@@ -12,7 +12,3 @@ export function fromBps(bps: bigint | number): number {
   return Number(bps) / 100;
 }
 
-/** gateBps 200 → 2 (percent). */
-export function gatePctFromBps(gateBps: number | bigint): number {
-  return Number(gateBps) / 100;
-}

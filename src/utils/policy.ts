@@ -15,8 +15,6 @@ export const GATES_BPS: Record<Horizon, number> = { '1h': 100, '2h': 250, '8h': 
 
 /** The headline (8 h) gate, used by the hero chip and the avatar energy model. */
 export const GATE_PCT = GATES_PCT['8h'];
-export const GATE_BPS = GATES_BPS['8h'];
-
 /** Registry warmup: the first nine submits are observation only (InferenceRegistry.WARMUP_SUBMITS). */
 export const WARMUP_HOURS = 9;
 

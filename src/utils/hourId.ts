@@ -9,11 +9,6 @@ export function dateFromHourId(hourId: HourId | number): Date {
   return new Date(hourId * 3600 * 1000); // UTC
 }
 
-export function asHourId(n: number): HourId {
-  if (!Number.isInteger(n) || n < 0) throw new RangeError(`invalid hourId ${n}`);
-  return n as HourId;
-}
-
 /** "16:00 UTC" */
 export function formatHourUtc(hourId: HourId | number): string {
   const d = dateFromHourId(hourId);
@@ -44,20 +39,6 @@ export function msUntilNextMinuteOne(now: Date = new Date()): number {
   );
   const delta = next - now.getTime();
   return delta > 0 ? delta : delta + 3_600_000;
-}
-
-/** Milliseconds until the next :00 UTC boundary, for countdown displays. */
-export function msUntilNextHour(now: Date = new Date()): number {
-  const next = Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-    now.getUTCHours() + 1,
-    0,
-    0,
-    0,
-  );
-  return next - now.getTime();
 }
 
 /**

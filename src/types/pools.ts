@@ -20,12 +20,6 @@ export const POOLS: readonly PoolDef[] = [
   { id: 4, pair: ['WETH', 'USDG'], chainId: 4663, dex: 'uniswap-v3', gated: true },
 ] as const;
 
-export function poolById(id: PoolId): PoolDef {
-  const p = POOLS.find((x) => x.id === id);
-  if (!p) throw new Error(`unknown pool ${id}`);
-  return p;
-}
-
 /** What a pool card renders (product.md §3.3). */
 export type PoolCardStatus = 'IN_POOL' | 'IDLE' | 'UNFUNDED' | 'LINK_SOON' | 'NOT_DEPLOYED';
 

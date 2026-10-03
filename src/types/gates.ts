@@ -76,9 +76,6 @@ export function gateMessage(address: string, preset: string, topBps: number, bot
   return `argon-gate:${address.toLowerCase()}:${preset.trim().toLowerCase()}:${Math.trunc(topBps)}:${Math.trunc(bottomBps)}:${Math.trunc(issuedAt)}`;
 }
 
-/** The agent accepts issuedAt within two hours of its clock and strictly newer than the stored gate. */
-export const GATE_ISSUED_AT_WINDOW_S = 2 * 3600;
-
 // ---------------------------------------------------------------------------
 // zod
 // ---------------------------------------------------------------------------
