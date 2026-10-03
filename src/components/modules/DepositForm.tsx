@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { parseUnits } from 'viem';
 
 import { Banner, Button, Panel, TokenInput } from '@/components/ui';
-import { useDeposit, useDepositEth, useNativeBalance, useTokenAllowance, useVaultParams, useWallet } from '@/hooks';
+import { poolForChain, useDeposit, useDepositEth, useNativeBalance, usePools, useTokenAllowance, useVaultParams, useWallet } from '@/hooks';
 import { getVault } from '@/services/contracts';
 import { chainName } from '@/services/explorer';
 import { depositAssets, isNativeEth, type DepositAsset } from '@/services/tokens';
@@ -12,6 +12,7 @@ import { useUiStore } from '@/stores/ui';
 import { cn } from '@/utils/cn';
 import { formatToken } from '@/utils/format';
 import { NATIVE_ETH_GAS_RESERVE_WEI, maxNativeEthDeposit } from '@/utils/nativeEth';
+import { vaultBindingState } from '@/utils/vaultBinding';
 
 import { ChainSwitcher } from './ChainSwitcher';
 import { TxStatus, txBusy } from './TxStatus';
@@ -55,7 +56,12 @@ export function DepositForm() {
   const deposit = useDeposit(chainId);
   const depositEth = useDepositEth(chainId);
   const tx = native ? depositEth : deposit;
-  const deployed = Boolean(getVault(chainId));
+  const vaultBinding = getVault(chainId);
+  const deployed = Boolean(vaultBinding);
+  // Safety: the agent names the vault it manages per chain. A build bound to anything else never deposits.
+  const agentPools = usePools();
+  const agentVault = poolForChain(agentPools.data, chainId)?.vault;
+  const binding = vaultBindingState(vaultBinding?.address, agentVault);
   const params = useVaultParams(chainId);
   const feeBps = params.data?.depositFeeBps;
 
@@ -75,9 +81,11 @@ export function DepositForm() {
     ? 'connect a wallet'
     : !deployed
       ? `vault not deployed on ${chainName(chainId)}`
-      : wrongChain
-        ? `switch wallet to ${chainName(chainId)}`
-        : error ?? undefined;
+      : binding === 'mismatch'
+        ? 'this build is bound to a vault the agent no longer manages'
+        : wrongChain
+          ? `switch wallet to ${chainName(chainId)}`
+          : error ?? undefined;
 
   const pick = (a: DepositAsset) => {
     setSymbol(a.symbol);
@@ -115,6 +123,14 @@ export function DepositForm() {
     <Panel label="DEPOSIT" meta={`${chainName(chainId)} · ${chainId}`}>
       <div className="flex flex-col gap-4">
         <ChainSwitcher />
+
+        {binding === 'mismatch' && vaultBinding && agentVault && (
+          <div role="alert">
+            <Banner tone="down">
+              deposits disabled: this build is bound to vault {vaultBinding.address} but the agent manages {agentVault} on {chainName(chainId)}. Withdrawals from the bound vault still work.
+            </Banner>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="deposit asset">
           <span className="label">asset</span>
