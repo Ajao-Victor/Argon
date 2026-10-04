@@ -99,6 +99,23 @@ describe('live /vault and /portfolio', () => {
       expect(r.data.chains.robinhood?.stableSymbol).toBe('USDG');
     }
   });
+  it('keeps wallet equity when the embedded forecast reports an idempotent submission', () => {
+    const r = portfolioSchema.safeParse({
+      ...LIVE_PORTFOLIO,
+      forecast: {
+        ...LIVE_FORECAST,
+        warmupComplete: true,
+        action: 'hold',
+        txHash: 'already:497526',
+        txHashRh: 'already:497526',
+      },
+    });
+    expect(r.success, r.success ? '' : r.error.message).toBe(true);
+    if (r.success) {
+      expect(r.data.totalUsd).toBe(LIVE_PORTFOLIO.totalUsd);
+      expect(r.data.forecast?.txHash).toBe('already:497526');
+    }
+  });
   it('keeps uint256 money fields as decimal strings and rejects floats there', () => {
     expect(chainPortfolioSchema.safeParse({ ...LIVE_CHAIN, shares: '123456789012345678901234567890' }).success).toBe(true);
     expect(chainPortfolioSchema.safeParse({ ...LIVE_CHAIN, shares: '1.5' }).success).toBe(false);

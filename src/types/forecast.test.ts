@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computeForecastHash, roundHalfEven, verifyForecastHash } from '@/utils/forecastHash';
 
-import { agentStatusSchema, forecastListSchema, forecastSchema, healthSchema } from './forecast';
+import { agentStatusSchema, forecastListSchema, forecastSchema, healthSchema, isTransactionHash } from './forecast';
 
 /**
  * The reference rows below are verbatim captures from the live Heroku agent on
@@ -84,6 +84,33 @@ describe('forecastSchema rejects malformed rows', () => {
   });
   it('rejects a list containing one bad row', () => {
     expect(forecastListSchema.safeParse({ items: [LIVE_FORECAST, { ...LIVE_FORECAST, forecastHash: '0x1' }] }).success).toBe(false);
+  });
+});
+
+describe('idempotent on-chain submission markers', () => {
+  it('accepts the live already:<hourId> result without discarding the forecast', () => {
+    const res = forecastSchema.safeParse({
+      ...LIVE_FORECAST,
+      warmupComplete: true,
+      action: 'hold',
+      txHash: 'already:497526',
+      txHashRh: 'already:497526',
+    });
+    expect(res.success, res.success ? '' : res.error.message).toBe(true);
+    if (res.success) {
+      expect(res.data.txHash).toBe('already:497526');
+      expect(isTransactionHash(res.data.txHash)).toBe(false);
+    }
+  });
+
+  it('links only genuine 32-byte transaction hashes', () => {
+    expect(isTransactionHash('0x' + 'ab'.repeat(32))).toBe(true);
+    expect(isTransactionHash('already:497526')).toBe(false);
+    expect(isTransactionHash('0xnot-a-hash')).toBe(false);
+  });
+
+  it('still rejects arbitrary status strings in transaction fields', () => {
+    expect(forecastSchema.safeParse({ ...LIVE_FORECAST, txHash: 'submitted somehow' }).success).toBe(false);
   });
 });
 

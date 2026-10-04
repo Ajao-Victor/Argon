@@ -22,6 +22,9 @@ import { z } from 'zod';
 export type HourId = number & { readonly __brand: 'HourId' };
 
 export type Hex = `0x${string}`;
+export type AlreadySubmitted = `already:${number}`;
+/** Registry submission result: a transaction hash, or an idempotent already-on-chain marker. */
+export type SubmitResult = Hex | AlreadySubmitted;
 
 export type PolicyAction = 'warmup' | 'exit' | 'enter' | 'hold';
 export type ForecastStatus = 'pending' | 'matured';
@@ -57,9 +60,9 @@ export interface Forecast {
   warmupComplete: boolean;
   forecastHash: Hex | null;
   /** Keeper `submit` / `rebalance` tx on Arbitrum One. */
-  txHash: Hex | null;
+  txHash: SubmitResult | null;
   /** Keeper tx on Robinhood Chain. */
-  txHashRh: Hex | null;
+  txHashRh: SubmitResult | null;
   /** Free-text keeper outcome per chain, e.g. "warmup-skip" or a tx hash. */
   rebalanceTx: string | null;
   rebalanceTxRh: string | null;
@@ -140,6 +143,18 @@ const hash32Schema = z
   .regex(/^0x[0-9a-fA-F]{64}$/, '32-byte hex hash')
   .transform((s) => s as Hex);
 
+const alreadySubmittedSchema = z
+  .string()
+  .regex(/^already:\d{1,12}$/, 'already:<hourId> marker')
+  .transform((s) => s as AlreadySubmitted);
+
+const submitResultSchema = z.union([hash32Schema, alreadySubmittedSchema]);
+
+/** Only real transaction hashes may be linked to a block explorer. */
+export function isTransactionHash(value: string | null | undefined): value is Hex {
+  return typeof value === 'string' && /^0x[0-9a-fA-F]{64}$/.test(value);
+}
+
 // A percent change below -100 is impossible; above +1000 in 8 h is corruption, not a forecast.
 const pctSchema = z.number().finite().gt(-100).lt(1000);
 const bpsGateSchema = z.number().int().nonnegative().max(10_000);
@@ -172,8 +187,8 @@ export const forecastSchema = z
     gate8hBps: bpsGateSchema,
     warmupComplete: z.boolean(),
     forecastHash: hash32Schema.nullable(),
-    txHash: hash32Schema.nullable(),
-    txHashRh: hash32Schema.nullable(),
+    txHash: submitResultSchema.nullable(),
+    txHashRh: submitResultSchema.nullable(),
     rebalanceTx: z.string().max(128).nullable(),
     rebalanceTxRh: z.string().max(128).nullable(),
     poolStatusArb: apiPoolStatusSchema,

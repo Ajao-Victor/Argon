@@ -6,7 +6,7 @@ import { Chip, DataTable, HashText, Panel, Skeleton, Term, type ChipTone, type C
 import { useAgentMode, useForecastHistory } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { txUrl } from '@/services/explorer';
-import type { Forecast, PolicyAction } from '@/types/forecast';
+import { isTransactionHash, type Forecast, type PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
 import { formatPct } from '@/utils/format';
 import { formatDateHourUtc, formatSettlementHour, hourIdFromDate } from '@/utils/hourId';
@@ -42,7 +42,18 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
     { key: 'status', header: 'status', render: (r) => <span className={cn(r.status === 'matured' ? 'text-text-mid' : 'text-text-dim')}>{r.status}</span> },
     { key: 'action', header: 'action', render: (r) => <Chip tone={ACTION_TONE[r.action]}>{r.action}</Chip> },
     { key: 'hash', header: 'hash', render: (r) => <HashText value={r.forecastHash} /> },
-    { key: 'tx', header: 'tx', render: (r) => <HashText value={r.txHash} href={r.txHash ? txUrl(chainId, r.txHash) : undefined} /> },
+    {
+      key: 'tx',
+      header: 'tx',
+      render: (r) =>
+        isTransactionHash(r.txHash) ? (
+          <HashText value={r.txHash} href={txUrl(chainId, r.txHash)} />
+        ) : r.txHash ? (
+          <span className="text-signal-up" title={r.txHash}>already on-chain</span>
+        ) : (
+          <HashText value={null} />
+        ),
+    },
   ], [chainId, nowHourId]);
   const rowKey = useCallback((r: Forecast) => r.hourId, []);
   const onRowClick = useCallback((r: Forecast) => setSelected((s) => (s?.hourId === r.hourId ? undefined : r)), []);

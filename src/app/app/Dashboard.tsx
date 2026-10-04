@@ -92,7 +92,7 @@ export function Dashboard() {
                   ethPctChange={pct ?? null}
                   action={latest.data?.action}
                   warmupComplete={warmupComplete}
-                  reachable={latest.status !== 'error' || match.chainPct !== null}
+                  reachable={status.status === 'success' || latest.status === 'success' || match.chainPct !== null}
                   mode={mode}
                   hourId={latest.data?.hourId}
                   size="100%"

@@ -5,6 +5,7 @@ import { useLatestForecast, usePools, poolForChain, usePoolStatuses, useVaultBal
 import { getVault } from '@/services/contracts';
 import { chainName, txUrl } from '@/services/explorer';
 import { useUiStore } from '@/stores/ui';
+import { isTransactionHash } from '@/types/forecast';
 import type { PoolCardStatus, PoolDef } from '@/types/pools';
 import { cn } from '@/utils/cn';
 import { formatToken } from '@/utils/format';
@@ -148,7 +149,13 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
                 </dd>
                 <dt className="label leading-5"><Term id="lastRebalance">keeper</Term></dt>
                 <dd className="text-text-mid">
-                  {keeperTx ? <HashText value={keeperTx} href={txUrl(pool.chainId, keeperTx)} /> : latest.data ? <RebalanceTag value={pool.chainId === 42161 ? latest.data.rebalanceTx : latest.data.rebalanceTxRh} chainId={pool.chainId} /> : '—'}
+                  {isTransactionHash(keeperTx) ? (
+                    <HashText value={keeperTx} href={txUrl(pool.chainId, keeperTx)} />
+                  ) : keeperTx ? (
+                    <Chip tone="up" title={keeperTx}>forecast already on-chain</Chip>
+                  ) : latest.data ? (
+                    <RebalanceTag value={pool.chainId === 42161 ? latest.data.rebalanceTx : latest.data.rebalanceTxRh} chainId={pool.chainId} />
+                  ) : '—'}
                   {latest.data && <span className="ml-2 text-text-dim">hour {latest.data.hourId}</span>}
                 </dd>
               </dl>
