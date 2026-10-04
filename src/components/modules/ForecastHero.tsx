@@ -68,7 +68,10 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
 
   const api = latest.data;
   const agentOffline = agentMode === 'offline';
-  const agentDown = latest.status === 'error';
+  const forecastUnavailable = latest.status === 'error';
+  // A forecast failure is not proof that the process is down. Status is an independent,
+  // fast endpoint and is the source of truth for agent reachability.
+  const agentDown = forecastUnavailable && status.status === 'error';
   // The gate shown is the one the API reports (the deployed vault exposes no gate getter). No default.
   const gateBps = api?.gateBps ?? status.data?.gateBps;
 
@@ -123,9 +126,15 @@ export function ForecastHero({ chainId, delay = 0 }: { chainId: SupportedChainId
           waiting for agent telemetry — NEXT_PUBLIC_AGENT_URL is not set
         </Banner>
       )}
-      {agentDown && (
+      {forecastUnavailable && (
         <Banner tone={pct !== null && pct !== undefined ? 'warn' : 'down'} className="mb-3" glitch>
-          {pct !== null && pct !== undefined ? 'live agent unreachable — showing last on-chain forecast' : 'live agent unreachable — no on-chain forecast available'}
+          {agentDown
+            ? pct !== null && pct !== undefined
+              ? 'live agent unreachable — showing last on-chain forecast'
+              : 'live agent unreachable — no on-chain forecast available'
+            : pct !== null && pct !== undefined
+              ? 'forecast feed unavailable — showing last on-chain forecast'
+              : 'forecast feed unavailable — agent status is still online'}
         </Banner>
       )}
 

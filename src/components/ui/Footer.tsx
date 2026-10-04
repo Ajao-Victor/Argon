@@ -54,14 +54,17 @@ export function Footer() {
   const vault = getVault(chainId);
   const registry = getRegistry(chainId);
 
-  const agentUp = health.status === 'success' && health.data.ok && status.status !== 'error';
+  // Health and status independently prove the agent is reachable. A failure in one
+  // endpoint must not turn a successful response from the other into "Unreachable".
+  const agentUp = (health.status === 'success' && health.data.ok) || (status.status === 'success' && status.data.ok);
+  const agentPending = health.status === 'pending' && status.status === 'pending';
   const stale = status.data ? isForecastStale(status.data) : false;
   const lag = status.data ? forecastLagHours(status.data) : 0;
-  const agentTone: ChipTone = mode === 'offline' ? 'idle' : health.status === 'pending' ? 'plain' : agentUp ? 'up' : 'down';
+  const agentTone: ChipTone = mode === 'offline' ? 'idle' : agentPending ? 'plain' : agentUp ? 'up' : 'down';
   const agentText =
     mode === 'offline'
       ? 'Agent API: Not configured'
-      : health.status === 'pending'
+      : agentPending
         ? 'Agent API: connecting…'
         : mode === 'fixture'
           ? 'Agent API: fixture'
