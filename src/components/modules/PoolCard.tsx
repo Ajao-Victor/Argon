@@ -5,7 +5,7 @@ import { useLatestForecast, usePools, poolForChain, usePoolStatuses, useVaultBal
 import { getVault } from '@/services/contracts';
 import { chainName, txUrl } from '@/services/explorer';
 import { useUiStore } from '@/stores/ui';
-import { isTransactionHash } from '@/types/forecast';
+import { isSubmissionFailure, isTransactionHash } from '@/types/forecast';
 import type { PoolCardStatus, PoolDef } from '@/types/pools';
 import { cn } from '@/utils/cn';
 import { formatToken } from '@/utils/format';
@@ -36,6 +36,7 @@ function RebalanceTag({ value, chainId }: { value: string | null; chainId: 42161
   if (value === 'warmup-skip') return <Chip tone="idle">warmup · skipped</Chip>;
   if (value === 'hold') return <Chip tone="argon">hold</Chip>;
   if (/dry/i.test(value)) return <Chip tone="warn">{value}</Chip>;
+  if (value.startsWith('error:')) return <Chip tone="down">rebalance failed</Chip>;
   return <Chip tone="plain">{value}</Chip>;
 }
 
@@ -67,7 +68,8 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
   }
 
   const keeperTx = pool.chainId === 42161 ? latest.data?.txHash : latest.data?.txHashRh;
-  const exitPending = status === 'IN_POOL' && latest.data?.action === 'exit' && Boolean(keeperTx);
+  const submissionSucceeded = isTransactionHash(keeperTx) || Boolean(keeperTx?.startsWith('already:'));
+  const exitPending = status === 'IN_POOL' && latest.data?.action === 'exit' && submissionSucceeded;
   const legs = balances.data?.idle.filter((b) => pool.pair.includes(b.token.symbol)) ?? [];
 
   const select = () => {
@@ -151,6 +153,8 @@ export function PoolCard({ pool, delay = 0 }: { pool: PoolDef; delay?: number })
                 <dd className="text-text-mid">
                   {isTransactionHash(keeperTx) ? (
                     <HashText value={keeperTx} href={txUrl(pool.chainId, keeperTx)} />
+                  ) : isSubmissionFailure(keeperTx) ? (
+                    <Chip tone="down">forecast submission failed</Chip>
                   ) : keeperTx ? (
                     <Chip tone="up" title={keeperTx}>forecast already on-chain</Chip>
                   ) : latest.data ? (

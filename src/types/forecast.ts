@@ -23,8 +23,9 @@ export type HourId = number & { readonly __brand: 'HourId' };
 
 export type Hex = `0x${string}`;
 export type AlreadySubmitted = `already:${number}`;
-/** Registry submission result: a transaction hash, or an idempotent already-on-chain marker. */
-export type SubmitResult = Hex | AlreadySubmitted;
+export type SubmitFailed = 'error';
+/** Registry submission result. Raw RPC errors are reduced to the safe `error` marker. */
+export type SubmitResult = Hex | AlreadySubmitted | SubmitFailed;
 
 export type PolicyAction = 'warmup' | 'exit' | 'enter' | 'hold';
 export type ForecastStatus = 'pending' | 'matured';
@@ -148,11 +149,24 @@ const alreadySubmittedSchema = z
   .regex(/^already:\d{1,12}$/, 'already:<hourId> marker')
   .transform((s) => s as AlreadySubmitted);
 
-const submitResultSchema = z.union([hash32Schema, alreadySubmittedSchema]);
+// The agent currently prefixes keeper/RPC failures with `error:`. Accept that known
+// envelope without retaining provider messages, wallet balances, or other diagnostics in
+// application state. Unknown strings remain invalid.
+const failedSubmissionSchema = z
+  .string()
+  .max(1_000)
+  .refine((s) => s.startsWith('error:'), 'error:<diagnostic> marker')
+  .transform(() => 'error' as const);
+
+const submitResultSchema = z.union([hash32Schema, alreadySubmittedSchema, failedSubmissionSchema]);
 
 /** Only real transaction hashes may be linked to a block explorer. */
 export function isTransactionHash(value: string | null | undefined): value is Hex {
   return typeof value === 'string' && /^0x[0-9a-fA-F]{64}$/.test(value);
+}
+
+export function isSubmissionFailure(value: SubmitResult | null | undefined): value is SubmitFailed {
+  return value === 'error';
 }
 
 // A percent change below -100 is impossible; above +1000 in 8 h is corruption, not a forecast.
