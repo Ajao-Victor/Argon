@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computeForecastHash, roundHalfEven, verifyForecastHash } from '@/utils/forecastHash';
 
-import { agentStatusSchema, forecastListSchema, forecastSchema, healthSchema, isTransactionHash } from './forecast';
+import { agentStatusSchema, forecastListSchema, forecastSchema, healthSchema, isSubmissionFailure, isTransactionHash } from './forecast';
 
 /**
  * The reference rows below are verbatim captures from the live Heroku agent on
@@ -111,6 +111,26 @@ describe('idempotent on-chain submission markers', () => {
 
   it('still rejects arbitrary status strings in transaction fields', () => {
     expect(forecastSchema.safeParse({ ...LIVE_FORECAST, txHash: 'submitted somehow' }).success).toBe(false);
+  });
+});
+
+describe('keeper submission failures', () => {
+  const RAW_RPC_ERROR =
+    "error:{'code': -32000, 'message': 'insufficient funds for gas: address 0x9642... have 1 want 2'}";
+
+  it('keeps the forecast but sanitizes raw RPC diagnostics', () => {
+    const res = forecastSchema.safeParse({ ...LIVE_FORECAST, txHash: RAW_RPC_ERROR });
+    expect(res.success, res.success ? '' : res.error.message).toBe(true);
+    if (res.success) {
+      expect(res.data.txHash).toBe('error');
+      expect(isSubmissionFailure(res.data.txHash)).toBe(true);
+      expect(JSON.stringify(res.data)).not.toContain('insufficient funds');
+      expect(JSON.stringify(res.data)).not.toContain('0x9642');
+    }
+  });
+
+  it('rejects an oversized error envelope', () => {
+    expect(forecastSchema.safeParse({ ...LIVE_FORECAST, txHash: `error:${'x'.repeat(1_001)}` }).success).toBe(false);
   });
 });
 

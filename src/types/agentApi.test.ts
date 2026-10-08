@@ -116,6 +116,21 @@ describe('live /vault and /portfolio', () => {
       expect(r.data.forecast?.txHash).toBe('already:497526');
     }
   });
+  it('keeps wallet equity and removes raw RPC details when forecast submission fails', () => {
+    const rawError = "error:{'code': -32000, 'message': 'insufficient funds for gas: address 0x9642...'}";
+    const r = portfolioSchema.safeParse({
+      ...LIVE_PORTFOLIO,
+      totalUsd: 2.00159679,
+      forecast: { ...LIVE_FORECAST, warmupComplete: true, action: 'hold', txHash: rawError },
+    });
+    expect(r.success, r.success ? '' : r.error.message).toBe(true);
+    if (r.success) {
+      expect(r.data.totalUsd).toBe(2.00159679);
+      expect(r.data.forecast?.txHash).toBe('error');
+      expect(JSON.stringify(r.data.forecast)).not.toContain('insufficient funds');
+      expect(JSON.stringify(r.data.forecast)).not.toContain('0x9642');
+    }
+  });
   it('keeps uint256 money fields as decimal strings and rejects floats there', () => {
     expect(chainPortfolioSchema.safeParse({ ...LIVE_CHAIN, shares: '123456789012345678901234567890' }).success).toBe(true);
     expect(chainPortfolioSchema.safeParse({ ...LIVE_CHAIN, shares: '1.5' }).success).toBe(false);

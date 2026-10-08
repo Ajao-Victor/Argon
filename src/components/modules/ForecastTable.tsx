@@ -6,7 +6,7 @@ import { Chip, DataTable, HashText, Panel, Skeleton, Term, type ChipTone, type C
 import { useAgentMode, useForecastHistory } from '@/hooks';
 import type { SupportedChainId } from '@/services/chains';
 import { txUrl } from '@/services/explorer';
-import { isTransactionHash, type Forecast, type PolicyAction } from '@/types/forecast';
+import { isSubmissionFailure, isTransactionHash, type Forecast, type PolicyAction } from '@/types/forecast';
 import { cn } from '@/utils/cn';
 import { formatPct } from '@/utils/format';
 import { formatDateHourUtc, formatSettlementHour, hourIdFromDate } from '@/utils/hourId';
@@ -48,6 +48,8 @@ export function ForecastTable({ chainId, limit = 24 }: { chainId: SupportedChain
       render: (r) =>
         isTransactionHash(r.txHash) ? (
           <HashText value={r.txHash} href={txUrl(chainId, r.txHash)} />
+        ) : isSubmissionFailure(r.txHash) ? (
+          <span className="text-signal-down">submission failed</span>
         ) : r.txHash ? (
           <span className="text-signal-up" title={r.txHash}>already on-chain</span>
         ) : (
